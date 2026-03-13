@@ -81,7 +81,7 @@ const ProductPage = () => {
         setSpecData(null); // Reset previous data
 
         try {
-            const response = await fetch(`${API_BASE}/api/ModelDetails/name/${encodeURIComponent(modelName)}`);
+            const response = await fetch(`${API_BASE}api/ModelDetails/name/${encodeURIComponent(modelName)}`);
             if (response.ok) {
                 const data = await response.json();
                 setSpecData(data);
