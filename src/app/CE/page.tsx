@@ -38,6 +38,7 @@ interface Contract {
     agencyName: string;
     company: string;
     progress: string;
+    pdfDocument: null;
 }
 
 // --- InputField component (for single-line inputs) ---
@@ -144,6 +145,7 @@ export default function Page() {
         agencyName: "",
         company: "",
         progress: "0%",
+        pdfDocument: null
     });
     const [showForm, setShowForm] = useState(false);
     const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -285,38 +287,62 @@ export default function Page() {
     const handleSave = async () => {
         const duration = calculateDuration(formData.startDate, formData.endDate);
         const progress = calculateProgress(formData.startDate, formData.endDate);
-        const payload = { ...formData, contractDuration: duration, progress };
 
-        if (!payload.serviceName || !payload.startDate || !payload.endDate) {
+        // 1. 构造合同数据对象
+        // 确保包含所有字段，并将 pdfDocument 设为 null
+        const contractData = {
+            ...formData,
+            contractDuration: duration,
+            progress,
+            pdfDocument: null // 明确设置为 null，避免后端 Byte[] 转换失败
+        };
+
+        if (!contractData.serviceName || !contractData.startDate || !contractData.endDate) {
             alert("Please fill in Service Name, Start Date, and End Date.");
             return;
         }
 
+        // 2. 关键点：包装数据！
+        // 你的后端报错显示它需要一个名为 "contract" 的对象
+        const wrappedPayload = {
+            contract: contractData
+        };
+
         try {
+            let response;
             if (editIndex !== null && formData.id) {
-                // PUT
-                await fetch(`${API_URL}/${formData.id}`, {
+                // PUT 请求
+                response = await fetch(`${API_URL}/${formData.id}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(wrappedPayload), // 发送包装后的数据
                 });
             } else {
-                // POST
-                await fetch(API_URL, {
+                // POST 请求
+                // 新增时，通常需要移除 id 字段，防止与数据库自增 ID 冲突
+                const { id, ...newDataWithoutId } = contractData;
+
+                response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify({ contract: newDataWithoutId }), // 发送包装后的数据
                 });
             }
 
+            // 3. 检查响应状态
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+            // 4. 成功后的处理逻辑
             if (selectedCompany) {
-                // Use the filter function to refresh the list with the current company filter
-                // We pass a mock event object because handleCompanyFilterChange expects one,
-                // but we only care about the value of selectedCompany.
                 await handleCompanyFilterChange({
                     target: { value: selectedCompany }
                 } as ChangeEvent<HTMLSelectElement>);
-            } setShowForm(false);
+            }
+
+            setShowForm(false);
             setEditIndex(null);
             setFormData({
                 serviceName: "",
@@ -329,13 +355,15 @@ export default function Page() {
                 agencyName: "",
                 company: "",
                 progress: "0%",
+                pdfDocument: null // 重置时也保持为 null
             });
+
         } catch (err) {
             console.error("Save failed", err);
-            addToast("Failed to save data. Check console for details.");
+            // 这里会打印出具体的 400 错误详情
+            alert(`Save failed: ${err}`);
         }
     };
-
     // ✅ Edit contract
     const handleEdit = (index: number) => {
         setFormData(contracts[index]);
@@ -871,6 +899,7 @@ export default function Page() {
                                             agencyName: "",
                                             company: "",
                                             progress: "0%",
+                                            pdfDocument: null
                                         }));
                                     }
                                 }}
