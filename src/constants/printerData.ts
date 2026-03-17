@@ -347,19 +347,19 @@ export const MODEL_LIST = [
     },
     {
         name: "C5140",
-        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE C5140"
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5140"
     },
     {
         name: "C5150",
-        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE C5150"
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5150"
     },
     {
         name: "C5160",
-        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE C5160"
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5160"
     },
     {
         name: "C5170",
-        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE C5170"
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5170"
     },
     {
         name: "6155",
