@@ -524,10 +524,10 @@ export const catalog = [
             { id: 15, label: "WITH BOOKLET FINISHER" }
         ],
         products: [
-            { id: 20, name: 'Canon Mono Multi-Function Printer Canon imageFORCE C5140', price: 'Color Multi-Function' },
-            { id: 21, name: 'Canon Mono Multi-Function Printer Canon imageFORCE C5150', price: 'Color Multi-Function' },
-            { id: 22, name: 'Canon Mono Multi-Function Printer Canon imageFORCE C5160', price: 'Color Multi-Function' },
-            { id: 23, name: 'Canon Mono Multi-Function Printer Canon imageFORCE C5170', price: 'Color Multi-Function' },
+            { id: 20, name: 'Canon Color Multi-Function Printer Canon imageFORCE C5140', price: 'Color Multi-Function' },
+            { id: 21, name: 'Canon Color Multi-Function Printer Canon imageFORCE C5150', price: 'Color Multi-Function' },
+            { id: 22, name: 'Canon Color Multi-Function Printer Canon imageFORCE C5160', price: 'Color Multi-Function' },
+            { id: 23, name: 'Canon Color Multi-Function Printer Canon imageFORCE C5170', price: 'Color Multi-Function' },
         ],
     },
     {
