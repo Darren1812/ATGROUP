@@ -284,6 +284,12 @@ export default function Page() {
         // Add 1 (to match your Excel formula)
         return Math.max(months + 1, 0).toString();
     };
+    const formatToMidnightISO = (dateStr: string) => {
+        // 假设输入是 dd/mm/yyyy
+        const [day, month, year] = dateStr.split('/');
+        // 拼接成标准的 YYYY-MM-DDT00:00:00Z 格式
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
+    };
     const handleSave = async () => {
         // 1. 验证日期是否存在
         if (!formData.startDate || !formData.endDate) {
@@ -322,8 +328,8 @@ export default function Page() {
                 ContactOfficer: formData.contactOfficer, // 🔥 修复 Officer 映射
                 ContractNumber: formData.contractNumber,
                 ContractDuration: duration,             // 🔥 修复 Duration 映射
-                StartDate: startD.toLocaleDateString('en-CA'), // en-CA 会返回 YYYY-MM-DD 格式
-                EndDate: endD.toLocaleDateString('en-CA'),
+                StartDate: formatToMidnightISO(formData.startDate),
+                EndDate: formatToMidnightISO(formData.endDate),
                 AgencyName: formData.agencyName,
                 Company: `${baseCompany}${jurisdiction}`,
                 PdfDocument: null
