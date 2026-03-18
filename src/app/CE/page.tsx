@@ -344,15 +344,26 @@ export default function Page() {
                 },
                 body: JSON.stringify(payload),
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Backend Error:", errorData);
                 throw new Error("Server rejected the data.");
             }
+            if (isEditing) {
+                // 更新模式：在数组中找到那一行并替换它
+                setContracts((prev: any[]) =>
+                    prev.map((c) => (c.id === formData.id ? { ...c, ...payload } : c))
+                );
+            } else {
+                // 新增模式：通常后端会返回带新 ID 的对象
+                const newData = await response.json();
+                setContracts((prev: any[]) => [...prev, newData]);
+            }
 
-            alert("Saved successfully!");
+            alert(isEditing ? "Updated successfully!" : "Saved successfully!");
             setShowForm(false);
+            setEditIndex(null);
             // ... 重置表单逻辑
 
         } catch (err: any) {
