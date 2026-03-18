@@ -322,8 +322,8 @@ export default function Page() {
                 ContactOfficer: formData.contactOfficer, // 🔥 修复 Officer 映射
                 ContractNumber: formData.contractNumber,
                 ContractDuration: duration,             // 🔥 修复 Duration 映射
-                StartDate: startD.toISOString(),
-                EndDate: endD.toISOString(),
+                StartDate: startD.toLocaleDateString('en-CA'), // en-CA 会返回 YYYY-MM-DD 格式
+                EndDate: endD.toLocaleDateString('en-CA'),
                 AgencyName: formData.agencyName,
                 Company: `${baseCompany}${jurisdiction}`,
                 PdfDocument: null
