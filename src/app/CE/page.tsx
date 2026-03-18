@@ -363,7 +363,6 @@ export default function Page() {
 
             alert(isEditing ? "Updated successfully!" : "Saved successfully!");
             setShowForm(false);
-            setEditIndex(null);
             // ... 重置表单逻辑
 
         } catch (err: any) {
