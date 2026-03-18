@@ -203,7 +203,7 @@ export default function Page() {
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
 
-    const PAGE_SIZE = 50;
+    const PAGE_SIZE = 1000;
 
     const fetchContracts = useCallback(
         async (pageToLoad = 0) => {
