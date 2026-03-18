@@ -295,17 +295,15 @@ export default function Page() {
         const formatToStandardDate = (dateStr: string) => {
             if (dateStr.includes('/')) {
                 const [day, month, year] = dateStr.split('/');
-                // 确保格式是 yyyy-mm-dd
                 return `${year}-${month}-${day}`;
             }
-            return dateStr; // 如果已经是标准格式则直接返回
+            return dateStr;
         };
 
         try {
             const stdStartDate = formatToStandardDate(formData.startDate);
             const stdEndDate = formatToStandardDate(formData.endDate);
 
-            // 验证转换后的日期是否合法
             const startD = new Date(stdStartDate);
             const endD = new Date(stdEndDate);
 
@@ -313,25 +311,24 @@ export default function Page() {
                 throw new Error("Date format is invalid. Please use dd/mm/yyyy.");
             }
 
+            // 🔥 修复：确保 duration 在这里被重新计算
             const duration = calculateDuration(formData.startDate, formData.endDate);
 
-            // 2. 构造 Payload
+            // 2. 构造 Payload (键名首字母大写，与你的 C# DTO 一致)
             const payload = {
                 Id: formData.id || 0,
                 ServiceName: formData.serviceName,
                 ContractValue: formData.contractValue,
-                ContactOfficer: formData.contactOfficer,
+                ContactOfficer: formData.contactOfficer, // 🔥 修复 Officer 映射
                 ContractNumber: formData.contractNumber,
-                ContractDuration: duration,
-                // 此时调用 toISOString 就安全了
+                ContractDuration: duration,             // 🔥 修复 Duration 映射
                 StartDate: startD.toISOString(),
                 EndDate: endD.toISOString(),
                 AgencyName: formData.agencyName,
-                Company: `${baseCompany}${jurisdiction}`, // 拼接公司和管辖权
+                Company: `${baseCompany}${jurisdiction}`,
                 PdfDocument: null
             };
 
-            // 判断是编辑还是新增
             const isEditing = editIndex !== null;
             const url = isEditing ? `${API_URL}/${formData.id}` : API_URL;
             const method = isEditing ? "PUT" : "POST";
@@ -350,21 +347,46 @@ export default function Page() {
                 console.error("Backend Error:", errorData);
                 throw new Error("Server rejected the data.");
             }
+
+            // 3. 🔥 修复：即时更新本地 UI 列表
             if (isEditing) {
-                // 更新模式：在数组中找到那一行并替换它
                 setContracts((prev: any[]) =>
-                    prev.map((c) => (c.id === formData.id ? { ...c, ...payload } : c))
+                    prev.map((c) => {
+                        if (c.id === formData.id) {
+                            // 将后端返回的格式转换回前端显示的格式
+                            return {
+                                ...c,
+                                id: formData.id,
+                                serviceName: payload.ServiceName,
+                                contractValue: payload.ContractValue,
+                                contactOfficer: payload.ContactOfficer,
+                                contractNumber: payload.ContractNumber,
+                                contractDuration: payload.ContractDuration,
+                                startDate: payload.StartDate,
+                                endDate: payload.EndDate,
+                                agencyName: payload.AgencyName,
+                                company: payload.Company
+                            };
+                        }
+                        return c;
+                    })
                 );
             } else {
-                // 新增模式：通常后端会返回带新 ID 的对象
+                // 新增模式：直接重新抓取或使用返回数据
                 const newData = await response.json();
-                setContracts((prev: any[]) => [...prev, newData]);
+                // 如果后端返回的是大写 Key，这里可能需要 map 一下，或者直接调用获取列表函数
+                if (typeof fetchContracts === 'function') {
+                    await fetchContracts();
+                } else {
+                    setContracts((prev: any[]) => [...prev, newData]);
+                }
             }
 
             alert(isEditing ? "Updated successfully!" : "Saved successfully!");
-            setShowForm(false);
-            // ... 重置表单逻辑
 
+            // 4. 重置状态
+            setShowForm(false);
+            setEditIndex(null);
         } catch (err: any) {
             console.error("Save failed:", err);
             alert(`保存失败: ${err.message || err}`);
