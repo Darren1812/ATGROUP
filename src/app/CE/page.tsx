@@ -331,16 +331,20 @@ export default function Page() {
                 PdfDocument: null
             };
 
-            // 3. 发送请求
-            const response = await fetch(API_URL, {
-                method: "POST",
+            // 判断是编辑还是新增
+            const isEditing = editIndex !== null;
+            const url = isEditing ? `${API_URL}/${formData.id}` : API_URL;
+            const method = isEditing ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json"
                 },
                 body: JSON.stringify(payload),
             });
-
+            
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Backend Error:", errorData);
@@ -355,7 +359,8 @@ export default function Page() {
             console.error("Save failed:", err);
             alert(`保存失败: ${err.message || err}`);
         }
-    };    // ✅ Edit contract
+    };
+    // ✅ Edit contract
     const handleEdit = (index: number) => {
         setFormData(contracts[index]);
         setEditIndex(index);
