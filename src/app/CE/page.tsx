@@ -285,53 +285,55 @@ export default function Page() {
         return Math.max(months + 1, 0).toString();
     };
     const handleSave = async () => {
-        const duration = calculateDuration(formData.startDate, formData.endDate);
-        const progress = calculateProgress(formData.startDate, formData.endDate);
-        const payload = {
-            // Id 设为 0，因为你的后端代码会重置它：contract.Id = 0;
-            Id: 0,
-            ServiceName: formData.serviceName,
-            ContractValue: formData.contractValue,
-            ContactOfficer: formData.contactOfficer,
-            ContractNumber: formData.contractNumber,
-            ContractDuration: duration,
-            // 后端要求 UTC 时间，确保格式正确
-            StartDate: new Date(formData.startDate).toISOString(),
-            EndDate: new Date(formData.endDate).toISOString(),
-            AgencyName: formData.agencyName,
-            Company: formData.company,
-            PdfDocument: null // 必须是 null，对应后端的 byte[]
-        };
-
-        if (!payload.ServiceName || !payload.StartDate || !payload.EndDate) {
-            alert("Please fill in Service Name, Start Date, and End Date.");
+        // 1. 先验证日期是否已填写，防止 new Date("") 报错
+        if (!formData.startDate || !formData.endDate) {
+            alert("Please select both Start Date and End Date.");
             return;
         }
 
+        const duration = calculateDuration(formData.startDate, formData.endDate);
+        const progress = calculateProgress(formData.startDate, formData.endDate);
+
         try {
+            // 2. 构造 Payload
+            const payload = {
+                Id: formData.id || 0,
+                ServiceName: formData.serviceName,
+                ContractValue: formData.contractValue,
+                ContactOfficer: formData.contactOfficer,
+                ContractNumber: formData.contractNumber,
+                ContractDuration: duration,
+                // 使用 toISOString 确保符合后端 DateTime 要求
+                StartDate: new Date(formData.startDate).toISOString(),
+                EndDate: new Date(formData.endDate).toISOString(),
+                AgencyName: formData.agencyName,
+                Company: formData.company,
+                PdfDocument: null
+            };
+
+            // 3. 发送请求 (不需要外层 contract 包装)
             const response = await fetch(API_URL, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json"
                 },
-                body: JSON.stringify(payload), // 直接发送对象
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error("Backend Validation Error:", errorData);
-                throw new Error("保存失败，请检查控制台详情");
+                console.error("Backend Error:", errorData);
+                throw new Error("Server rejected the data.");
             }
 
-            // --- 成功后的逻辑 ---
-            alert("Success!");
+            alert("Saved successfully!");
             setShowForm(false);
-            // 重置表单...
+            // ... 重置表单逻辑
 
         } catch (err) {
             console.error("Save failed:", err);
-            alert(err);
+            alert(`保存失败: ${err}`);
         }
     };
     // ✅ Edit contract
