@@ -284,94 +284,56 @@ export default function Page() {
         // Add 1 (to match your Excel formula)
         return Math.max(months + 1, 0).toString();
     };
-const handleSave = async () => {
-    const duration = calculateDuration(formData.startDate, formData.endDate);
-    const progress = calculateProgress(formData.startDate, formData.endDate);
+    const handleSave = async () => {
+        const duration = calculateDuration(formData.startDate, formData.endDate);
+        const progress = calculateProgress(formData.startDate, formData.endDate);
+        const payload = {
+            // Id 设为 0，因为你的后端代码会重置它：contract.Id = 0;
+            Id: 0,
+            ServiceName: formData.serviceName,
+            ContractValue: formData.contractValue,
+            ContactOfficer: formData.contactOfficer,
+            ContractNumber: formData.contractNumber,
+            ContractDuration: duration,
+            // 后端要求 UTC 时间，确保格式正确
+            StartDate: new Date(formData.startDate).toISOString(),
+            EndDate: new Date(formData.endDate).toISOString(),
+            AgencyName: formData.agencyName,
+            Company: formData.company,
+            PdfDocument: null // 必须是 null，对应后端的 byte[]
+        };
 
-    // --- 在前端进行数据转换 ---
-    const backendData = {
-        // 将前端的小写字段映射为后端要求的大写字段
-        Id: formData.id,
-        ServiceName: formData.serviceName,
-        ContractValue: formData.contractValue,
-        ContactOfficer: formData.contactOfficer,
-        ContractNumber: formData.contractNumber,
-        ContractDuration: duration,
-        StartDate: formData.startDate,
-        EndDate: formData.endDate,
-        AgencyName: formData.agencyName,
-        Company: formData.company,
-        PdfDocument: null // 之前报错的 Byte[] 转换问题，传 null 解决
-    };
+        if (!payload.ServiceName || !payload.StartDate || !payload.EndDate) {
+            alert("Please fill in Service Name, Start Date, and End Date.");
+            return;
+        }
 
-    // 验证必填项（使用转换后的字段名）
-    if (!backendData.ServiceName || !backendData.StartDate || !backendData.EndDate) {
-        alert("Please fill in Service Name, Start Date, and End Date.");
-        return;
-    }
-
-    // 按照后端要求，包装在 "contract" 键下
-    const wrappedPayload = {
-        contract: backendData
-    };
-
-    try {
-        let response;
-        if (editIndex !== null && formData.id) {
-            // PUT 请求 (更新)
-            response = await fetch(`${API_URL}/${formData.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(wrappedPayload),
-            });
-        } else {
-            // POST 请求 (新增)
-            // 剔除 Id，让数据库自动生成
-            const { Id, ...newDataWithoutId } = backendData;
-            response = await fetch(API_URL, {
+        try {
+            const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contract: newDataWithoutId }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(payload), // 直接发送对象
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Backend Validation Error:", errorData);
+                throw new Error("保存失败，请检查控制台详情");
+            }
+
+            // --- 成功后的逻辑 ---
+            alert("Success!");
+            setShowForm(false);
+            // 重置表单...
+
+        } catch (err) {
+            console.error("Save failed:", err);
+            alert(err);
         }
-
-        if (!response.ok) {
-            // 如果报错，解析报错信息
-            const errorData = await response.json();
-            console.error("Server side validation failed:", errorData);
-            throw new Error("Validation failed. Check console.");
-        }
-
-        // --- 成功后的处理 ---
-        alert("保存成功！");
-        if (selectedCompany) {
-            await handleCompanyFilterChange({
-                target: { value: selectedCompany }
-            } as ChangeEvent<HTMLSelectElement>);
-        } 
-        
-        setShowForm(false);
-        setEditIndex(null);
-        // 重置表单
-        setFormData({
-            serviceName: "",
-            contractValue: "",
-            contactOfficer: "",
-            contractNumber: "",
-            contractDuration: "",
-            startDate: "",
-            endDate: "",
-            agencyName: "",
-            company: "",
-            progress: "0%",
-            pdfDocument: null
-        });
-
-    } catch (err) {
-        console.error("Save failed:", err);
-        alert(`保存失败: ${err}`);
-    }
-};
+    };
     // ✅ Edit contract
     const handleEdit = (index: number) => {
         setFormData(contracts[index]);
