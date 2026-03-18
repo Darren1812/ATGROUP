@@ -285,16 +285,36 @@ export default function Page() {
         return Math.max(months + 1, 0).toString();
     };
     const handleSave = async () => {
-        // 1. 先验证日期是否已填写，防止 new Date("") 报错
+        // 1. 验证日期是否存在
         if (!formData.startDate || !formData.endDate) {
             alert("Please select both Start Date and End Date.");
             return;
         }
 
-        const duration = calculateDuration(formData.startDate, formData.endDate);
-        const progress = calculateProgress(formData.startDate, formData.endDate);
+        // 辅助函数：将 dd/mm/yyyy 转换为 yyyy-mm-dd
+        const formatToStandardDate = (dateStr: string) => {
+            if (dateStr.includes('/')) {
+                const [day, month, year] = dateStr.split('/');
+                // 确保格式是 yyyy-mm-dd
+                return `${year}-${month}-${day}`;
+            }
+            return dateStr; // 如果已经是标准格式则直接返回
+        };
 
         try {
+            const stdStartDate = formatToStandardDate(formData.startDate);
+            const stdEndDate = formatToStandardDate(formData.endDate);
+
+            // 验证转换后的日期是否合法
+            const startD = new Date(stdStartDate);
+            const endD = new Date(stdEndDate);
+
+            if (isNaN(startD.getTime()) || isNaN(endD.getTime())) {
+                throw new Error("Date format is invalid. Please use dd/mm/yyyy.");
+            }
+
+            const duration = calculateDuration(formData.startDate, formData.endDate);
+
             // 2. 构造 Payload
             const payload = {
                 Id: formData.id || 0,
@@ -303,15 +323,15 @@ export default function Page() {
                 ContactOfficer: formData.contactOfficer,
                 ContractNumber: formData.contractNumber,
                 ContractDuration: duration,
-                // 使用 toISOString 确保符合后端 DateTime 要求
-                StartDate: new Date(formData.startDate).toISOString(),
-                EndDate: new Date(formData.endDate).toISOString(),
+                // 此时调用 toISOString 就安全了
+                StartDate: startD.toISOString(),
+                EndDate: endD.toISOString(),
                 AgencyName: formData.agencyName,
-                Company: formData.company,
+                Company: `${baseCompany}${jurisdiction}`, // 拼接公司和管辖权
                 PdfDocument: null
             };
 
-            // 3. 发送请求 (不需要外层 contract 包装)
+            // 3. 发送请求
             const response = await fetch(API_URL, {
                 method: "POST",
                 headers: {
@@ -331,12 +351,11 @@ export default function Page() {
             setShowForm(false);
             // ... 重置表单逻辑
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Save failed:", err);
-            alert(`保存失败: ${err}`);
+            alert(`保存失败: ${err.message || err}`);
         }
-    };
-    // ✅ Edit contract
+    };    // ✅ Edit contract
     const handleEdit = (index: number) => {
         setFormData(contracts[index]);
         setEditIndex(index);
