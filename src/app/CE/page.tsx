@@ -831,7 +831,7 @@ export default function Page() {
                                             className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-150"
                                         >
                                             <Package size={18} className="text-emerald-600 mr-2" />
-                                            <span>Export Final SST</span>
+                                            <span>Export Document</span>
                                         </button>
                                         {/* 📄 Export Document */}
                                         <button
@@ -842,7 +842,7 @@ export default function Page() {
                                             className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors duration-150"
                                         >
                                             <Files size={18} className="text-emerald-600 mr-2" />
-                                            Export Document
+                                            Export Final SST
                                         </button>
 
                                         {/* 📊 Export Excel */}
