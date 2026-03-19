@@ -720,7 +720,6 @@ export default function Page() {
     }, [baseCompany, jurisdiction]);
     const [loading, setLoading] = useState<boolean>(false);
     return (
-        <ProtectedRoute>
             <main className="p-4 md:p-8 bg-gray-100 min-h-screen">
                 <div className="flex flex-col h-screen">
                     <header className="flex justify-between items-center mb-6 p-6 bg-white shadow-xl rounded-2xl border-t-4 border-emerald-600">
@@ -1352,6 +1351,5 @@ export default function Page() {
                     )}
                 </div>
             </main>
-        </ProtectedRoute>
     );
 }
