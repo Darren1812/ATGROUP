@@ -1,29 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, ChangeEvent, useRef, useCallback } from "react";
-import {
-    Plus,
-    X,
-    Edit,
-    Trash2,
-    Calendar,
-    DollarSign,
-    FileText,
-    User,
-    Hash,
-    Briefcase,
-    FileDown,
-    ChevronDown,
-    SlidersHorizontal,
-    FileSpreadsheet,
-    Upload,
-    Eye,
-    ChevronRight,
-    Files,
-    FileArchive,
-    Package,
+import {Plus,X,Edit,Trash2,Calendar,DollarSign,FileText,User,Hash,Briefcase,FileDown,ChevronDown,SlidersHorizontal,FileSpreadsheet,Upload,Eye,ChevronRight,Files,FileArchive,Package,
 } from "lucide-react";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { useToast } from "@/components/ToastProvider"; // Make sure ToastProvider is wrapped in layout
 
 interface Contract {

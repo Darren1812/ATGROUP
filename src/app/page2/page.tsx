@@ -31,7 +31,7 @@ const AdminLogisticsTable = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadConfig, setUploadConfig] = useState<{ id: number; type: string } | null>(null);
 
-    const API_BASE = "http://192.168.1.200:5000/api/Logistics";
+    const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
 
     const fetchTasks = async () => {
         try {
