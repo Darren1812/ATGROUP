@@ -56,8 +56,8 @@ export default function Navbar() {
 
   const navItems = [
     { label: "Home", href: "/dashboard", icon: Home },
-    { label: "BUTTON 2", href: "/page2" },
-    { label: "BUTTON 3", href: "/ModelPage" },
+    { label: "Order", href: "/page2" },
+    { label: "Model", href: "/ModelPage" },
     { label: "BUTTON 4", href: "/page4" },
   ];
 
