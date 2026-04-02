@@ -18,7 +18,9 @@ import {
   Goal,
   Bell,
   TrendingUp,
-  ArrowUpRight
+  ArrowUpRight,
+  Paperclip,
+  LightbulbIcon
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -36,6 +38,16 @@ export default function Dashboard() {
   }, []);
 
   const cards = [
+    {
+      title:"INVOICE GENERATOR",
+      description:"",
+      route:"/InvoiceGenerator",
+      icon: Paperclip,
+      color:"from-amber-500 to-orange-600",
+      lightColor: "bg-amber-50",
+      iconColor:"text-amber-600",
+      category:"CORE SYSTEM"
+    },
     {
       title: "PROPOSAL",
       description: "Create and manage project proposals efficiently with standardized templates.",
