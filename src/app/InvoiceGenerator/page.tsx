@@ -31,6 +31,7 @@ const InvoiceGenerator = () => {
     }
 
     setLoading(true);
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
     const formData = new FormData();
     formData.append('file', file);
@@ -41,7 +42,7 @@ const InvoiceGenerator = () => {
     formData.append('increasePercentage', increasePercentage.toString());
     try {
       const response = await fetch(
-        `https://localhost:7253/api/InvoiceTest/export-docx?companyKey=${companyKey}`, 
+        `${API_BASE}/api/InvoiceTest/export-docx?companyKey=${companyKey}`, 
         { method: 'POST', body: formData }
       );
 
