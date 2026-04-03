@@ -105,16 +105,28 @@ const InvoiceGenerator = () => {
           {/* STEP 1: BATCH UPLOAD */}
           <section className="relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100 transition-all hover:shadow-md">
             <div className="absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]">1</div>
-            <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest mb-6">
-              <Upload size={18} /> Step 1: Upload Files / Folder
-            </label>
             
+            <div className="flex items-center justify-between mb-6">
+              <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest">
+                <Upload size={18} /> Step 1: Upload Files
+              </label>
+              
+              {/* --- 新增：Remove All 按钮 --- */}
+              {files.length > 0 && (
+                <button 
+                  onClick={() => setFiles([])}
+                  className="flex items-center gap-1 text-[10px] font-black text-red-400 hover:text-red-600 transition-colors uppercase tracking-tighter bg-red-50 px-3 py-1 rounded-full"
+                >
+                  <X size={12} /> Clear All Queue
+                </button>
+              )}
+            </div>
+            
+            {/* 💡 这里的 Input 去掉了 webkitdirectory，这样用户点开后既可以选单个文件，也可以按 Ctrl+A 选一堆文件，最符合普通人习惯 */}
             <div className="relative border-2 border-dashed border-amber-200 rounded-2xl p-8 hover:border-amber-400 transition-colors bg-amber-50/10 group">
               <input 
                 type="file" 
                 multiple 
-                // @ts-ignore - 文件夹上传属性
-                webkitdirectory="" 
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                 onChange={handleFileChange} 
                 accept=".xlsx, .xls" 
@@ -123,25 +135,34 @@ const InvoiceGenerator = () => {
                 <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Upload className="text-amber-600" size={28} />
                 </div>
-                <p className="text-amber-900 font-bold">Drop Excel Files or Click to Select Folder</p>
-                <p className="text-amber-400 text-xs mt-1">Supports multiple .xlsx files at once</p>
+                <p className="text-amber-900 font-bold text-center">
+                  Click to Select or Drag & Drop Excel Files
+                </p>
+                <p className="text-amber-400 text-xs mt-1">
+                  (You can select one or many files at once)
+                </p>
               </div>
             </div>
 
             {/* --- 文件列表预览 --- */}
             {files.length > 0 && (
-              <div className="mt-6 space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-200">
-                {files.map((f, index) => (
-                  <div key={index} className="flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100 group animate-in fade-in slide-in-from-top-1">
-                    <div className="flex items-center gap-3">
-                      <FileText className="text-amber-500" size={18} />
-                      <span className="text-sm font-medium text-amber-900 truncate max-w-[200px] md:max-w-[400px]">{f.name}</span>
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-2 px-1">
+                   <span className="text-[10px] font-bold text-amber-400 uppercase">Files in queue ({files.length})</span>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-200">
+                  {files.map((f, index) => (
+                    <div key={index} className="flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100 group animate-in fade-in slide-in-from-top-1">
+                      <div className="flex items-center gap-3">
+                        <FileText className="text-amber-500" size={18} />
+                        <span className="text-sm font-medium text-amber-900 truncate max-w-[200px] md:max-w-[400px]">{f.name}</span>
+                      </div>
+                      <button onClick={() => removeFile(index)} className="p-1 hover:bg-red-100 rounded-full text-red-400 transition-colors">
+                        <X size={16} />
+                      </button>
                     </div>
-                    <button onClick={() => removeFile(index)} className="p-1 hover:bg-red-100 rounded-full text-red-400 transition-colors">
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </section>
