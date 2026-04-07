@@ -182,7 +182,10 @@ const InvoiceGenerator = () => {
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Target Template</span>
                 <select 
                   value={companyKey}
-                  onChange={(e) => setCompanyKey(e.target.value)}
+                  onChange={(e) => {
+                    setCompanyKey(e.target.value);
+                    setTaxPercentage(0); // 👈 每次切换公司时，强制重置税率为 0
+                  }}
                   className="w-full bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 appearance-none cursor-pointer"
                 >
                   <option value="ARENA">ARENA STABIL</option>
@@ -190,7 +193,6 @@ const InvoiceGenerator = () => {
                   <option value="SKY">SKY ACTIVE</option>
                 </select>
               </div>
-
               {/* Price Increase Rate */}
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Increase Rate (%)</span>
