@@ -16,6 +16,7 @@ const InvoiceGenerator = () => {
   const [secondInvoiceTel, setSecondInvoiceTel] = useState<string>('');
   const [secondInvoiceFax, setSecondInvoiceFax] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [taxPercentage, setTaxPercentage] = useState<number>(0); // New State
 
   // --- 处理文件选择 (支持多选和去重) ---
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -55,6 +56,7 @@ const InvoiceGenerator = () => {
     formData.append('secondInvoiceTel', secondInvoiceTel);
     formData.append('secondInvoiceFax', secondInvoiceFax);
     formData.append('increasePercentage', increasePercentage.toString());
+    formData.append('taxPercentage', taxPercentage.toString());
 
     try {
       // 💡 这里的 URL 改为你后端的批量接口名
@@ -167,13 +169,15 @@ const InvoiceGenerator = () => {
             )}
           </section>
 
-          {/* STEP 2: CONFIGURATION (保持不变) */}
+          {/* STEP 2: CONFIGURATION */}
           <section className="relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100">
             <div className="absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]">2</div>
             <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest mb-6">
               <Building2 size={18} /> Step 2: Processing Rules
             </label>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Template Selector */}
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Target Template</span>
                 <select 
@@ -186,6 +190,8 @@ const InvoiceGenerator = () => {
                   <option value="SKY">SKY ACTIVE</option>
                 </select>
               </div>
+
+              {/* Price Increase Rate */}
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Increase Rate (%)</span>
                 <div className="relative">
@@ -193,6 +199,29 @@ const InvoiceGenerator = () => {
                   <span className="absolute right-4 top-3 text-amber-400 font-bold">%</span>
                 </div>
               </div>
+
+              {/* NEW: Conditional Tax Field */}
+              {(companyKey === 'ARENA' || companyKey === 'SKY') && (
+                <div className="space-y-2 md:col-span-2 animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-tighter">Final Tax (SST/GST)</span>
+                    <span className="bg-orange-100 text-orange-600 text-[8px] font-bold px-2 py-0.5 rounded-full">REQUIRED FOR {companyKey}</span>
+                  </div>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={taxPercentage} 
+                      onChange={(e) => setTaxPercentage(Number(e.target.value))} 
+                      className="w-full bg-orange-50/30 border border-orange-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 font-bold" 
+                      placeholder="Enter tax percentage..."
+                    />
+                    <span className="absolute right-4 top-3 text-orange-400 font-bold">%</span>
+                  </div>
+                  <p className="text-[10px] text-amber-400 italic font-medium">
+                    * This will calculate tax and update {"{finaltax}"} & {"{finalamount}"}
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 
