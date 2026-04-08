@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
-import { Home, LogOut, Menu, X, ChevronDown } from "lucide-react";
+import { Home, LogOut, Menu, X, ChevronDown, Truck, Printer } from "lucide-react";
 
 export default function Navbar() {
   //              <h1 className="text-xl font-semibold text-slate-800 tracking-tight">MARKETING HUB</h1>
@@ -56,8 +56,8 @@ export default function Navbar() {
 
   const navItems = [
     { label: "Home", href: "/dashboard", icon: Home },
-    { label: "Order", href: "/page2" },
-    { label: "Model", href: "/ModelPage" },
+    { label: "Order", href: "/page2", icon: Truck },
+    { label: "Model", href: "/ModelPage", icon: Printer },
     { label: "BUTTON 4", href: "/page4" },
   ];
 
