@@ -313,25 +313,6 @@ const AdminLogisticsTable = () => {
                     </button>
                 </div>
 
-                {/* ── Stats row ── */}
-                {!loading && tasks.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                        {(["WAITING","IN TRANSIT","COMPLETED","CANCELLED"] as const).map(s => {
-                            const count = tasks.filter(t => t.status.toUpperCase() === s).length;
-                            const sc = statusConfig[s];
-                            return (
-                                <div key={s} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl px-4 py-3 flex items-center gap-3">
-                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sc.dot}`} />
-                                    <div>
-                                        <p className={`text-lg font-black ${sc.text}`}>{count}</p>
-                                        <p className="text-white/30 text-[9px] uppercase tracking-widest font-bold">{sc.label}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-
                 {/* ── Content ── */}
                 <div className="bg-white/[0.02] border border-white/[0.06] rounded-3xl overflow-hidden">
 
