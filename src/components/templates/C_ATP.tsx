@@ -755,7 +755,7 @@ export default function C_ATP() {
   useEffect(() => {
     if (featurePage) {
       setFeature1(featurePage);            // normal text
-      setFeature2(featurePage.toUpperCase()); // UPPERCASE
+      setFeature2(featurePage); // UPPERCASE
     } else {
       setFeature1("");
       setFeature2("");

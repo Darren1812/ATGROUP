@@ -1016,8 +1016,8 @@ export default function ARENA() {
   const [featurePage, setFeaturePage] = useState("");
   useEffect(() => {
     if (featurePage) {
-      setFeature1(featurePage);            // normal text
-      setFeature2(featurePage.toUpperCase()); // UPPERCASE
+      setFeature1(featurePage);// normal text
+      setFeature2(featurePage); // UPPERCASE
     } else {
       setFeature1("");
       setFeature2("");

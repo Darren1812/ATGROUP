@@ -3,11 +3,11 @@
 import React, { useState, ChangeEvent } from 'react';
 import { 
   Paperclip, Upload, Building2, MapPin, Download, 
-  Loader2, Phone, Printer, CheckCircle2, FileText, X 
+  Loader2, Phone, Printer, CheckCircle2, FileText, X, 
+  Users
 } from 'lucide-react';
 
 const InvoiceGenerator = () => {
-  // --- 状态管理：改为支持多文件 ---
   const [files, setFiles] = useState<File[]>([]);
   const [companyKey, setCompanyKey] = useState<string>('ARENA');
   const [increasePercentage, setIncreasePercentage] = useState<number>(0);
@@ -18,7 +18,6 @@ const InvoiceGenerator = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [taxPercentage, setTaxPercentage] = useState<number>(0); // New State
 
-  // --- 处理文件选择 (支持多选和去重) ---
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files).filter(f => 
@@ -92,14 +91,26 @@ const InvoiceGenerator = () => {
   return (
     <div className="min-h-screen bg-[#FFFBEB] py-12 px-4 font-sans text-slate-900">
       <div className="max-w-3xl mx-auto">
-        
         {/* Header Area */}
-        <div className="text-center mb-12">
-          <div className="inline-flex p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl shadow-xl mb-6 ring-8 ring-amber-100/50">
-            <Paperclip className="text-white" size={32} />
+        <div className="relative mb-12">
+          {/* Right-aligned Button */}
+          <div className="absolute right-0 top-0 mt-4 mr-4">
+            <button 
+              onClick={() => window.location.href = '/invCustomer'} 
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-amber-200 text-amber-800 rounded-xl font-semibold shadow-sm hover:bg-amber-50 hover:border-amber-400 transition-all duration-200"
+            >
+              <Users size={18} />
+              Customer List
+            </button>
           </div>
-          <h1 className="text-3xl font-extrabold text-amber-900 tracking-tight">Invoice Processing Hub</h1>
-          <p className="text-amber-700/60 mt-2 font-medium">Batch processing powered by Gemini Engine</p>
+
+          {/* Centered Content */}
+          <div className="text-center">
+            <div className="inline-flex p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl shadow-xl mb-6 ring-8 ring-amber-100/50">
+              <Paperclip className="text-white" size={32} />
+            </div>
+            <h1 className="text-3xl font-extrabold text-amber-900 tracking-tight">Invoice Processing Hub</h1>
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -113,7 +124,6 @@ const InvoiceGenerator = () => {
                 <Upload size={18} /> Step 1: Upload Files
               </label>
               
-              {/* --- 新增：Remove All 按钮 --- */}
               {files.length > 0 && (
                 <button 
                   onClick={() => setFiles([])}
