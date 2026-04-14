@@ -236,35 +236,6 @@ const InvoiceGenerator = () => {
               )}
             </div>
           </section>
-
-          {/* STEP 3: CUSTOMER DETAILS (保持不变) */}
-          <section className="relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100">
-            <div className="absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]">3</div>
-            <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest mb-6">
-              <MapPin size={18} /> Step 3: Customer Information
-            </label>
-            <div className="space-y-6">
-              <div>
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Client Company Name *</span>
-                <input value={secondInvoiceCompanyName} onChange={(e) => setSecondInvoiceCompanyName(e.target.value)} className="w-full border-b-2 border-amber-50 py-2 outline-none focus:border-orange-500 text-sm text-amber-900 transition-colors" placeholder="e.g. MAJLIS PERBANDARAN PENGERANG" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="flex items-center gap-1 text-[10px] font-black text-amber-400 uppercase tracking-tighter"><Phone size={10}/> Phone</span>
-                  <input value={secondInvoiceTel} onChange={(e) => setSecondInvoiceTel(e.target.value)} className="w-full border-b border-amber-100 py-2 outline-none text-sm" placeholder="016-xxx" />
-                </div>
-                <div>
-                  <span className="flex items-center gap-1 text-[10px] font-black text-amber-400 uppercase tracking-tighter"><Printer size={10}/> Fax</span>
-                  <input value={secondInvoiceFax} onChange={(e) => setSecondInvoiceFax(e.target.value)} className="w-full border-b border-amber-100 py-2 outline-none text-sm" placeholder="07-xxx" />
-                </div>
-              </div>
-              <div>
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Delivery Address *</span>
-                <textarea value={secondInvoiceAddress} onChange={(e) => setSecondInvoiceAddress(e.target.value)} rows={3} className="w-full bg-amber-50/30 border border-amber-100 rounded-xl p-4 mt-2 outline-none focus:ring-2 focus:ring-orange-400 text-sm" placeholder="Paste address here..." />
-              </div>
-            </div>
-          </section>
-
           {/* --- FINAL ACTION & LOADING UI --- */}
           <div className="pt-4">
             <button 

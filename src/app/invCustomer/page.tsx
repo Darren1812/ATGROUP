@@ -201,7 +201,7 @@ export default function InvCustomerPage() {
                   <th className='p-5 font-bold text-slate-900'>Address</th>
                   <th className='p-5 font-bold text-slate-900 w-40 text-center w-54'>
                     Contact Info
-                  </th>{" "}
+                  </th>
                   {/* 合并标题或保持分开 */}
                   <th className='p-5 font-bold text-slate-900 text-center w-24'>
                     Actions
