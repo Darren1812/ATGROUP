@@ -1,34 +1,39 @@
 "use client";
 
-import React, { useState, ChangeEvent } from 'react';
-import { 
-  Paperclip, Upload, Building2, MapPin, Download, 
-  Loader2, Phone, Printer, CheckCircle2, FileText, X, 
-  Users
-} from 'lucide-react';
+import React, { useState, ChangeEvent } from "react";
+import {
+  Paperclip,
+  Upload,
+  Building2,
+  MapPin,
+  Download,
+  Loader2,
+  Phone,
+  Printer,
+  CheckCircle2,
+  FileText,
+  X,
+  Users,
+} from "lucide-react";
 
 const InvoiceGenerator = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [companyKey, setCompanyKey] = useState<string>('ARENA');
+  const [companyKey, setCompanyKey] = useState<string>("ARENA");
   const [increasePercentage, setIncreasePercentage] = useState<number>(0);
-  const [secondInvoiceCompanyName, setSecondInvoiceCompanyName] = useState<string>('');
-  const [secondInvoiceAddress, setSecondInvoiceAddress] = useState<string>('');
-  const [secondInvoiceTel, setSecondInvoiceTel] = useState<string>('');
-  const [secondInvoiceFax, setSecondInvoiceFax] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [taxPercentage, setTaxPercentage] = useState<number>(0); // New State
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(f => 
-        f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
+      const newFiles = Array.from(e.target.files).filter(
+        (f) => f.name.endsWith(".xlsx") || f.name.endsWith(".xls"),
       );
-      setFiles(prev => [...prev, ...newFiles]);
+      setFiles((prev) => [...prev, ...newFiles]);
     }
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // --- 核心生成逻辑 ---
@@ -38,7 +43,7 @@ const InvoiceGenerator = () => {
       return;
     }
 
-    if (!companyKey || !secondInvoiceCompanyName.trim() || !secondInvoiceAddress.trim()) {
+    if (!companyKey) {
       alert("Please fill in Step 2 and Step 3 details!");
       return;
     }
@@ -48,34 +53,33 @@ const InvoiceGenerator = () => {
 
     const formData = new FormData();
     // 💡 关键：循环添加所有文件到同一个 Key "files"
-    files.forEach((f) => formData.append('files', f));
-    
-    formData.append('secondInvoiceCompanyName', secondInvoiceCompanyName);
-    formData.append('secondInvoiceAddress', secondInvoiceAddress);
-    formData.append('secondInvoiceTel', secondInvoiceTel);
-    formData.append('secondInvoiceFax', secondInvoiceFax);
-    formData.append('increasePercentage', increasePercentage.toString());
-    formData.append('taxPercentage', taxPercentage.toString());
+    files.forEach((f) => formData.append("files", f));
+
+    formData.append("increasePercentage", increasePercentage.toString());
+    formData.append("taxPercentage", taxPercentage.toString());
 
     try {
       // 💡 这里的 URL 改为你后端的批量接口名
       const response = await fetch(
-        `${API_BASE}/api/InvoiceTest/export-docx-bulk?companyKey=${companyKey}`, 
-        { method: 'POST', body: formData }
+        `${API_BASE}/api/InvoiceTest/export-docx-bulk?companyKey=${companyKey}`,
+        { method: "POST", body: formData },
       );
 
       if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `Bulk_Invoices_${new Date().getTime()}.zip`);
+      link.setAttribute(
+        "download",
+        `Bulk_Invoices_${new Date().getTime()}.zip`,
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       // 完成后清空文件列表（可选）
       // setFiles([]);
     } catch (error) {
@@ -86,18 +90,18 @@ const InvoiceGenerator = () => {
     }
   };
 
-  const isFormIncomplete = files.length === 0 || !secondInvoiceCompanyName.trim() || !secondInvoiceAddress.trim();
+  const isFormIncomplete = files.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#FFFBEB] py-12 px-4 font-sans text-slate-900">
-      <div className="max-w-3xl mx-auto">
+    <div className='min-h-screen bg-[#FFFBEB] py-12 px-4 font-sans text-slate-900'>
+      <div className='max-w-3xl mx-auto'>
         {/* Header Area */}
-        <div className="relative mb-12">
+        <div className='relative mb-12'>
           {/* Right-aligned Button */}
-          <div className="absolute right-0 top-0 mt-4 mr-4">
-            <button 
-              onClick={() => window.location.href = '/invCustomer'} 
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-amber-200 text-amber-800 rounded-xl font-semibold shadow-sm hover:bg-amber-50 hover:border-amber-400 transition-all duration-200"
+          <div className='absolute right-0 top-0 mt-4 mr-4'>
+            <button
+              onClick={() => (window.location.href = "/invCustomer")}
+              className='flex items-center gap-2 px-4 py-2 bg-white border-2 border-amber-200 text-amber-800 rounded-xl font-semibold shadow-sm hover:bg-amber-50 hover:border-amber-400 transition-all duration-200'
             >
               <Users size={18} />
               Customer List
@@ -105,52 +109,55 @@ const InvoiceGenerator = () => {
           </div>
 
           {/* Centered Content */}
-          <div className="text-center">
-            <div className="inline-flex p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl shadow-xl mb-6 ring-8 ring-amber-100/50">
-              <Paperclip className="text-white" size={32} />
+          <div className='text-center'>
+            <div className='inline-flex p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl shadow-xl mb-6 ring-8 ring-amber-100/50'>
+              <Paperclip className='text-white' size={32} />
             </div>
-            <h1 className="text-3xl font-extrabold text-amber-900 tracking-tight">Invoice Processing Hub</h1>
+            <h1 className='text-3xl font-extrabold text-amber-900 tracking-tight'>
+              Invoice Processing Hub
+            </h1>
           </div>
         </div>
 
-        <div className="space-y-8">
-          
+        <div className='space-y-8'>
           {/* STEP 1: BATCH UPLOAD */}
-          <section className="relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100 transition-all hover:shadow-md">
-            <div className="absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]">1</div>
-            
-            <div className="flex items-center justify-between mb-6">
-              <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest">
+          <section className='relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100 transition-all hover:shadow-md'>
+            <div className='absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]'>
+              1
+            </div>
+
+            <div className='flex items-center justify-between mb-6'>
+              <label className='flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest'>
                 <Upload size={18} /> Step 1: Upload Files
               </label>
-              
+
               {files.length > 0 && (
-                <button 
+                <button
                   onClick={() => setFiles([])}
-                  className="flex items-center gap-1 text-[10px] font-black text-red-400 hover:text-red-600 transition-colors uppercase tracking-tighter bg-red-50 px-3 py-1 rounded-full"
+                  className='flex items-center gap-1 text-[10px] font-black text-red-400 hover:text-red-600 transition-colors uppercase tracking-tighter bg-red-50 px-3 py-1 rounded-full'
                 >
                   <X size={12} /> Clear All Queue
                 </button>
               )}
             </div>
-            
+
             {/* 💡 这里的 Input 去掉了 webkitdirectory，这样用户点开后既可以选单个文件，也可以按 Ctrl+A 选一堆文件，最符合普通人习惯 */}
-            <div className="relative border-2 border-dashed border-amber-200 rounded-2xl p-8 hover:border-amber-400 transition-colors bg-amber-50/10 group">
-              <input 
-                type="file" 
-                multiple 
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                onChange={handleFileChange} 
-                accept=".xlsx, .xls" 
+            <div className='relative border-2 border-dashed border-amber-200 rounded-2xl p-8 hover:border-amber-400 transition-colors bg-amber-50/10 group'>
+              <input
+                type='file'
+                multiple
+                className='absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10'
+                onChange={handleFileChange}
+                accept='.xlsx, .xls'
               />
-              <div className="flex flex-col items-center justify-center pointer-events-none">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Upload className="text-amber-600" size={28} />
+              <div className='flex flex-col items-center justify-center pointer-events-none'>
+                <div className='w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform'>
+                  <Upload className='text-amber-600' size={28} />
                 </div>
-                <p className="text-amber-900 font-bold text-center">
+                <p className='text-amber-900 font-bold text-center'>
                   Click to Select or Drag & Drop Excel Files
                 </p>
-                <p className="text-amber-400 text-xs mt-1">
+                <p className='text-amber-400 text-xs mt-1'>
                   (You can select one or many files at once)
                 </p>
               </div>
@@ -158,18 +165,28 @@ const InvoiceGenerator = () => {
 
             {/* --- 文件列表预览 --- */}
             {files.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-2 px-1">
-                   <span className="text-[10px] font-bold text-amber-400 uppercase">Files in queue ({files.length})</span>
+              <div className='mt-6'>
+                <div className='flex items-center justify-between mb-2 px-1'>
+                  <span className='text-[10px] font-bold text-amber-400 uppercase'>
+                    Files in queue ({files.length})
+                  </span>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-200">
+                <div className='space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-200'>
                   {files.map((f, index) => (
-                    <div key={index} className="flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100 group animate-in fade-in slide-in-from-top-1">
-                      <div className="flex items-center gap-3">
-                        <FileText className="text-amber-500" size={18} />
-                        <span className="text-sm font-medium text-amber-900 truncate max-w-[200px] md:max-w-[400px]">{f.name}</span>
+                    <div
+                      key={index}
+                      className='flex items-center justify-between bg-amber-50/50 p-3 rounded-xl border border-amber-100 group animate-in fade-in slide-in-from-top-1'
+                    >
+                      <div className='flex items-center gap-3'>
+                        <FileText className='text-amber-500' size={18} />
+                        <span className='text-sm font-medium text-amber-900 truncate max-w-[200px] md:max-w-[400px]'>
+                          {f.name}
+                        </span>
                       </div>
-                      <button onClick={() => removeFile(index)} className="p-1 hover:bg-red-100 rounded-full text-red-400 transition-colors">
+                      <button
+                        onClick={() => removeFile(index)}
+                        className='p-1 hover:bg-red-100 rounded-full text-red-400 transition-colors'
+                      >
                         <X size={16} />
                       </button>
                     </div>
@@ -180,120 +197,151 @@ const InvoiceGenerator = () => {
           </section>
 
           {/* STEP 2: CONFIGURATION */}
-          <section className="relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100">
-            <div className="absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]">2</div>
-            <label className="flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest mb-6">
+          <section className='relative bg-white rounded-3xl p-8 shadow-sm border border-amber-100'>
+            <div className='absolute -left-3 -top-3 w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold shadow-lg border-4 border-[#FFFBEB]'>
+              2
+            </div>
+            <label className='flex items-center gap-2 text-sm font-bold text-amber-600 uppercase tracking-widest mb-6'>
               <Building2 size={18} /> Step 2: Processing Rules
             </label>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               {/* Template Selector */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Target Template</span>
-                <select 
+              <div className='space-y-2'>
+                <span className='text-[10px] font-black text-amber-400 uppercase tracking-tighter'>
+                  Target Template
+                </span>
+                <select
                   value={companyKey}
                   onChange={(e) => {
                     setCompanyKey(e.target.value);
                     setTaxPercentage(0); // 👈 每次切换公司时，强制重置税率为 0
                   }}
-                  className="w-full bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 appearance-none cursor-pointer"
+                  className='w-full bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 appearance-none cursor-pointer'
                 >
-                  <option value="ARENA">ARENA STABIL</option>
-                  <option value="ASN">ASN SETIA CETAK</option>
-                  <option value="SKY">SKY ACTIVE</option>
+                  <option value='ARENA'>ARENA STABIL</option>
+                  <option value='ASN'>ASN SETIA CETAK</option>
+                  <option value='SKY'>SKY ACTIVE</option>
                 </select>
               </div>
               {/* Price Increase Rate */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-tighter">Increase Rate (%)</span>
-                <div className="relative">
-                  <input type="number" value={increasePercentage} onChange={(e) => setIncreasePercentage(Number(e.target.value))} className="w-full bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400" />
-                  <span className="absolute right-4 top-3 text-amber-400 font-bold">%</span>
+              <div className='space-y-2'>
+                <span className='text-[10px] font-black text-amber-400 uppercase tracking-tighter'>
+                  Increase Rate (%)
+                </span>
+                <div className='relative'>
+                  <input
+                    type='number'
+                    value={increasePercentage}
+                    onChange={(e) =>
+                      setIncreasePercentage(Number(e.target.value))
+                    }
+                    className='w-full bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400'
+                  />
+                  <span className='absolute right-4 top-3 text-amber-400 font-bold'>
+                    %
+                  </span>
                 </div>
               </div>
 
               {/* NEW: Conditional Tax Field */}
-              {(companyKey === 'ARENA' || companyKey === 'SKY') && (
-                <div className="space-y-2 md:col-span-2 animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-tighter">Final Tax (SST/GST)</span>
-                    <span className="bg-orange-100 text-orange-600 text-[8px] font-bold px-2 py-0.5 rounded-full">REQUIRED FOR {companyKey}</span>
+              {(companyKey === "ARENA" || companyKey === "SKY") && (
+                <div className='space-y-2 md:col-span-2 animate-in zoom-in-95 duration-300'>
+                  <div className='flex items-center gap-2'>
+                    <span className='text-[10px] font-black text-orange-500 uppercase tracking-tighter'>
+                      Final Tax (SST/GST)
+                    </span>
+                    <span className='bg-orange-100 text-orange-600 text-[8px] font-bold px-2 py-0.5 rounded-full'>
+                      REQUIRED FOR {companyKey}
+                    </span>
                   </div>
-                  <div className="relative">
-                    <input 
-                      type="number" 
-                      value={taxPercentage} 
-                      onChange={(e) => setTaxPercentage(Number(e.target.value))} 
-                      className="w-full bg-orange-50/30 border border-orange-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 font-bold" 
-                      placeholder="Enter tax percentage..."
+                  <div className='relative'>
+                    <input
+                      type='number'
+                      value={taxPercentage}
+                      onChange={(e) => setTaxPercentage(Number(e.target.value))}
+                      className='w-full bg-orange-50/30 border border-orange-100 rounded-xl px-4 py-3 text-amber-900 outline-none focus:ring-2 focus:ring-orange-400 font-bold'
+                      placeholder='Enter tax percentage...'
                     />
-                    <span className="absolute right-4 top-3 text-orange-400 font-bold">%</span>
+                    <span className='absolute right-4 top-3 text-orange-400 font-bold'>
+                      %
+                    </span>
                   </div>
-                  <p className="text-[10px] text-amber-400 italic font-medium">
-                    * This will calculate tax and update {"{finaltax}"} & {"{finalamount}"}
+                  <p className='text-[10px] text-amber-400 italic font-medium'>
+                    * This will calculate tax and update {"{finaltax}"} &{" "}
+                    {"{finalamount}"}
                   </p>
                 </div>
               )}
             </div>
           </section>
           {/* --- FINAL ACTION & LOADING UI --- */}
-          <div className="pt-4">
-            <button 
+          <div className='pt-4'>
+            <button
               onClick={handleGenerate}
               disabled={loading || isFormIncomplete}
               className={`
                 relative w-full py-5 rounded-2xl font-black flex items-center justify-center gap-3 
                 transition-all duration-300 tracking-[0.2em] text-sm border-b-8
                 ${
-                  loading || isFormIncomplete 
-                  ? 'bg-amber-100 text-amber-300 border-amber-200 cursor-not-allowed' 
-                  : 'bg-amber-500 text-white border-amber-700 hover:bg-amber-400 hover:-translate-y-1 active:translate-y-1 active:border-b-0 shadow-xl'
+                  loading || isFormIncomplete
+                    ? "bg-amber-100 text-amber-300 border-amber-200 cursor-not-allowed"
+                    : "bg-amber-500 text-white border-amber-700 hover:bg-amber-400 hover:-translate-y-1 active:translate-y-1 active:border-b-0 shadow-xl"
                 }
               `}
             >
               {loading ? (
-                <div className="flex items-center gap-4">
-                  <Loader2 className="animate-spin" size={24} />
-                  <span className="animate-pulse">PROCESSING {files.length} FILES...</span>
+                <div className='flex items-center gap-4'>
+                  <Loader2 className='animate-spin' size={24} />
+                  <span className='animate-pulse'>
+                    PROCESSING {files.length} FILES...
+                  </span>
                 </div>
               ) : (
                 <>
                   <Download size={22} />
-                  <span>GENERATE {files.length > 1 ? `${files.length} INVOICES` : 'INVOICE'}</span>
+                  <span>
+                    GENERATE{" "}
+                    {files.length > 1 ? `${files.length} INVOICES` : "INVOICE"}
+                  </span>
                 </>
               )}
             </button>
-            
+
             {/* 提示文案 */}
             {isFormIncomplete && !loading && (
-               <div className="mt-4 flex items-center justify-center gap-2 text-orange-400 animate-bounce">
-                  <CheckCircle2 size={14} className="opacity-50" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">Awaiting Required Information</p>
-               </div>
+              <div className='mt-4 flex items-center justify-center gap-2 text-orange-400 animate-bounce'>
+                <CheckCircle2 size={14} className='opacity-50' />
+                <p className='text-[10px] font-bold uppercase tracking-widest'>
+                  Awaiting Required Information
+                </p>
+              </div>
             )}
           </div>
-
         </div>
       </div>
-      
+
       {/* 全屏 Loading Overlay (当处理大量文件时非常有用) */}
       {loading && (
-        <div className="fixed inset-0 bg-amber-900/20 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border-2 border-amber-500">
-             <div className="relative">
-                <Loader2 className="text-amber-500 animate-spin" size={60} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <FileText size={20} className="text-amber-500" />
-                </div>
-             </div>
-             <div className="text-center">
-                <h3 className="text-amber-900 font-black tracking-widest uppercase">Zipping Documents</h3>
-                <p className="text-amber-500 text-xs mt-1 font-bold">Please do not close the browser</p>
-             </div>
+        <div className='fixed inset-0 bg-amber-900/20 backdrop-blur-sm z-[100] flex flex-col items-center justify-center'>
+          <div className='bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border-2 border-amber-500'>
+            <div className='relative'>
+              <Loader2 className='text-amber-500 animate-spin' size={60} />
+              <div className='absolute inset-0 flex items-center justify-center'>
+                <FileText size={20} className='text-amber-500' />
+              </div>
+            </div>
+            <div className='text-center'>
+              <h3 className='text-amber-900 font-black tracking-widest uppercase'>
+                Zipping Documents
+              </h3>
+              <p className='text-amber-500 text-xs mt-1 font-bold'>
+                Please do not close the browser
+              </p>
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };
