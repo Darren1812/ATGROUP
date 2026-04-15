@@ -508,12 +508,27 @@ const AdminLogisticsTable = () => {
                             <td style={{ padding: "16px" }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{task.companyName}</span>
                             </td>
-
-                            {/* City */}
                             <td style={{ padding: "16px" }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>{task.location}</span>
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ textDecoration: "none" }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: "#34D399", // green
+                                    cursor: "pointer",
+                                    textDecoration: "underline",
+                                    textUnderlineOffset: "3px"
+                                  }}
+                                >
+                                  {task.location}
+                                </span>
+                              </a>
                             </td>
-
                             {/* Item */}
                             <td style={{ padding: "16px" }}>
                               <span style={{ fontSize: 12, fontWeight: 700, color: "#38BDF8" }}>{task.item}</span>
