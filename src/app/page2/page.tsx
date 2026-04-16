@@ -97,14 +97,54 @@ function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId
     <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.companyName}</p>
-          <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: 11, color: "#34D399", display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
-              <MapPin size={10} /> {task.location}
-            </span>
-          </a>
-        </div>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: "10px 12px",
+          borderRadius: 12,
+          border: "1px solid rgba(52, 211, 153, 0.25)",
+          background: "rgba(52, 211, 153, 0.06)",
+          boxShadow: "0 0 0 1px rgba(52, 211, 153, 0.05) inset",
+          backdropFilter: "blur(6px)",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#fff",
+            margin: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {task.companyName}
+        </p>
+
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none" }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              color: "#34D399",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              marginTop: 4,
+              opacity: 0.9,
+            }}
+          >
+            <MapPin size={10} />
+            {task.location}
+          </span>
+        </a>
+      </div>
         <div style={{ position: "relative", flexShrink: 0 }}>
           <button onClick={() => setOpenStatusId(openStatusId === task.id ? null : task.id)}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, border: `1px solid ${sc.border}`, background: sc.bg, color: sc.color, fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
@@ -171,16 +211,16 @@ function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <input type="datetime-local" value={localDT} min={committedMin}
-onChange={(e) => {
-  const v = e.target.value;
+            onChange={(e) => {
+              const v = e.target.value;
 
-  if (!isValidDate(v, committedMin)) {
-    // optional: silently reject instead of alert
-    return;
-  }
+              if (!isValidDate(v, committedMin)) {
+                // optional: silently reject instead of alert
+                return;
+              }
 
-  setLocalDT(v);
-}}
+              setLocalDT(v);
+            }}
             style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#fff", fontSize: 12, padding: "7px 10px", fontFamily: "inherit", boxSizing: "border-box" as any }} />
             <button onClick={() => { handleScheduleUpdate(task.id, localDT); setCommittedMin(localDT); }}
             style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.25)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
@@ -192,7 +232,7 @@ onChange={(e) => {
       </div>
 
       {/* Footer */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 , paddingBottom: 30 }}>
         <div style={{ display: "flex", gap: 14 }}>
           <DocBtn hasFile={task.hasInstallationForm} onView={() => handleViewPdf(task.id, "installation")} onUpload={() => triggerUpload(task.id, "installation")} label="Install" />
           <DocBtn hasFile={task.hasDo} onView={() => handleViewPdf(task.id, "do")} onUpload={() => triggerUpload(task.id, "do")} label="D.Order" />
