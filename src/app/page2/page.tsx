@@ -40,7 +40,10 @@ const toLocalDT = (d: string | Date) => {
 };
 const fmtDate = (d: string) =>
   new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true });
-
+const isValidDate = (value: string, min: string) => {
+  if (!value) return false;
+  return new Date(value).getTime() >= new Date(min).getTime();
+};
 /* ── SORT ICON ── */
 function SortIcon({ colKey, sortKey, sortDir }: { colKey: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (sortKey !== colKey) return <ArrowUpDown size={10} style={{ opacity: 0.3, marginLeft: 4, flexShrink: 0 }} />;
@@ -84,6 +87,11 @@ function DocBtn({ hasFile, onView, onUpload, label }: { hasFile: boolean; onView
 function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId, setOpenPicId, handleStatusUpdate, handlePicUpdate, handleViewPdf, triggerUpload, handleEditClick, handleDelete, handleScheduleUpdate }: any) {
   const sc = getStatus(task.status);
   const [localDT, setLocalDT] = useState(task.scheduledAt ? toLocalDT(task.scheduledAt) : "");
+  const [committedMin, setCommittedMin] = useState(
+    task.scheduledAt
+      ? toLocalDT(new Date(task.scheduledAt) > new Date() ? task.scheduledAt : new Date())
+      : toLocalDT(new Date())
+  );
 
   return (
     <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -162,10 +170,19 @@ function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId
           <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scheduled Delivery</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <input type="datetime-local" value={localDT} min={toLocalDT(new Date())}
-            onChange={e => setLocalDT(e.target.value)}
+          <input type="datetime-local" value={localDT} min={committedMin}
+onChange={(e) => {
+  const v = e.target.value;
+
+  if (!isValidDate(v, committedMin)) {
+    // optional: silently reject instead of alert
+    return;
+  }
+
+  setLocalDT(v);
+}}
             style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#fff", fontSize: 12, padding: "7px 10px", fontFamily: "inherit", boxSizing: "border-box" as any }} />
-          <button onClick={() => handleScheduleUpdate(task.id, localDT)}
+            <button onClick={() => { handleScheduleUpdate(task.id, localDT); setCommittedMin(localDT); }}
             style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.25)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
@@ -716,16 +733,27 @@ const AdminLogisticsTable = () => {
 function DeliveryCell({ task, handleScheduleUpdate }: { task: LogisticsTaskDto; handleScheduleUpdate: (id: number, v: string) => void }) {
   const [val, setVal] = useState(task.scheduledAt ? toLocalDT(task.scheduledAt) : "");
   const [saved, setSaved] = useState(false);
+  const [committedMin, setCommittedMin] = useState(
+  task.scheduledAt
+    ? toLocalDT(new Date(task.scheduledAt) > new Date() ? task.scheduledAt : new Date())
+    : toLocalDT(new Date())
+  );
+const save = () => {
+  if (!val) return;
 
-  const save = () => {
-    handleScheduleUpdate(task.id, val);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  };
+  if (new Date(val).getTime() < new Date(committedMin).getTime()) {
+    alert("You cannot schedule a past time");
+    return;
+  }
 
+  handleScheduleUpdate(task.id, val);
+  setSaved(true);
+  setCommittedMin(val);
+  setTimeout(() => setSaved(false), 1500);
+};
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <input type="datetime-local" className="mono" value={val} min={toLocalDT(new Date())}
+      <input type="datetime-local" className="mono" value={val} min={committedMin}
         onChange={e => { setVal(e.target.value); setSaved(false); }}
         style={{ width: 172, fontSize: 11, padding: "6px 9px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#fff", fontFamily: "inherit", outline: "none" }}
       />
