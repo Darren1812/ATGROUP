@@ -114,7 +114,7 @@ const InvoiceGenerator = () => {
               <Paperclip className='text-white' size={32} />
             </div>
             <h1 className='text-3xl font-extrabold text-amber-900 tracking-tight'>
-              Invoice Processing Hub
+              Invoice Generator
             </h1>
           </div>
         </div>
