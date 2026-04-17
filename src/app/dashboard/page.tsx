@@ -31,13 +31,25 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
   const allowedReviewUsers = ["Darren Wong", "Cheong Yan Kiet", "Boon Yee Kuan", "Wong Mei Jean", "Phang Ye Woon"];
+  type CardItem = {
+    title: string;
+    description?: string;
+    route: string;
+    icon: any;
+    color: string;
+    lightColor: string;
+    iconColor: string;
+    category: string;
 
+    // 👇 NEW
+    allowedDepartments?: string[];
+  };
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const cards = [
+  const cards: CardItem[] = [
     {
       title:"INVOICE GENERATOR",
       description:"",
@@ -46,7 +58,9 @@ export default function Dashboard() {
       color:"from-amber-500 to-orange-600",
       lightColor: "bg-amber-50",
       iconColor:"text-amber-600",
-      category:"CORE SYSTEM"
+      category:"CORE SYSTEM",
+      allowedDepartments: ["ATPAdmin", "Management", "Software Engineer"],
+
     },
     {
       title: "PROPOSAL",
@@ -56,7 +70,9 @@ export default function Dashboard() {
       color: "from-emerald-500 to-teal-600",
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
-      category: "CORE SYSTEM"
+      category: "CORE SYSTEM",
+      allowedDepartments: [],
+
     },
     {
       title: "COMPANY EXPERIENCE",
@@ -66,7 +82,8 @@ export default function Dashboard() {
       color: "from-blue-500 to-indigo-600",
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
-      category: "CORE SYSTEM"
+      category: "CORE SYSTEM",
+      allowedDepartments: [],
     },
     {
       title: "Archidex Database",
@@ -76,7 +93,8 @@ export default function Dashboard() {
       color: "from-rose-500 to-orange-600",
       lightColor: "bg-rose-50",
       iconColor: "text-rose-600",
-      category: "CORE SYSTEM"
+      category: "CORE SYSTEM",
+      allowedDepartments: [],
     },
     {
       title: "Comparison Table",
@@ -86,7 +104,8 @@ export default function Dashboard() {
       color: "from-slate-500 to-slate-700",
       lightColor: "bg-slate-50",
       iconColor: "text-slate-600",
-      category: "COMPARISON"
+      category: "COMPARISON",
+      allowedDepartments: [],
     },
     {
       title: "Performance Review Sheet",
@@ -96,7 +115,8 @@ export default function Dashboard() {
       color: "from-amber-500 to-yellow-600",
       lightColor: "bg-amber-50",
       iconColor: "text-amber-600",
-      category: "GOAL"
+      category: "GOAL",
+      allowedDepartments: [],
     },
     {
       title: "Performance Review Sheet [REVIEW]",
@@ -106,7 +126,8 @@ export default function Dashboard() {
       color: "from-red-500 to-rose-600",
       lightColor: "bg-red-50",
       iconColor: "text-red-600",
-      category: "REVIEW"
+      category: "REVIEW",
+      allowedDepartments: [],
     },
     {
       title: "TD HELPER",
@@ -116,7 +137,8 @@ export default function Dashboard() {
       color: "from-emerald-500 to-emerald-600",
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
-      category: "Tools"
+      category: "Tools",
+      allowedDepartments: [],
     },
     {
       title: "TD HELPER v2.0",
@@ -126,7 +148,8 @@ export default function Dashboard() {
       color: "from-emerald-500 to-emerald-600",
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
-      category: "Tools"
+      category: "Tools",
+      allowedDepartments: [],
     },
     {
       title: "PROPOSAL DATA MANAGE",
@@ -136,7 +159,8 @@ export default function Dashboard() {
       color: "from-cyan-500 to-cyan-600",
       lightColor: "bg-cyan-50",
       iconColor: "text-cyan-600",
-      category: "Management"
+      category: "Management",
+      allowedDepartments: [],
     },
     {
       title: "CLAIM FORM",
@@ -146,18 +170,27 @@ export default function Dashboard() {
       color: "from-violet-500 to-purple-600",
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
-      category: "Forms"
+      category: "Forms",
+      allowedDepartments: [],
     },
   ];
 
   const filteredCards = cards.filter(card => {
-    if (card.title === "Performance Review Sheet [REVIEW]") {
-      if (!allowedReviewUsers.includes(user?.name ?? "")) return false;
-    }
-    return card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.category.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+    const userDept = user?.department ?? "";
 
+    // 🔐 Department restriction
+    if (card.allowedDepartments && card.allowedDepartments.length > 0) {
+      if (!card.allowedDepartments.includes(userDept)) {
+        return false;
+      }
+    }
+
+    // 🔎 Search filter (keep your existing logic)
+    return (
+      card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      card.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
   const coreCards = filteredCards.filter(c => c.category === "CORE SYSTEM");
   const standardCards = filteredCards.filter(c => c.category !== "CORE SYSTEM");
 
