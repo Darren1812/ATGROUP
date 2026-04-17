@@ -71,7 +71,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "CORE SYSTEM",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
 
     },
     {
@@ -83,7 +83,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer"],
     },
     {
       title: "Archidex Database",
@@ -94,7 +94,7 @@ export default function Dashboard() {
       lightColor: "bg-rose-50",
       iconColor: "text-rose-600",
       category: "CORE SYSTEM",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
     },
     {
       title: "Comparison Table",
@@ -105,7 +105,7 @@ export default function Dashboard() {
       lightColor: "bg-slate-50",
       iconColor: "text-slate-600",
       category: "COMPARISON",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
     },
     {
       title: "Performance Review Sheet",
@@ -116,7 +116,7 @@ export default function Dashboard() {
       lightColor: "bg-amber-50",
       iconColor: "text-amber-600",
       category: "GOAL",
-      allowedDepartments: [],
+      allowedDepartments: ["Software Engineer"],
     },
     {
       title: "Performance Review Sheet [REVIEW]",
@@ -127,7 +127,7 @@ export default function Dashboard() {
       lightColor: "bg-red-50",
       iconColor: "text-red-600",
       category: "REVIEW",
-      allowedDepartments: [],
+      allowedDepartments: ["Software Engineer"],
     },
     {
       title: "TD HELPER",
@@ -138,7 +138,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
     },
     {
       title: "TD HELPER v2.0",
@@ -149,7 +149,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: [],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
     },
     {
       title: "PROPOSAL DATA MANAGE",
@@ -171,7 +171,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "Forms",
-      allowedDepartments: [],
+      allowedDepartments: ["Software Engineer"],
     },
   ];
 
