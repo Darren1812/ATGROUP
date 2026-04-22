@@ -1,884 +1,970 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
-  FileUp, FileCheck, ChevronDown, Package,
-  Loader2, Plus, X, Trash2, Edit3, Calendar,
-  MapPin, Truck, User, Clock, Search,
-  ArrowUpDown, ArrowUp, ArrowDown,
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+import {
+  Package,
+  Plus,
+  Trash2,
+  RefreshCw,
+  MapPin,
+  Building2,
+  User,
+  Clock,
+  Truck,
+  CheckCircle2,
+  Loader2,
+  ArrowRight,
+  X,
+  Upload,
+  FileText,
+  Eye,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  Filter,
+  Columns3,
+  GripVertical,
 } from "lucide-react";
 
-interface LogisticsTaskDto {
-  id: number;
-  from: string;
-  companyName: string;
-  location: string;
-  item: string;
-  time: string;
-  picDeliver: string;
-  status: string;
-  hasInstallationForm: boolean;
-  hasDo: boolean;
-  createdAt: string;
-  scheduledAt: string;
-}
+const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
 
-type SortKey = "createdAt" | "time" | "from" | "companyName" | "location" | "item" | "picDeliver" | "scheduledAt" | "status" | null;
-type SortDir = "asc" | "desc";
-
-/* ── STATUS CONFIG ── */
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  WAITING: { label: "Waiting", color: "#F59E0B", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.25)",  dot: "#F59E0B" },
-  ARRANGE: { label: "Arrange", color: "#38BDF8", bg: "rgba(56,189,248,0.1)",  border: "rgba(56,189,248,0.25)",  dot: "#38BDF8" },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  Waiting: {
+    label: "Waiting",
+    color: "text-amber-700",
+    bg: "bg-amber-50 border-amber-200",
+    dot: "bg-amber-400",
+  },
+  Arrange: {
+    label: "Arranging",
+    color: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
+    dot: "bg-blue-500",
+  },
+  Delivering: {
+    label: "Delivering",
+    color: "text-indigo-700",
+    bg: "bg-indigo-50 border-indigo-200",
+    dot: "bg-indigo-500",
+  },
+  Done: {
+    label: "Done",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
 };
-const getStatus = (s: string) => STATUS_CFG[s?.toUpperCase()] ?? STATUS_CFG.WAITING;
 
-const toLocalDT = (d: string | Date) => {
-  const dt = new Date(d);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${dt.getFullYear()}-${p(dt.getMonth()+1)}-${p(dt.getDate())}T${p(dt.getHours())}:${p(dt.getMinutes())}`;
-};
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true });
-const isValidDate = (value: string) => {
-  if (!value) return false;
-  
-  const selectedDate = new Date(value).getTime();
-  
-  // 获取今天凌晨 00:00:00 的时间戳
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  
-  // 返回 true 表示：选择的时间必须是今天或未来
-  return selectedDate >= todayMidnight;
-};
-/* ── SORT ICON ── */
-function SortIcon({ colKey, sortKey, sortDir }: { colKey: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (sortKey !== colKey) return <ArrowUpDown size={10} style={{ opacity: 0.3, marginLeft: 4, flexShrink: 0 }} />;
-  return sortDir === "asc"
-    ? <ArrowUp size={10} style={{ color: "#38BDF8", marginLeft: 4, flexShrink: 0 }} />
-    : <ArrowDown size={10} style={{ color: "#38BDF8", marginLeft: 4, flexShrink: 0 }} />;
-}
+/* =========================
+   COLUMNS CONFIG
+========================= */
+const COLUMN_DEFS = [
+  { key: "createdAt", label: "Created At", icon: Clock, width: 160 },
+  { key: "companyName", label: "Company", icon: Building2, width: 160 },
+  { key: "location", label: "Location", icon: MapPin, width: 180 },
+  { key: "item", label: "Item", icon: Package, width: 220 },
+  { key: "estimate", label: "Estimate", icon: Clock, width: 200 },
+  { key: "schedule", label: "Schedule", icon: Clock, width: 200 },
+  { key: "pic", label: "PIC", icon: User, width: 140 },
+  { key: "status", label: "Status", icon: null, width: 150 },
+  { key: "documents", label: "Documents", icon: FileText, width: 160 },
+  { key: "action", label: "Action", icon: null, width: 130 },
+];
 
-/* ── DOC BUTTON ── */
-function DocBtn({ hasFile, onView, onUpload, label }: { hasFile: boolean; onView: () => void; onUpload: () => void; label: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  return (
-    <div ref={ref} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-      <button onClick={() => hasFile ? setOpen(!open) : onUpload()} title={label}
-        style={{ width: 34, height: 34, borderRadius: 10, border: hasFile ? "1px solid rgba(52,211,153,0.3)" : "1.5px dashed rgba(255,255,255,0.12)", background: hasFile ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.03)", color: hasFile ? "#34D399" : "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
-        {hasFile ? <FileCheck size={14} /> : <Plus size={13} />}
-        {hasFile && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: 99, background: "#34D399", border: "2px solid #0d1117" }} />}
-      </button>
-      <span style={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</span>
-      {open && hasFile && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: "160%", transform: "translateX(-50%)", width: 140, background: "#161c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 100, overflow: "hidden" }}>
-          <button onClick={() => { onView(); setOpen(false); }} style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.65)", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
-            <FileUp size={13} style={{ color: "#34D399" }} /> View PDF
-          </button>
-          <button onClick={() => { onUpload(); setOpen(false); }} style={{ width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 600, color: "#38BDF8", background: "none", border: "none", cursor: "pointer" }}>
-            <Edit3 size={13} /> Replace
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+/* =========================
+   DRAG HEADER
+========================= */
+function SortableHeader({ col }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: col.key });
 
-/* ── MOBILE CARD ── */
-function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId, setOpenPicId, handleStatusUpdate, handlePicUpdate, handleViewPdf, triggerUpload, handleEditClick, handleDelete, handleScheduleUpdate }: any) {
-  const sc = getStatus(task.status);
-  const [localDT, setLocalDT] = useState(task.scheduledAt ? toLocalDT(task.scheduledAt) : "");
-  const [committedMin, setCommittedMin] = useState(
-    task.scheduledAt
-      ? toLocalDT(new Date(task.scheduledAt) > new Date() ? task.scheduledAt : new Date())
-      : toLocalDT(new Date())
-  );
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const Icon = col.icon;
 
   return (
-    <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "10px 12px",
-          borderRadius: 12,
-          border: "1px solid rgba(52, 211, 153, 0.25)",
-          background: "rgba(52, 211, 153, 0.06)",
-          boxShadow: "0 0 0 1px rgba(52, 211, 153, 0.05) inset",
-          backdropFilter: "blur(6px)",
-        }}
-      >
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#fff",
-            margin: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
+    <th
+      ref={setNodeRef}
+      style={{ ...style, width: `${col.width}px` }}
+      className="px-5 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap bg-slate-50 border-b border-slate-200"
+    >
+      <div className="flex items-center gap-1.5">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-slate-200 rounded transition-colors"
+          title="Drag to reorder"
         >
-          {task.companyName}
-        </p>
-
-        <a
-          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ textDecoration: "none" }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              color: "#34D399",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 4,
-              opacity: 0.9,
-            }}
-          >
-            <MapPin size={10} />
-            {task.location}
-          </span>
-        </a>
+          <GripVertical size={14} className="text-slate-400" />
+        </button>
+        {Icon && <Icon size={11} />}
+        {col.label}
       </div>
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <button onClick={() => setOpenStatusId(openStatusId === task.id ? null : task.id)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 99, border: `1px solid ${sc.border}`, background: sc.bg, color: sc.color, fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
-            <span style={{ width: 6, height: 6, borderRadius: 99, background: sc.dot }} />{sc.label}
-          </button>
-          {openStatusId === task.id && (
-            <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", width: 130, background: "#161c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, zIndex: 50, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.5)" }}>
-              {["Waiting", "Arrange"].map(s => (
-                <button key={s} onClick={() => handleStatusUpdate(task.id, s)} style={{ width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>{s}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Info grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        {[
-          { icon: <Truck size={11} />, label: "Item", value: task.item, color: "#38BDF8" },
-          { icon: <MapPin size={11} />, label: "From", value: task.from, color: undefined },
-        ].map(({ icon, label, value, color }) => (
-          <div key={label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "10px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-              <span style={{ color: "rgba(255,255,255,0.25)" }}>{icon}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{label}</span>
-            </div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: color || "rgba(255,255,255,0.7)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</p>
-          </div>
-        ))}
-
-        {/* PIC */}
-        <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "10px 12px", position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <User size={11} style={{ color: "rgba(255,255,255,0.25)" }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>PIC</span>
-          </div>
-          <button onClick={() => setOpenPicId(openPicId === task.id ? null : task.id)} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-            {task.picDeliver || "Select"} <ChevronDown size={11} />
-          </button>
-          {openPicId === task.id && (
-            <div style={{ position: "absolute", left: 0, top: "calc(100% + 4px)", width: 130, background: "#161c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, zIndex: 50, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.5)" }}>
-              {driverList.map((d: string) => (
-                <button key={d} onClick={() => handlePicUpdate(task.id, d)} style={{ width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>{d}</button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Delivery display */}
-        <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "10px 12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <Clock size={11} style={{ color: "rgba(255,255,255,0.25)" }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Est. Time</span>
-          </div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.65)", margin: 0 }}>{fmtDate(task.time)}</p>
-        </div>
-      </div>
-
-{/* Schedule picker */}
-<div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "12px" }}>
-  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-    <Calendar size={11} style={{ color: "rgba(255,255,255,0.25)" }} />
-    <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scheduled Delivery</span>
-  </div>
-  <div style={{ display: "flex", gap: 8 }}>
-    <input 
-      type="datetime-local" 
-      value={localDT} 
-      // 使用 min 属性：禁止选择今天（17号）之前的日期
-      // .toISOString().slice(0, 16) 会生成类似 "2026-04-17T00:00" 的格式
-      min={new Date(new Date().setHours(0,0,0,0)).toISOString().slice(0, 16)}
-      onChange={(e) => {
-        const v = e.target.value;
-
-        // 只传一个参数 v，解决之前的 TS 报错
-        if (!isValidDate(v)) {
-          return;
-        }
-
-        setLocalDT(v);
-      }}
-      style={{ 
-        flex: 1, 
-        background: "rgba(255,255,255,0.05)", 
-        border: "1px solid rgba(255,255,255,0.1)", 
-        borderRadius: 8, 
-        color: "#fff", 
-        fontSize: 12, 
-        padding: "7px 10px", 
-        fontFamily: "inherit", 
-        boxSizing: "border-box" as any 
-      }} 
-    />
-    <button onClick={() => { handleScheduleUpdate(task.id, localDT); setCommittedMin(localDT); }}
-      style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.25)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    </button>
-  </div>
-</div>
-      {/* Footer */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 , paddingBottom: 30 }}>
-        <div style={{ display: "flex", gap: 14 }}>
-          <DocBtn hasFile={task.hasInstallationForm} onView={() => handleViewPdf(task.id, "installation")} onUpload={() => triggerUpload(task.id, "installation")} label="Install" />
-          <DocBtn hasFile={task.hasDo} onView={() => handleViewPdf(task.id, "do")} onUpload={() => triggerUpload(task.id, "do")} label="D.Order" />
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => handleEditClick(task)} style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.15)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Edit3 size={14} /></button>
-          <button onClick={() => handleDelete(task.id)} style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.15)", color: "#F87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={14} /></button>
-        </div>
-      </div>
-    </div>
+    </th>
   );
 }
 
-/* ══════════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════════ */
-const AdminLogisticsTable = () => {
-  const [tasks, setTasks] = useState<LogisticsTaskDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<any>(null);
-  const [openStatusId, setOpenStatusId] = useState<number | null>(null);
-  const [openPicId, setOpenPicId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [newTasks, setNewTasks] = useState([{ from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "" }]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadConfig, setUploadConfig] = useState<{ id: number; type: string } | null>(null);
-
-  const API_BASE = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
-  const driverList = ["Akmal", "Nahfiz", "Abu"];
-
-  /* ── API FUNCTIONS (all preserved) ── */
-  const fetchTasks = async () => {
-    try { setLoading(true); const res = await fetch(API_BASE); setTasks(await res.json()); }
-    catch (e) { console.error(e); } finally { setLoading(false); }
-  };
-  useEffect(() => { fetchTasks(); }, []);
-
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this dispatch? This cannot be undone.")) return;
-    try { const r = await fetch(`${API_BASE}/${id}`, { method: "DELETE" }); if (r.ok) fetchTasks(); }
-    catch { alert("Delete failed"); }
-  };
-
-  const handleEditClick = (t: LogisticsTaskDto) => {
-    setEditingTask({ id: t.id, from: t.from, companyName: t.companyName, location: t.location, item: t.item, scheduledTime: t.time, picDeliver: t.picDeliver });
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdateTask = async () => {
-    try {
-      const payload = { ...editingTask, scheduledTime: editingTask.scheduledTime ? new Date(editingTask.scheduledTime).toISOString() : null };
-      const r = await fetch(`${API_BASE}/${editingTask.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (r.ok) { setIsEditModalOpen(false); fetchTasks(); }
-      else { console.error(await r.text()); alert("Update failed"); }
-    } catch { alert("Update failed"); }
-  };
-
-  const handleAddRow = () => setNewTasks([...newTasks, { from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "" }]);
-  const handleRemoveRow = (i: number) => setNewTasks(newTasks.filter((_, idx) => idx !== i));
-  const handleInputChange = (i: number, field: string, value: string) => {
-    const u = [...newTasks]; (u[i] as any)[field] = value; setNewTasks(u);
-  };
-
-  const handleSubmitNewTasks = async () => {
-    try {
-      const r = await fetch(API_BASE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newTasks) });
-      if (r.ok) { setIsModalOpen(false); setNewTasks([{ from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "" }]); fetchTasks(); }
-    } catch (e) { console.error(e); }
-  };
-
-  const handleStatusUpdate = async (id: number, newStatus: string) => {
-    try {
-      const r = await fetch(`${API_BASE}/status/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newStatus) });
-      if (r.ok) { setOpenStatusId(null); fetchTasks(); }
-    } catch (e) { console.error(e); }
-  };
-
-  const handlePicUpdate = async (id: number, newPic: string) => {
-    try {
-      const r = await fetch(`${API_BASE}/pic/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newPic) });
-      if (r.ok) { setOpenPicId(null); fetchTasks(); }
-    } catch (e) { console.error(e); }
-  };
-
-  const handleScheduleUpdate = async (id: number, value: string) => {
-    if (!value) return;
-    try {
-      const r = await fetch(`${API_BASE}/schedule/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(new Date(value).toISOString()) });
-      if (r.ok) fetchTasks();
-      else { const err = await r.text(); console.error(err); alert("Update failed: " + err); }
-    } catch (e) { console.error(e); }
-  };
-
-  const handleViewPdf = (id: number, type: string) => window.open(`${API_BASE}/view/${id}/${type}`, "_blank");
-
-  const triggerUpload = (id: number, type: string) => {
-    const task = tasks.find(t => t.id === id);
-    const has = type === "installation" ? task?.hasInstallationForm : task?.hasDo;
-    if (has && !window.confirm(`Overwrite existing ${type} document?`)) return;
-    setUploadConfig({ id, type }); fileInputRef.current?.click();
-  };
-
-  /* ── SORT HANDLER ── */
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("asc"); }
-  };
-
-  /* ── FILTERED + SORTED DATA ── */
-  const processedTasks = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    let filtered = q
-      ? tasks.filter(t =>
-          t.companyName.toLowerCase().includes(q) ||
-          t.from.toLowerCase().includes(q) ||
-          t.location.toLowerCase().includes(q) ||
-          t.item.toLowerCase().includes(q) ||
-          t.picDeliver.toLowerCase().includes(q) ||
-          t.status.toLowerCase().includes(q)
+// ── Highlight matching text in search ──
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!query || !text) return <>{text}</>;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <mark key={i} className="bg-amber-200 text-amber-900 rounded px-0.5 not-italic">
+            {part}
+          </mark>
+        ) : (
+          part
         )
-      : tasks;
+      )}
+    </>
+  );
+}
 
-    if (!sortKey) return filtered;
-
-    return [...filtered].sort((a, b) => {
-      let av: any = a[sortKey as keyof LogisticsTaskDto] ?? "";
-      let bv: any = b[sortKey as keyof LogisticsTaskDto] ?? "";
-      if (sortKey === "createdAt" || sortKey === "time" || sortKey === "scheduledAt") {
-        av = new Date(av).getTime(); bv = new Date(bv).getTime();
-      } else {
-        av = String(av).toLowerCase(); bv = String(bv).toLowerCase();
-      }
-      if (av < bv) return sortDir === "asc" ? -1 : 1;
-      if (av > bv) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [tasks, searchQuery, sortKey, sortDir]);
-
-  /* ── STYLES ── */
-  const iCls: React.CSSProperties = { width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#fff", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", outline: "none" };
-  const lCls: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6 };
-
-  const thBtn = (key: SortKey, label: string, center = false, right = false): React.CSSProperties => ({
-    display: "flex", alignItems: "center", justifyContent: center ? "center" : right ? "flex-end" : "flex-start",
-    gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0,
-    fontSize: 9, fontWeight: 800, color: sortKey === key ? "#38BDF8" : "rgba(255,255,255,0.25)",
-    letterSpacing: "0.18em", textTransform: "uppercase", whiteSpace: "nowrap", width: "100%",
-  });
-
-  /* ── COLUMN WIDTHS ── */
-  const COLS = [
-    { key: null,          label: "Docs",         w: 110, center: true },
-    { key: "createdAt",   label: "Created",      w: 145 },
-    { key: "time",        label: "Estimated",    w: 145 },
-    { key: "from",        label: "Origin",       w: 120 },
-    { key: "companyName", label: "Customer",     w: 165 },
-    { key: "location",    label: "City",         w: 130 },
-    { key: "item",        label: "Item",         w: 150 },
-    { key: "picDeliver",  label: "PIC",          w: 145 },
-    { key: "scheduledAt", label: "Delivery Time",w: 215 },
-    { key: "status",      label: "Status",       w: 135, center: true },
-    { key: null,          label: "",             w: 85,  right: true },
-  ] as const;
-
-  const minW = COLS.reduce((a, c) => a + c.w, 0);
-
-  /* ══ RENDER ══ */
+// ── Small removable chip shown below filter bar ──
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <div style={{ minHeight: "100vh", background: "#0d1117", fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
-        *, *::before, *::after { box-sizing: border-box; }
-        body { margin: 0; }
-        .mono { font-family: 'DM Mono', monospace !important; }
-        ::-webkit-scrollbar { height: 4px; width: 4px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        .fade-up { animation: fadeUp 0.25s ease both; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes pulse { 0%,100%{opacity:0.4}50%{opacity:0.9} }
-        .pulse { animation: pulse 1.6s ease infinite; }
-        .row-hover:hover { background: rgba(255,255,255,0.022) !important; }
-        .row-hover:hover .row-actions { opacity: 1 !important; }
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.4); cursor: pointer; }
-        input[type="datetime-local"]:focus, input[type="text"]:focus, input[type="search"]:focus { border-color: rgba(56,189,248,0.5) !important; outline: none; }
-        .th-sort:hover { color: rgba(255,255,255,0.6) !important; }
-        .th-sort:hover svg { opacity: 0.7 !important; }
-        .search-clear:hover { background: rgba(255,255,255,0.12) !important; }
-        @media (min-width: 1024px) { .desktop-table { display: block !important; } .mobile-cards { display: none !important; } }
-        @media (max-width: 1023px) { .desktop-table { display: none !important; } .mobile-cards { display: flex !important; } }
-      `}</style>
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-full">
+      {label}
+      <button onClick={onRemove} className="hover:text-indigo-900 transition-colors">
+        <X size={11} />
+      </button>
+    </span>
+  );
+}
 
-      {/* Hidden file input */}
-      <input type="file" ref={fileInputRef} style={{ display: "none" }} accept=".pdf"
-        onChange={async e => {
-          if (!e.target.files || !uploadConfig) return;
-          const fd = new FormData(); fd.append("file", e.target.files[0]);
-          try {
-            const r = await fetch(`${API_BASE}/upload/${uploadConfig.id}/${uploadConfig.type}`, { method: "POST", body: fd });
-            if (r.ok) fetchTasks(); else alert("Upload failed");
-          } catch (err) { console.error(err); }
-          finally { e.target.value = ""; setUploadConfig(null); }
-        }}
-      />
+export default function LogisticsPage() {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-      <div style={{ maxWidth: 1700, margin: "0 auto", padding: "28px 20px 60px" }}>
+  const [docStatus, setDocStatus] = useState<Record<number, { install: boolean; do: boolean }>>({});
+  const [uploadingDoc, setUploadingDoc] = useState<Record<string, boolean>>({});
 
-        {/* ── Page Header ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Package size={20} style={{ color: "#38BDF8" }} />
+  // ── Search & Filter ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPic, setFilterPic] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // ── Column Management ──
+  const [columns, setColumns] = useState(
+    COLUMN_DEFS.map((c) => ({ ...c, visible: true }))
+  );
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+
+  // ── Drag sensors ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setColumns((cols) => {
+      const oldIndex = cols.findIndex((c) => c.key === active.id);
+      const newIndex = cols.findIndex((c) => c.key === over.id);
+      return arrayMove(cols, oldIndex, newIndex);
+    });
+  };
+
+  const toggleColumn = (key: string) => {
+    setColumns((cols) =>
+      cols.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c))
+    );
+  };
+
+  const resetColumns = () => {
+    setColumns(COLUMN_DEFS.map((c) => ({ ...c, visible: true })));
+  };
+
+  const visibleColumns = useMemo(() => columns.filter((c) => c.visible), [columns]);
+
+  const triggerUpload = (id: number, type: "installation" | "do") => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/pdf";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const key = `${id}-${type}`;
+      setUploadingDoc((prev) => ({ ...prev, [key]: true }));
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`${API}/upload/${id}/${type}`, { method: "POST", body: formData });
+        if (res.ok) {
+          setDocStatus((prev) => ({
+            ...prev,
+            [id]: { ...prev[id], [type === "installation" ? "install" : "do"]: true },
+          }));
+        } else {
+          alert("Upload failed. Please try again.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Upload error.");
+      }
+      setUploadingDoc((prev) => ({ ...prev, [key]: false }));
+    };
+    input.click();
+  };
+
+  const viewDocument = (id: number, type: "installation" | "do") => {
+    window.open(`${API}/view/${id}/${type}`, "_blank");
+  };
+
+  const emptyRow = { createdAt: "", from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "" };
+  const [newTasks, setNewTasks] = useState<any[]>([emptyRow]);
+
+  // ── FETCH ──
+  const fetchTasks = async (isRefresh = false) => {
+    isRefresh ? setRefreshing(true) : setLoading(true);
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
+      setTasks(data);
+    } catch (err) {
+      console.error(err);
+    }
+    isRefresh ? setRefreshing(false) : setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // ── CREATE ──
+  const createTask = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTasks),
+      });
+      if (res.ok) {
+        setNewTasks([emptyRow]);
+        setShowForm(false);
+        fetchTasks(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setSubmitting(false);
+  };
+
+  const addRow = () => setNewTasks([...newTasks, { ...emptyRow }]);
+  const removeRow = (i: number) => setNewTasks(newTasks.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: string) => {
+    const copy = [...newTasks];
+    copy[i] = { ...copy[i], [field]: value };
+    setNewTasks(copy);
+  };
+
+  // ── DELETE ──
+  const deleteTask = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    setDeletingId(id);
+    const r = await fetch(`${API}/${id}`, { method: "DELETE" });
+    if (r.ok) fetchTasks(true);
+    setDeletingId(null);
+  };
+
+  // ── PATCH ──
+  const updateEstimate = async (id: number, value: string) => {
+    await fetch(`${API}/estimate/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    fetchTasks(true);
+  };
+  const updateSchedule = async (id: number, value: string) => {
+    await fetch(`${API}/schedule/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    fetchTasks(true);
+  };
+  const updatePic = async (id: number, value: string) => {
+    await fetch(`${API}/pic/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    fetchTasks(true);
+  };
+
+  // ── Unique PIC list for dropdown ──
+  const picOptions = useMemo(() => {
+    const s = new Set(tasks.map((t) => t.picDeliver).filter(Boolean));
+    return Array.from(s).sort() as string[];
+  }, [tasks]);
+
+  // ── Filtered tasks ──
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const haystack = [t.createdAt, t.item, t.location, t.companyName, t.picDeliver]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (filterPic && t.picDeliver !== filterPic) return false;
+      const computedStatus =
+        t.status === "Delivering" || t.status === "Done"
+          ? t.status
+          : t.scheduledAt && t.picDeliver
+          ? "Arrange"
+          : "Waiting";
+
+      if (filterStatus && computedStatus !== filterStatus) return false;
+      if (filterDateFrom || filterDateTo) {
+        const scheduled = t.scheduledAt ? new Date(t.scheduledAt) : null;
+        if (!scheduled) return false;
+        if (filterDateFrom && scheduled < new Date(filterDateFrom)) return false;
+        if (filterDateTo) {
+          const to = new Date(filterDateTo);
+          to.setHours(23, 59, 59, 999);
+          if (scheduled > to) return false;
+        }
+      }
+      return true;
+    });
+  }, [tasks, searchQuery, filterPic, filterStatus, filterDateFrom, filterDateTo]);
+
+  const activeFilterCount = [filterPic, filterStatus, filterDateFrom, filterDateTo].filter(Boolean).length;
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setFilterPic("");
+    setFilterStatus("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const renderCellContent = (t: any, colKey: string) => {
+    const computedStatus = t.scheduledAt && t.picDeliver ? "Arrange" : "Waiting";
+    const cfg = STATUS_CONFIG[computedStatus] ?? STATUS_CONFIG["Waiting"];
+    const isInstallUploaded = docStatus[t.id]?.install || t.hasInstallationForm;
+    const isDoUploaded = docStatus[t.id]?.do || t.hasDo;
+
+    switch (colKey) {
+      case "createdAt":
+        return (
+          <span className="text-gray-400 text-xs leading-snug">
+            <Highlight text={t.createdAt} query={searchQuery} />
+          </span>
+        );
+      case "companyName":
+        return (
+          <span className="font-bold text-slate-800 text-sm leading-snug">
+            <Highlight text={t.companyName} query={searchQuery} />
+          </span>
+        );
+      case "location":
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.location)}`;
+
+        return (
+          <a
+            href={mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-600 text-sm font-bold leading-snug hover:text-indigo-600 hover:underline"
+          >
+            <Highlight text={t.location} query={searchQuery} />
+          </a>
+        );
+        case "item":
+        return (
+          <span className="inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap">
+            {t.item?.split("\n").map((line: string, i: number) => (
+              <span key={i}>
+                <Highlight text={line} query={searchQuery} />
+              </span>
+            ))}
+          </span>
+        );
+      case "estimate":
+        return (
+          <input
+            type="datetime-local"
+            defaultValue={formatDate(t.time)}
+            onBlur={(e) => updateEstimate(t.id, e.target.value)}
+            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+          />
+        );
+      case "schedule":
+        return (
+          <input
+            type="datetime-local"
+            defaultValue={formatDate(t.scheduledAt)}
+            onBlur={(e) => updateSchedule(t.id, e.target.value)}
+            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+          />
+        );
+      case "pic":
+        return (
+          <input
+            defaultValue={t.picDeliver}
+            onBlur={(e) => updatePic(t.id, e.target.value)}
+            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+          />
+        );
+      case "status":
+        return (
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color}`}>
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
+            {cfg.label}
+          </div>
+        );
+      case "documents":
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => triggerUpload(t.id, "installation")}
+                disabled={uploadingDoc[`${t.id}-installation`]}
+                title="Upload Installation Form"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all disabled:opacity-50
+                  ${isInstallUploaded ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"}`}
+              >
+                {uploadingDoc[`${t.id}-installation`] ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : isInstallUploaded ? (
+                  <CheckCircle2 size={11} />
+                ) : (
+                  <Upload size={11} />
+                )}
+                Install
+              </button>
+              <button
+                onClick={() => viewDocument(t.id, "installation")}
+                title="View"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+              >
+                <Eye size={13} />
+              </button>
             </div>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>Logistics Control</h1>
-              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", margin: "2px 0 0", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase" }}>Fleet & Document Management</p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => triggerUpload(t.id, "do")}
+                disabled={uploadingDoc[`${t.id}-do`]}
+                title="Upload Delivery Order"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all disabled:opacity-50
+                  ${isDoUploaded ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"}`}
+              >
+                {uploadingDoc[`${t.id}-do`] ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : isDoUploaded ? (
+                  <CheckCircle2 size={11} />
+                ) : (
+                  <Upload size={11} />
+                )}
+                DO
+              </button>
+              <button
+                onClick={() => viewDocument(t.id, "do")}
+                title="View"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+              >
+                <Eye size={13} />
+              </button>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {!loading && tasks.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[
-                  { label: "Waiting", count: tasks.filter(t => t.status.toUpperCase() === "WAITING").length, color: "#F59E0B" },
-                  { label: "Arrange", count: tasks.filter(t => t.status.toUpperCase() === "ARRANGE").length, color: "#38BDF8" },
-                ].map(s => (
-                  <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 99, background: s.color }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.45)" }}>{s.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>{s.count}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setIsModalOpen(true)}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", background: "#38BDF8", color: "#0d1117", borderRadius: 12, border: "none", fontSize: 13, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")} onMouseLeave={e => (e.currentTarget.style.opacity = "1")}>
-              <Plus size={16} /> New Dispatch
+        );
+      case "action":
+        return (
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <button
+              onClick={() => (window.location.href = `/logistics/${t.id}`)}
+              className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Edit <ArrowRight size={11} />
+            </button>
+            <button
+              onClick={() => deleteTask(t.id)}
+              disabled={deletingId === t.id}
+              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
+            >
+              {deletingId === t.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
             </button>
           </div>
-        </div>
-
-        {/* ── Search Bar ── */}
-        <div style={{ marginBottom: 20, position: "relative", maxWidth: "100%" }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-            <Search size={15} style={{ position: "absolute", left: 14, color: "rgba(255,255,255,0.3)", pointerEvents: "none", flexShrink: 0 }} />
-            <input
-              type="search"
-              placeholder="Search customer, item, origin, city, PIC, status…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{ width: "100%", padding: "11px 40px 11px 40px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12, color: "#fff", fontSize: 13, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s" }}
-            />
-            {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery("")}
-                style={{ position: "absolute", right: 10, width: 24, height: 24, borderRadius: 99, background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.15s" }}>
-                <X size={12} />
-              </button>
-            )}
-          </div>
-          {searchQuery && (
-            <p style={{ margin: "8px 0 0 4px", fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>
-              {processedTasks.length} result{processedTasks.length !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
-          )}
-        </div>
-
-        {/* ── Main Panel ── */}
-        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 22, overflow: "hidden", paddingBottom: 20 }}>
-          {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 0", gap: 14 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(56,189,248,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Loader2 size={22} style={{ color: "#38BDF8" }} className="spin" />
-              </div>
-              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.2)", fontWeight: 500 }} className="pulse">Loading dispatches…</p>
-            </div>
-          ) : tasks.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 0", gap: 12 }}>
-              <div style={{ width: 54, height: 54, borderRadius: 16, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Package size={24} style={{ color: "rgba(255,255,255,0.15)" }} />
-              </div>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.25)", fontWeight: 500, margin: 0 }}>No dispatches yet</p>
-              <button onClick={() => setIsModalOpen(true)} style={{ fontSize: 12, fontWeight: 700, color: "#38BDF8", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Create your first →</button>
-            </div>
-          ) : processedTasks.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 12 }}>
-              <Search size={32} style={{ color: "rgba(255,255,255,0.1)" }} />
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.25)", fontWeight: 500, margin: 0 }}>No results for "{searchQuery}"</p>
-              <button onClick={() => setSearchQuery("")} style={{ fontSize: 12, fontWeight: 700, color: "#38BDF8", background: "none", border: "none", cursor: "pointer" }}>Clear search</button>
-            </div>
-          ) : (
-            <>
-              {/* ── DESKTOP TABLE ── */}
-              <div className="desktop-table" style={{ display: "none" }}>
-                <div style={{ overflowX: "auto", paddingBottom: 70 }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: minW }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.018)" }}>
-                        {COLS.map((col, i) => (
-                          <th key={i} style={{ width: col.w, minWidth: col.w, padding: "13px 14px", textAlign: (col as any).center ? "center" : (col as any).right ? "right" : "left" }}>
-                            {col.key ? (
-                              <button className="th-sort" onClick={() => handleSort(col.key as SortKey)}
-                                style={thBtn(col.key as SortKey, col.label, (col as any).center, (col as any).right)}>
-                                {col.label}
-                                <SortIcon colKey={col.key as SortKey} sortKey={sortKey} sortDir={sortDir} />
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.22)", letterSpacing: "0.18em", textTransform: "uppercase" }}>{col.label}</span>
-                            )}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {processedTasks.map((task) => {
-                        const sc = getStatus(task.status);
-                        return (
-                          <tr key={task.id} className="row-hover" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", transition: "background 0.15s" }}>
-                            {/* Docs */}
-                            <td style={{ padding: "14px", textAlign: "center" }}>
-                              <div style={{ display: "flex", justifyContent: "center", gap: 10}}>
-                                <DocBtn hasFile={task.hasInstallationForm} onView={() => handleViewPdf(task.id, "installation")} onUpload={() => triggerUpload(task.id, "installation")} label="Install" />
-                                <DocBtn hasFile={task.hasDo} onView={() => handleViewPdf(task.id, "do")} onUpload={() => triggerUpload(task.id, "do")} label="D.Order" />
-                              </div>
-                            </td>
-                            {/* Created */}
-                            <td style={{ padding: "14px 14px" }}>
-                              <span className="mono" style={{ fontSize: 11, color: "rgba(255,255,255,0.28)", fontWeight: 400 }}>{fmtDate(task.createdAt)}</span>
-                            </td>
-                            {/* Estimated */}
-                            <td style={{ padding: "14px" }}>
-                              <span className="mono" style={{ fontSize: 11, color: "rgba(255,255,255,0.42)", fontWeight: 400 }}>{fmtDate(task.time)}</span>
-                            </td>
-                            {/* Origin */}
-                            <td style={{ padding: "14px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                <span style={{ width: 5, height: 5, borderRadius: 99, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.42)" }}>{task.from}</span>
-                              </div>
-                            </td>
-                            {/* Customer */}
-                            <td style={{ padding: "14px" }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{task.companyName}</span>
-                            </td>
-                            {/* City */}
-                            <td style={{ padding: "14px" }}>
-                              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-                                <MapPin size={11} style={{ color: "#34D399", flexShrink: 0 }} />
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "#34D399", textDecoration: "underline", textUnderlineOffset: 2 }}>{task.location}</span>
-                              </a>
-                            </td>
-                            {/* Item */}
-                            <td style={{ padding: "14px" }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: "#38BDF8" }}>{task.item}</span>
-                            </td>
-                            {/* PIC */}
-                            <td style={{ padding: "14px", position: "relative" }}>
-                              <button onClick={() => setOpenPicId(openPicId === task.id ? null : task.id)}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                <User size={10} /> {task.picDeliver || "Assign PIC"} <ChevronDown size={9} />
-                              </button>
-                              {openPicId === task.id && (
-                                <div className="fade-up" style={{ position: "absolute", left: 14, top: "calc(100% - 11px)", width: 130, background: "#161c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, zIndex: 60, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.5)" }}>
-                                  {driverList.map(d => (
-                                    <button key={d} onClick={() => handlePicUpdate(task.id, d)}
-                                      style={{ width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-                                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                                    >{d}</button>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                            {/* Delivery Time */}
-                            <td style={{ padding: "14px" }}>
-                              <DeliveryCell task={task} handleScheduleUpdate={handleScheduleUpdate} />
-                            </td>
-                            {/* Status */}
-                            <td style={{ padding: "14px", textAlign: "center", position: "relative" }}>
-                              <button onClick={() => setOpenStatusId(openStatusId === task.id ? null : task.id)}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 99, border: `1px solid ${sc.border}`, background: sc.bg, color: sc.color, fontSize: 10, fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap" }}>
-                                <span style={{ width: 5, height: 5, borderRadius: 99, background: sc.dot }} />
-                                {sc.label} <ChevronDown size={9} />
-                              </button>
-                              {openStatusId === task.id && (
-                                <div className="fade-up" style={{ position: "absolute", left: "15%", transform: "translateX(-50%)", top: "calc(100% - 11px)", width: 130, background: "#161c28", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, zIndex: 60, overflow: "hidden", boxShadow: "0 16px 40px rgba(0,0,0,0.5)" }}>
-                                  {["Waiting", "Arrange"].map(s => (
-                                    <button key={s} onClick={() => handleStatusUpdate(task.id, s)}
-                                      style={{ width: "100%", padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-                                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                                    >{s}</button>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                            {/* Actions */}
-                            <td style={{ padding: "14px" }}>
-                              <div className="row-actions" style={{ display: "flex", justifyContent: "flex-end", gap: 4, opacity: 0, transition: "opacity 0.15s" }}>
-                                <button onClick={() => handleEditClick(task)} style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.15)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Edit3 size={13} /></button>
-                                <button onClick={() => handleDelete(task.id)} style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.15)", color: "#F87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* ── MOBILE CARDS ── */}
-              <div className="mobile-cards" style={{ display: "none", flexDirection: "column", gap: 12, padding: 14 }}>
-                {processedTasks.map(task => (
-                  <MobileCard key={task.id} task={task} driverList={driverList}
-                    openStatusId={openStatusId} setOpenStatusId={setOpenStatusId}
-                    openPicId={openPicId} setOpenPicId={setOpenPicId}
-                    handleStatusUpdate={handleStatusUpdate} handlePicUpdate={handlePicUpdate}
-                    handleViewPdf={handleViewPdf} triggerUpload={triggerUpload}
-                    handleEditClick={handleEditClick} handleDelete={handleDelete}
-                    handleScheduleUpdate={handleScheduleUpdate}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {!loading && tasks.length > 0 && (
-          <p style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: "rgba(255,255,255,0.12)", fontWeight: 500 }}>
-            {processedTasks.length} of {tasks.length} dispatch{tasks.length !== 1 ? "es" : ""}
-            {sortKey && <span style={{ color: "rgba(56,189,248,0.4)", marginLeft: 6 }}>· sorted by {sortKey} {sortDir === "asc" ? "↑" : "↓"}</span>}
-          </p>
-        )}
-      </div>
-
-      {/* ══ EDIT MODAL — CENTERED ══ */}
-      {isEditModalOpen && editingTask && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(10px)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div className="fade-up" style={{ background: "#131820", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 22, width: "100%", maxWidth: 600, boxShadow: "0 32px 100px rgba(0,0,0,0.6)", overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>Edit Dispatch</h3>
-                <p className="mono" style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "3px 0 0" }}>#{editingTask.id}</p>
-              </div>
-              <button onClick={() => setIsEditModalOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={17} /></button>
-            </div>
-            {/* Body */}
-            <div style={{ padding: "22px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxHeight: "65vh", overflowY: "auto" }}>
-              {[
-                { label: "From", key: "from", span: 2 },
-                { label: "Customer Name", key: "companyName", span: 2 },
-                { label: "City / Location", key: "location", span: 2 },
-                { label: "Deliver PIC", key: "picDeliver", span: 1 },
-                { label: "Item", key: "item", span: 1 },
-              ].map(({ label, key, span }) => (
-                <div key={key} style={{ gridColumn: span === 2 ? "1 / -1" : "auto" }}>
-                  <label style={lCls}>{label}</label>
-                  <input type="text" style={iCls} value={editingTask[key] ?? ""} onChange={e => setEditingTask({ ...editingTask, [key]: e.target.value })} />
-                </div>
-              ))}
-            </div>
-            {/* Footer */}
-            <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 10 }}>
-              <button onClick={() => setIsEditModalOpen(false)} style={{ flex: 1, padding: "12px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.3)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Discard</button>
-              <button onClick={handleUpdateTask} style={{ flex: 2, padding: "12px", borderRadius: 10, background: "#38BDF8", border: "none", color: "#0d1117", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══ CREATE MODAL — CENTERED ══ */}
-      {isModalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(10px)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div className="fade-up" style={{ background: "#131820", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 22, width: "100%", maxWidth: 860, boxShadow: "0 32px 100px rgba(0,0,0,0.6)", overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#fff", margin: 0 }}>New Dispatch</h3>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "3px 0 0" }}>Schedule item deliveries</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={17} /></button>
-            </div>
-            {/* Body */}
-            <div style={{ padding: 20, maxHeight: "62vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-              {newTasks.map((task, idx) => (
-                <div key={idx} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "18px 18px 18px", position: "relative" }}>
-                  {newTasks.length > 1 && (
-                    <button onClick={() => handleRemoveRow(idx)} style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", color: "#F87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={13} /></button>
-                  )}
-                  {newTasks.length > 1 && <p style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.18)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 14, marginTop: 0 }}>Entry {idx + 1}</p>}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-                    {[
-                      { label: "From", key: "from", placeholder: "Warehouse / Store" },
-                      { label: "Customer", key: "companyName", placeholder: "Company Name" },
-                      { label: "City", key: "location", placeholder: "Delivery City" },
-                      { label: "Item", key: "item", placeholder: "Item Name" },
-                      { label: "In-Charge PIC", key: "picDeliver", placeholder: "PIC Name" },
-                    ].map(({ label, key, placeholder }) => (
-                      <div key={key}>
-                        <label style={lCls}>{label}</label>
-                        <input type="text" placeholder={placeholder} style={{ ...iCls, color: "#fff" }} value={(task as any)[key]} onChange={e => handleInputChange(idx, key, e.target.value)} />
-                      </div>
-                    ))}
-                    <div>
-                      <label style={lCls}>Estimate Date & Time</label>
-                      <input type="datetime-local" style={iCls} value={task.scheduledTime} onChange={e => handleInputChange(idx, "scheduledTime", e.target.value)} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <button onClick={handleAddRow}
-                style={{ width: "100%", padding: 13, border: "1.5px dashed rgba(255,255,255,0.1)", borderRadius: 14, background: "none", color: "rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: "0.1em", textTransform: "uppercase" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(56,189,248,0.3)"; e.currentTarget.style.color = "rgba(56,189,248,0.7)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.2)"; }}>
-                <Plus size={15} /> Add Another Entry
-              </button>
-            </div>
-            {/* Footer */}
-            <div style={{ padding: "16px 24px", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 10 }}>
-              <button onClick={() => setIsModalOpen(false)} style={{ padding: "12px 20px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.3)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Cancel</button>
-              <button onClick={handleSubmitNewTasks} style={{ flex: 1, padding: "12px", borderRadius: 10, background: "#38BDF8", border: "none", color: "#0d1117", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Deploy Dispatch</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-function DeliveryCell({ task, handleScheduleUpdate }: { task: LogisticsTaskDto; handleScheduleUpdate: (id: number, v: string) => void }) {
-  // 获取今天凌晨的时间字符串，用于 min 限制
-  const todayStr = toLocalDT(new Date(new Date().setHours(0, 0, 0, 0)));
-  
-  const [val, setVal] = useState(task.scheduledAt ? toLocalDT(task.scheduledAt) : "");
-  const [saved, setSaved] = useState(false);
-
-  // --- 关键函数：强制输出 DD/MM/YYYY ---
-  const formatToDDMMYYYY = (dateStr: string) => {
-    if (!dateStr) return "DD/MM/YYYY";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return "DD/MM/YYYY";
-    
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const save = () => {
-    if (!val) return;
-    
-    // 再次检查逻辑，确保不选 17 号以前
-    if (new Date(val).getTime() < new Date(todayStr).getTime()) {
-      alert("Cannot select a date before today.");
-      return;
+        );
+      default:
+        return null;
     }
-
-    handleScheduleUpdate(task.id, val);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
   };
 
   return (
-    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "8px", minWidth: "220px" }}>
-      
-      <div style={{ position: "relative", flex: 1 }}>
-        {/* 隐藏的 input，负责功能 */}
-        <input 
-          type="datetime-local" 
-          value={val} 
-          min={todayStr} 
-          onChange={(e) => setVal(e.target.value)}
-          style={{ 
-            width: "100%",
-            background: "rgba(255,255,255,0.05)", 
-            border: "1px solid rgba(255,255,255,0.1)", 
-            borderRadius: 8, 
-            color: "transparent", // 隐藏原生文字颜色，因为我们要覆盖它
-            fontSize: 12, 
-            padding: "7px 10px",
-            cursor: "pointer",
-            caretColor: "transparent"
-          }} 
-        />
-        
-        {/* 覆盖层：显示你想要的 DD/MM/YYYY 格式 */}
-        <div style={{ 
-          position: "absolute", 
-          top: "50%", 
-          left: "10px", 
-          transform: "translateY(-50%)", 
-          pointerEvents: "none", // 允许点击穿透到 input
-          fontSize: "12px",
-          color: val ? "#fff" : "rgba(255,255,255,0.3)"
-        }}>
-          {val ? `${formatToDDMMYYYY(val)} ${new Date(val).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "DD/MM/YYYY --:--"}
+    <div className="min-h-screen bg-slate-50">
+      {/* PAGE HEADER */}
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="w-full px-8 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <Truck className="text-white" size={22} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Logistics Management</h1>
+                <p className="text-slate-500 text-sm mt-0.5">Track and manage all delivery tasks</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => fetchTasks(true)}
+                disabled={refreshing}
+                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all duration-200 disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              </button>
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-md shadow-indigo-200"
+              >
+                <Plus size={16} />
+                New Task
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <button 
-        onClick={save}
-        style={{ 
-          width: 36, height: 36, borderRadius: 8, 
-          background: saved ? "rgba(34,197,94,0.15)" : "rgba(56,189,248,0.15)", 
-          border: `1px solid ${saved ? "rgba(34,197,94,0.25)" : "rgba(56,189,248,0.25)"}`, 
-          color: saved ? "#22C55E" : "#38BDF8", 
-          cursor: "pointer",
-          flexShrink: 0
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </button>
+      <div className="w-full px-8 py-8 space-y-6">
+        {/* CREATE FORM */}
+        {showForm && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">Create New Tasks</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Fill in the details below. You can add multiple rows.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setNewTasks([emptyRow]);
+                }}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="hidden md:grid grid-cols-6 gap-3 px-1">
+                {["From", "Company", "Location", "Item", "Scheduled Time", "PIC"].map((h) => (
+                  <p key={h} className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    {h}
+                  </p>
+                ))}
+              </div>
+              {newTasks.map((task, i) => (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center group">
+                  {(["from", "companyName", "location", "item"] as const).map((field) => (
+                    <input
+                      key={field}
+                      placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                      value={task[field]}
+                      onChange={(e) => updateRow(i, field, e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400"
+                    />
+                  ))}
+                  <input
+                    type="datetime-local"
+                    value={task.scheduledTime}
+                    onChange={(e) => updateRow(i, "scheduledTime", e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      placeholder="PIC"
+                      value={task.picDeliver}
+                      onChange={(e) => updateRow(i, "picDeliver", e.target.value)}
+                      className="flex-1 px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400"
+                    />
+                    {newTasks.length > 1 && (
+                      <button
+                        onClick={() => removeRow(i)}
+                        className="p-2.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+              <button
+                onClick={addRow}
+                className="flex items-center gap-2 text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                <Plus size={15} /> Add another row
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setShowForm(false);
+                    setNewTasks([emptyRow]);
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createTask}
+                  disabled={submitting}
+                  className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all duration-200 disabled:opacity-60 shadow-md shadow-indigo-200"
+                >
+                  {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                  {submitting ? "Saving..." : "Submit Tasks"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SEARCH + FILTER BAR */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Row 1: search input + column toggle + filter toggle + clear */}
+          <div className="px-5 py-3.5 flex items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-0">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search item, location, company, PIC…"
+                className="w-full pl-9 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {/* Filter toggle */}
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 whitespace-nowrap
+                ${
+                  showFilters || activeFilterCount > 0
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
+                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                }`}
+            >
+              <SlidersHorizontal size={15} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span
+                  className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black
+                  ${showFilters ? "bg-white text-indigo-600" : "bg-white text-indigo-600"}`}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown size={14} className={`transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Clear all */}
+            {(activeFilterCount > 0 || searchQuery) && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl border border-red-100 transition-all whitespace-nowrap"
+              >
+                <X size={14} /> Clear all
+              </button>
+            )}
+          </div>
+
+          {/* Row 2: filter dropdowns (collapsible) */}
+          {showFilters && (
+            <div className="px-5 pb-5 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* PIC */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={10} /> PIC
+                </label>
+                <div className="relative">
+                  <select
+                    value={filterPic}
+                    onChange={(e) => setFilterPic(e.target.value)}
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl appearance-none cursor-pointer pr-8 outline-none transition-all
+                      ${
+                        filterPic
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  >
+                    <option value="">All PIC</option>
+                    {picOptions.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Filter size={10} /> Status
+                </label>
+                <div className="relative">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl appearance-none cursor-pointer pr-8 outline-none transition-all
+                      ${
+                        filterStatus
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  >
+                    <option value="">All Status</option>
+                    <option value="Waiting">Waiting</option>
+                    <option value="Arrange">Arranging</option>
+                    <option value="Delivering">Delivering</option>
+                    <option value="Done">Done</option>
+                  </select>
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Schedule From */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock size={10} /> Schedule From
+                </label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                    ${
+                      filterDateFrom
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                        : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                    }`}
+                />
+              </div>
+
+              {/* Schedule To */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock size={10} /> Schedule To
+                </label>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                    ${
+                      filterDateTo
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                        : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                    }`}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Active filter chips */}
+          {activeFilterCount > 0 && (
+            <div className={`px-5 pb-3.5 flex flex-wrap gap-2 ${showFilters ? "" : "border-t border-slate-100 pt-3"}`}>
+              {filterPic && <FilterChip label={`PIC: ${filterPic}`} onRemove={() => setFilterPic("")} />}
+              {filterStatus && <FilterChip label={`Status: ${filterStatus}`} onRemove={() => setFilterStatus("")} />}
+              {filterDateFrom && <FilterChip label={`From: ${filterDateFrom}`} onRemove={() => setFilterDateFrom("")} />}
+              {filterDateTo && <FilterChip label={`To: ${filterDateTo}`} onRemove={() => setFilterDateTo("")} />}
+            </div>
+          )}
+        </div>
+          {/* Column visibility toggle */}
+          <div className="flex justify-between items-center">
+            <div></div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowColumnMenu((v) => !v)}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 whitespace-nowrap bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+              >
+                <Columns3 size={15} />
+                Columns
+              </button>
+
+              {/* Column menu dropdown */}
+              {showColumnMenu && (
+                <>
+                  {/* Backdrop overlay */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowColumnMenu(false)}
+                  />
+
+                  {/* Dropdown menu */}
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-600 uppercase tracking-wider">
+                        Show Columns
+                      </span>
+                      <button
+                        onClick={resetColumns}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                    <div className="p-2 max-h-80 overflow-y-auto">
+                      {columns.map((col) => {
+                        const Icon = col.icon;
+                        return (
+                          <button
+                            key={col.key}
+                            onClick={() => toggleColumn(col.key)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                                col.visible
+                                  ? "bg-indigo-600 border-indigo-600"
+                                  : "bg-white border-slate-300"
+                              }`}
+                            >
+                              {col.visible && (
+                                <CheckCircle2 size={12} className="text-white" />
+                              )}
+                            </div>
+                            {Icon && <Icon size={14} className="text-slate-400" />}
+                            <span className="text-sm font-medium text-slate-700">{col.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="px-4 py-2.5 border-t border-slate-100 text-xs text-slate-500">
+                      {visibleColumns.length} of {columns.length} visible
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            </div>
+        {/* TABLE */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-[11px] font-black tracking-[0.3em] text-slate-400 uppercase flex items-center gap-3">
+              All Deliveries <div className="h-px w-16 bg-slate-200" />
+            </h2>
+            <span className="text-xs font-bold text-slate-400">
+              {filteredTasks.length !== tasks.length ? (
+                <>
+                  {filteredTasks.length} <span className="text-slate-300 font-normal">of</span> {tasks.length} records
+                </>
+              ) : (
+                <>
+                  {tasks.length} record{tasks.length !== 1 ? "s" : ""}
+                </>
+              )}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="py-24 flex flex-col items-center gap-4">
+              <Loader2 size={32} className="text-indigo-400 animate-spin" />
+              <p className="text-slate-400 text-sm font-medium">Loading tasks...</p>
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="py-24 text-center">
+              <div className="inline-flex p-6 rounded-full bg-slate-100 mb-4">
+                <Package size={36} className="text-slate-300" />
+              </div>
+              {tasks.length === 0 ? (
+                <>
+                  <p className="text-slate-600 font-bold">No logistics tasks yet</p>
+                  <p className="text-slate-400 text-sm mt-1">Click "New Task" to get started</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-600 font-bold">No results match your filters</p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-3 text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+                  >
+                    Clear all filters
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <table className="w-full text-sm border-collapse" style={{ minWidth: "1400px" }}>
+                  <colgroup>
+                    {visibleColumns.map((col) => (
+                      <col key={col.key} style={{ width: `${col.width}px` }} />
+                    ))}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <SortableContext items={visibleColumns.map((c) => c.key)} strategy={horizontalListSortingStrategy}>
+                        {visibleColumns.map((col) => (
+                          <SortableHeader key={col.key} col={col} />
+                        ))}
+                      </SortableContext>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredTasks.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-50/70 transition-colors duration-150 group">
+                        {visibleColumns.map((col) => (
+                          <td key={col.key} className="px-5 py-4">
+                            {renderCellContent(t, col.key)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DndContext>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-export default AdminLogisticsTable;
+function formatDate(dateString: string) {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  return d.toISOString().slice(0, 16);
+}
