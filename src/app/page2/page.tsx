@@ -40,9 +40,17 @@ const toLocalDT = (d: string | Date) => {
 };
 const fmtDate = (d: string) =>
   new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true });
-const isValidDate = (value: string, min: string) => {
+const isValidDate = (value: string) => {
   if (!value) return false;
-  return new Date(value).getTime() >= new Date(min).getTime();
+  
+  const selectedDate = new Date(value).getTime();
+  
+  // 获取今天凌晨 00:00:00 的时间戳
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  
+  // 返回 true 表示：选择的时间必须是今天或未来
+  return selectedDate >= todayMidnight;
 };
 /* ── SORT ICON ── */
 function SortIcon({ colKey, sortKey, sortDir }: { colKey: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -203,34 +211,49 @@ function MobileCard({ task, driverList, openStatusId, setOpenStatusId, openPicId
         </div>
       </div>
 
-      {/* Schedule picker */}
-      <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-          <Calendar size={11} style={{ color: "rgba(255,255,255,0.25)" }} />
-          <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scheduled Delivery</span>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input type="datetime-local" value={localDT} min={committedMin}
-            onChange={(e) => {
-              const v = e.target.value;
+{/* Schedule picker */}
+<div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: "12px" }}>
+  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+    <Calendar size={11} style={{ color: "rgba(255,255,255,0.25)" }} />
+    <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Scheduled Delivery</span>
+  </div>
+  <div style={{ display: "flex", gap: 8 }}>
+    <input 
+      type="datetime-local" 
+      value={localDT} 
+      // 使用 min 属性：禁止选择今天（17号）之前的日期
+      // .toISOString().slice(0, 16) 会生成类似 "2026-04-17T00:00" 的格式
+      min={new Date(new Date().setHours(0,0,0,0)).toISOString().slice(0, 16)}
+      onChange={(e) => {
+        const v = e.target.value;
 
-              if (!isValidDate(v, committedMin)) {
-                // optional: silently reject instead of alert
-                return;
-              }
+        // 只传一个参数 v，解决之前的 TS 报错
+        if (!isValidDate(v)) {
+          return;
+        }
 
-              setLocalDT(v);
-            }}
-            style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#fff", fontSize: 12, padding: "7px 10px", fontFamily: "inherit", boxSizing: "border-box" as any }} />
-            <button onClick={() => { handleScheduleUpdate(task.id, localDT); setCommittedMin(localDT); }}
-            style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.25)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
+        setLocalDT(v);
+      }}
+      style={{ 
+        flex: 1, 
+        background: "rgba(255,255,255,0.05)", 
+        border: "1px solid rgba(255,255,255,0.1)", 
+        borderRadius: 8, 
+        color: "#fff", 
+        fontSize: 12, 
+        padding: "7px 10px", 
+        fontFamily: "inherit", 
+        boxSizing: "border-box" as any 
+      }} 
+    />
+    <button onClick={() => { handleScheduleUpdate(task.id, localDT); setCommittedMin(localDT); }}
+      style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.25)", color: "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </button>
+  </div>
+</div>
       {/* Footer */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 , paddingBottom: 30 }}>
         <div style={{ display: "flex", gap: 14 }}>
@@ -769,40 +792,90 @@ const AdminLogisticsTable = () => {
   );
 };
 
-/* ── DELIVERY CELL (isolated state to avoid full re-render) ── */
 function DeliveryCell({ task, handleScheduleUpdate }: { task: LogisticsTaskDto; handleScheduleUpdate: (id: number, v: string) => void }) {
+  // 获取今天凌晨的时间字符串，用于 min 限制
+  const todayStr = toLocalDT(new Date(new Date().setHours(0, 0, 0, 0)));
+  
   const [val, setVal] = useState(task.scheduledAt ? toLocalDT(task.scheduledAt) : "");
   const [saved, setSaved] = useState(false);
-  const [committedMin, setCommittedMin] = useState(
-  task.scheduledAt
-    ? toLocalDT(new Date(task.scheduledAt) > new Date() ? task.scheduledAt : new Date())
-    : toLocalDT(new Date())
-  );
-const save = () => {
-  if (!val) return;
 
-  if (new Date(val).getTime() < new Date(committedMin).getTime()) {
-    alert("You cannot schedule a past time");
-    return;
-  }
+  // --- 关键函数：强制输出 DD/MM/YYYY ---
+  const formatToDDMMYYYY = (dateStr: string) => {
+    if (!dateStr) return "DD/MM/YYYY";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "DD/MM/YYYY";
+    
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
-  handleScheduleUpdate(task.id, val);
-  setSaved(true);
-  setCommittedMin(val);
-  setTimeout(() => setSaved(false), 1500);
-};
+  const save = () => {
+    if (!val) return;
+    
+    // 再次检查逻辑，确保不选 17 号以前
+    if (new Date(val).getTime() < new Date(todayStr).getTime()) {
+      alert("Cannot select a date before today.");
+      return;
+    }
+
+    handleScheduleUpdate(task.id, val);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <input type="datetime-local" className="mono" value={val} min={committedMin}
-        onChange={e => { setVal(e.target.value); setSaved(false); }}
-        style={{ width: 172, fontSize: 11, padding: "6px 9px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#fff", fontFamily: "inherit", outline: "none" }}
-      />
-      <button onClick={save} title="Save"
-        style={{ width: 28, height: 28, borderRadius: 7, background: saved ? "rgba(52,211,153,0.15)" : "rgba(56,189,248,0.1)", border: `1px solid ${saved ? "rgba(52,211,153,0.3)" : "rgba(56,189,248,0.2)"}`, color: saved ? "#34D399" : "#38BDF8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.2s" }}>
-        {saved
-          ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        }
+    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "8px", minWidth: "220px" }}>
+      
+      <div style={{ position: "relative", flex: 1 }}>
+        {/* 隐藏的 input，负责功能 */}
+        <input 
+          type="datetime-local" 
+          value={val} 
+          min={todayStr} 
+          onChange={(e) => setVal(e.target.value)}
+          style={{ 
+            width: "100%",
+            background: "rgba(255,255,255,0.05)", 
+            border: "1px solid rgba(255,255,255,0.1)", 
+            borderRadius: 8, 
+            color: "transparent", // 隐藏原生文字颜色，因为我们要覆盖它
+            fontSize: 12, 
+            padding: "7px 10px",
+            cursor: "pointer",
+            caretColor: "transparent"
+          }} 
+        />
+        
+        {/* 覆盖层：显示你想要的 DD/MM/YYYY 格式 */}
+        <div style={{ 
+          position: "absolute", 
+          top: "50%", 
+          left: "10px", 
+          transform: "translateY(-50%)", 
+          pointerEvents: "none", // 允许点击穿透到 input
+          fontSize: "12px",
+          color: val ? "#fff" : "rgba(255,255,255,0.3)"
+        }}>
+          {val ? `${formatToDDMMYYYY(val)} ${new Date(val).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "DD/MM/YYYY --:--"}
+        </div>
+      </div>
+
+      <button 
+        onClick={save}
+        style={{ 
+          width: 36, height: 36, borderRadius: 8, 
+          background: saved ? "rgba(34,197,94,0.15)" : "rgba(56,189,248,0.15)", 
+          border: `1px solid ${saved ? "rgba(34,197,94,0.25)" : "rgba(56,189,248,0.25)"}`, 
+          color: saved ? "#22C55E" : "#38BDF8", 
+          cursor: "pointer",
+          flexShrink: 0
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
       </button>
     </div>
   );

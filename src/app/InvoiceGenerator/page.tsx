@@ -5,11 +5,8 @@ import {
   Paperclip,
   Upload,
   Building2,
-  MapPin,
   Download,
   Loader2,
-  Phone,
-  Printer,
   CheckCircle2,
   FileText,
   X,
@@ -52,21 +49,33 @@ const InvoiceGenerator = () => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
     const formData = new FormData();
-    // 💡 关键：循环添加所有文件到同一个 Key "files"
     files.forEach((f) => formData.append("files", f));
-
     formData.append("increasePercentage", increasePercentage.toString());
     formData.append("taxPercentage", taxPercentage.toString());
 
     try {
-      // 💡 这里的 URL 改为你后端的批量接口名
       const response = await fetch(
         `${API_BASE}/api/InvoiceTest/export-docx-bulk?companyKey=${companyKey}`,
         { method: "POST", body: formData },
       );
 
+      // --- 关键修改：处理 400 错误 ---
+      if (response.status === 400) {
+        const errorData = await response.json();
+        // 如果后端返回了缺失的 Code 列表
+        if (errorData.missingCodes && errorData.missingCodes.length > 0) {
+          alert(
+            `Error: ${errorData.message}\n\nMissing Debtor Codes:\n${errorData.missingCodes.join(", ")}`,
+          );
+        } else {
+          alert(`Error: ${errorData.message || "Invalid request."}`);
+        }
+        return; // 停止后续下载逻辑
+      }
+
       if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
 
+      // 下载逻辑保持不变
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -79,9 +88,6 @@ const InvoiceGenerator = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
-      // 完成后清空文件列表（可选）
-      // setFiles([]);
     } catch (error) {
       console.error("Export failed:", error);
       alert("Error generating invoices. Please check connection.");
