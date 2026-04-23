@@ -87,7 +87,7 @@ export default function C_ATP() {
       .filter(Boolean);
     const modelsPart = modelNames.join("_");
 
-    const basicFunctions = ["Copy", "Print", "Scan", "Store"];
+    const basicFunctions = ["Copy", "Print", "Scan", "Store", "Email", "Send"];
     const additionalFunctions = request.Items
       .flatMap((item) => (item.i_function || "").split(",").map((f) => f.trim()))
       .filter((f) => f && !basicFunctions.includes(f));
@@ -743,14 +743,6 @@ export default function C_ATP() {
       );
     }
   }, [totalMonths]);
-  /*const calculateTotalPrice = (items: any[]) => {
-    return items.reduce((total, item) => {
-      // Calculation: EstimatedMonthlyMeterReading * PrintChargeRate
-      const itemPrice =
-        item.EstimatedMonthlyMeterReading * item.PrintChargeRate * totalMonths;
-      return total + itemPrice;
-    }, 0);
-  };*/
   const [featurePage, setFeaturePage] = useState("");
   useEffect(() => {
     if (featurePage) {
@@ -1537,34 +1529,23 @@ export default function C_ATP() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Refundable Deposit
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={item.Refundable_D}
                             onChange={(e) => {
-                              const rawValue = e.target.value;
-
-                              // Allow only numbers and dots
-                              const cleanValue = rawValue.replace(/[^0-9.]/g, "");
-
-                              // Update the raw value (unformatted)
-                              handleItemChange(index, "Refundable_D", cleanValue);
+                              // 当选择发生变化时，直接将选中的值存入 item
+                              handleItemChange(index, "Refundable_D", e.target.value);
                             }}
-                            onBlur={(e) => {
-                              const numericValue = parseFloat(e.target.value.replace(/,/g, "")) || 0;
-
-                              // Format like 1,234.00
-                              const formatted = numericValue.toLocaleString("en-MY", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              });
-
-                              handleItemChange(index, "Refundable_D", formatted);
-                            }}
-                            placeholder="Enter refundable deposit"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                          />
+                          >
+                            <option value="">Select deposit type</option>
+                            <option value="New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental">
+                              New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental
+                            </option>
+                            <option value="Used Machine: RM500 (Refundable) + 1 Month Advance Rental">
+                              Used Machine: RM500 (Refundable) + 1 Month Advance Rental
+                            </option>
+                          </select>
                         </div>
-
                       </div>
                     </div>
                   </td>

@@ -40,6 +40,8 @@ import {
   Filter,
   Columns3,
   GripVertical,
+  CircleDot,
+  Settings
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
@@ -75,16 +77,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
    COLUMNS CONFIG
 ========================= */
 const COLUMN_DEFS = [
-  { key: "createdAt", label: "Created At", icon: Clock, width: 160 },
-  { key: "companyName", label: "Company", icon: Building2, width: 160 },
+  { key: "createdAt", label: "Created At", icon: Clock, width: 100 },
+  { key: "from", label: "From", icon: Building2, width: 160 },
+  { key: "companyName", label: "Company Name", icon: Building2, width: 160 },
   { key: "location", label: "Location", icon: MapPin, width: 180 },
-  { key: "item", label: "Item", icon: Package, width: 220 },
+  { key: "item", label: "Item", icon: Package, width: 250 },
   { key: "estimate", label: "Estimate", icon: Clock, width: 200 },
   { key: "schedule", label: "Schedule", icon: Clock, width: 200 },
-  { key: "pic", label: "PIC", icon: User, width: 140 },
-  { key: "status", label: "Status", icon: null, width: 150 },
-  { key: "documents", label: "Documents", icon: FileText, width: 160 },
-  { key: "action", label: "Action", icon: null, width: 130 },
+  { key: "pic", label: "PIC", icon: User, width: 120 },
+  { key: "status", label: "Status", icon: CircleDot, width: 150 },
+  { key: "documents", label: "Documents", icon: FileText, width: 140 },
+  { key: "action", label: "Action", icon: Settings, width: 100 },
 ];
 
 /* =========================
@@ -306,7 +309,16 @@ export default function LogisticsPage() {
 
   // ── PATCH ──
   const updateEstimate = async (id: number, value: string) => {
-    await fetch(`${API}/estimate/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    // 1. 如果 value 是 "yyyy-mm-ddThh:mm"，将其转换为完整的 ISO 格式
+    // 加上 'Z' 后缀，告诉服务器这是一个 UTC 时间
+    const isoValue = new Date(value).toISOString();
+
+    await fetch(`${API}/estimate/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      // 2. 确保作为 JSON 对象发送
+      body: JSON.stringify(isoValue) 
+    });
     fetchTasks(true);
   };
   const updateSchedule = async (id: number, value: string) => {
@@ -372,7 +384,24 @@ export default function LogisticsPage() {
     const cfg = STATUS_CONFIG[computedStatus] ?? STATUS_CONFIG["Waiting"];
     const isInstallUploaded = docStatus[t.id]?.install || t.hasInstallationForm;
     const isDoUploaded = docStatus[t.id]?.do || t.hasDo;
+    const mapUrl = (value : string ) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}`;
+    interface LinkWrapperProps {
+      children: React.ReactNode;
+      className?: string; // className 通常是可选的，所以加上 ?
+      href?: string;      // 如果你要传 href，建议也加上
+    }
 
+    // 2. 使用 React.FC 定义组件，TypeScript 会自动推断类型
+    const LinkWrapper: React.FC<LinkWrapperProps> = ({ children, className, href = "#" }) => (
+      <a 
+        href={href}
+        target="_blank" 
+        rel="noopener noreferrer"
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 border ${className || ''}`}
+      >
+        {children}
+      </a>
+    );    
     switch (colKey) {
       case "createdAt":
         return (
@@ -380,26 +409,37 @@ export default function LogisticsPage() {
             <Highlight text={t.createdAt} query={searchQuery} />
           </span>
         );
+      case "from":
+        return(
+          <LinkWrapper
+                href={mapUrl(t.from)}
+                className="bg-emerald-50 text emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200">
+                  <MapPin size={12} />
+                  <Highlight text={t.from} query={searchQuery} />
+          </LinkWrapper>         
+        )
+      // In your switch case:
       case "companyName":
         return (
-          <span className="font-bold text-slate-800 text-sm leading-snug">
-            <Highlight text={t.companyName} query={searchQuery} />
-          </span>
-        );
+          <LinkWrapper 
+                href={mapUrl(t.companyName)} 
+                className="bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200"
+              >
+                <MapPin size={12} />
+                <Highlight text={t.companyName} query={searchQuery} />
+              </LinkWrapper>
+            );
       case "location":
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.location)}`;
-
         return (
-          <a
-            href={mapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-emerald-600 text-sm font-bold leading-snug hover:text-indigo-600 hover:underline"
-          >
-            <Highlight text={t.location} query={searchQuery} />
-          </a>
-        );
-        case "item":
+          <LinkWrapper 
+                href={mapUrl(t.location)} 
+                className="bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200"
+              >
+                <MapPin size={12} />
+                <Highlight text={t.location} query={searchQuery} />
+              </LinkWrapper>
+            );
+      case "item":
         return (
           <span className="inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap">
             {t.item?.split("\n").map((line: string, i: number) => (

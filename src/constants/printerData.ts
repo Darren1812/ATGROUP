@@ -595,4 +595,4 @@ export const catalog = [
     },
 ];
 
-export const DEFAULT_FUNCTIONS = ["Copy", "Print", "Scan", "Store"];
+export const DEFAULT_FUNCTIONS = ["Copy", "Print", "Scan", "Store", "Email", "Send"];
