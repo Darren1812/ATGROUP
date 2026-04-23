@@ -1539,10 +1539,10 @@ export default function C_ATP() {
                           >
                             <option value="">Select deposit type</option>
                             <option value="New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental">
-                              New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental
+                              2 Month Rental (Refundable) + 1 Month Advance Rental
                             </option>
                             <option value="Used Machine: RM500 (Refundable) + 1 Month Advance Rental">
-                              Used Machine: RM500 (Refundable) + 1 Month Advance Rental
+                              RM500 (Refundable) + 1 Month Advance Rental
                             </option>
                           </select>
                         </div>
