@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const API = "http://localhost:5000/api/Logistics";
+const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
 
 const FIELD_CONFIG = [
   { key: "from",          label: "From / Sender",      placeholder: "Who is sending this?",    type: "text",           icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" },

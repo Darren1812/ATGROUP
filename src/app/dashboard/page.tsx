@@ -20,7 +20,8 @@ import {
   TrendingUp,
   ArrowUpRight,
   Paperclip,
-  LightbulbIcon
+  LightbulbIcon,
+  Truck
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -171,6 +172,17 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "Forms",
+      allowedDepartments: ["Software Engineer"],
+    },
+    {
+      title: "DELIVERY",
+      description: "Delivery Tasks.",
+      route: "/logisticsmember",
+      icon: Truck,
+      color: "from-violet-500 to-purple-600",
+      lightColor: "bg-violet-50",
+      iconColor: "text-violet-600",
+      category: "CORE SYSTEM",
       allowedDepartments: ["Software Engineer"],
     },
   ];

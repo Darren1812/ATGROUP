@@ -16,32 +16,10 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useAuth } from '@/context/AuthContext';
 
 import {
-  Package,
-  Plus,
-  Trash2,
-  RefreshCw,
-  MapPin,
-  Building2,
-  User,
-  Clock,
-  Truck,
-  CheckCircle2,
-  Loader2,
-  ArrowRight,
-  X,
-  Upload,
-  FileText,
-  Eye,
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-  Filter,
-  Columns3,
-  GripVertical,
-  CircleDot,
-  Settings
+  Package, Plus, Trash2, RefreshCw, MapPin, Building2, User, Clock, Truck, CheckCircle2, Loader2, ArrowRight, X, Upload, FileText, Eye, Search, SlidersHorizontal, ChevronDown, Filter, Columns3, GripVertical,CircleDot,Settings, Phone
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
@@ -77,11 +55,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
    COLUMNS CONFIG
 ========================= */
 const COLUMN_DEFS = [
-  { key: "createdAt", label: "Created At", icon: Clock, width: 100 },
+  { key: "createdAt", label: "At", icon: Clock, width: 100 },
+  { key: "createdBy", label: "BY", icon: User, width: 60},
   { key: "from", label: "From", icon: Building2, width: 160 },
   { key: "companyName", label: "Company Name", icon: Building2, width: 160 },
   { key: "location", label: "Location", icon: MapPin, width: 180 },
-  { key: "item", label: "Item", icon: Package, width: 250 },
+  { key: "phoneNumber", label: "Phone", icon: Phone, width: 100},
+  { key: "item", label: "Item", icon: Package, width: 300 },
   { key: "estimate", label: "Estimate", icon: Clock, width: 200 },
   { key: "schedule", label: "Schedule", icon: Clock, width: 200 },
   { key: "pic", label: "PIC", icon: User, width: 120 },
@@ -250,7 +230,7 @@ export default function LogisticsPage() {
     window.open(`${API}/view/${id}/${type}`, "_blank");
   };
 
-  const emptyRow = { createdAt: "", from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "" };
+  const emptyRow = { createdAt: "", from: "", companyName: "", location: "", item: "", scheduledTime: "", picDeliver: "", phoneNumber: "", createdBy: "" };
   const [newTasks, setNewTasks] = useState<any[]>([emptyRow]);
 
   // ── FETCH ──
@@ -325,11 +305,28 @@ export default function LogisticsPage() {
     await fetch(`${API}/schedule/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
     fetchTasks(true);
   };
+  // ── 修改后的 updatePic ──
   const updatePic = async (id: number, value: string) => {
-    await fetch(`${API}/pic/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    // 1. 先更新 PIC
+    await fetch(`${API}/pic/${id}`, { 
+      method: "PATCH", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify(value) 
+    });
+
+    // 2. 逻辑判断：如果有了 PIC，状态就设为 "Arrange"，否则设为 "Waiting"
+    const newStatus = value ? "Arrange" : "Waiting";
+
+    // 3. 调用您刚才定义的 UpdateStatus 接口
+    await fetch(`${API}/status/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newStatus) // 发送新的状态值
+    });
+
+    // 4. 最后重新获取数据刷新列表
     fetchTasks(true);
   };
-
   // ── Unique PIC list for dropdown ──
   const picOptions = useMemo(() => {
     const s = new Set(tasks.map((t) => t.picDeliver).filter(Boolean));
@@ -405,8 +402,14 @@ export default function LogisticsPage() {
     switch (colKey) {
       case "createdAt":
         return (
-          <span className="text-gray-400 text-xs leading-snug">
+          <span className="text-[11px] w-[160px] text-gray-400 leading-snug">
             <Highlight text={t.createdAt} query={searchQuery} />
+          </span>
+        );
+      case "createdBy":
+        return (
+          <span className="text-gray-400 text-xs leading-snug text-[11px] px-2 py-1.5 w-[50px]">
+            <Highlight text={t.createdBy} query={searchQuery} />
           </span>
         );
       case "from":
@@ -433,15 +436,22 @@ export default function LogisticsPage() {
         return (
           <LinkWrapper 
                 href={mapUrl(t.location)} 
-                className="bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200"
+                className="bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 w-[100px]" 
               >
                 <MapPin size={12} />
                 <Highlight text={t.location} query={searchQuery} />
               </LinkWrapper>
             );
+      case "phoneNumber":
+        return (
+          <span className="text-[11px] px-2 py-1.5 w-[160px] text-gray-400 text-xs leading-snug">
+            <Highlight text={t.phoneNumber} query={searchQuery} />
+          </span>
+        );
+
       case "item":
         return (
-          <span className="inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap">
+          <span className="inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap text-[11px] px-2 py-1.5 w-[200px] ">
             {t.item?.split("\n").map((line: string, i: number) => (
               <span key={i}>
                 <Highlight text={line} query={searchQuery} />
@@ -455,7 +465,7 @@ export default function LogisticsPage() {
             type="datetime-local"
             defaultValue={formatDate(t.time)}
             onBlur={(e) => updateEstimate(t.id, e.target.value)}
-            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+            className="text-[11px] px-2 py-1.5 w-[160px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700"
           />
         );
       case "schedule":
@@ -464,7 +474,7 @@ export default function LogisticsPage() {
             type="datetime-local"
             defaultValue={formatDate(t.scheduledAt)}
             onBlur={(e) => updateSchedule(t.id, e.target.value)}
-            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+            className="text-xs px-3 py-2text-[11px] px-2 py-1.5 w-[160px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 "
           />
         );
       case "pic":
@@ -472,17 +482,19 @@ export default function LogisticsPage() {
           <input
             defaultValue={t.picDeliver}
             onBlur={(e) => updatePic(t.id, e.target.value)}
-            className="text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 w-full"
+            className="text-[11px] px-2 py-1.5 w-[90px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 "
           />
         );
       case "status":
+        // 直接使用从 API 获取的 t.status
+        const cfg = STATUS_CONFIG[t.status] ?? STATUS_CONFIG["Waiting"];
         return (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color}`}>
+          <div className={`text-[11px] px-2 py-1.5 w-[90px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color}`}>
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
             {cfg.label}
           </div>
         );
-      case "documents":
+        case "documents":
         return (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
@@ -559,7 +571,8 @@ export default function LogisticsPage() {
         return null;
     }
   };
-
+const { user } = useAuth();
+const [name, setName] = useState(user?.nameUse || '');
   return (
     <div className="min-h-screen bg-slate-50">
       {/* PAGE HEADER */}
@@ -615,15 +628,15 @@ export default function LogisticsPage() {
               </button>
             </div>
             <div className="p-6 space-y-3">
-              <div className="hidden md:grid grid-cols-6 gap-3 px-1">
-                {["From", "Company", "Location", "Item", "Scheduled Time", "PIC"].map((h) => (
-                  <p key={h} className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+              <div className="hidden md:grid grid-cols-8 gap-3 px-1">
+                {["From", "Company", "Location", "Item", "Scheduled Time", "PIC", "Email", "Created By"].map((h) => (
+                    <p key={h} className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     {h}
                   </p>
                 ))}
               </div>
               {newTasks.map((task, i) => (
-                <div key={i} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center group">
+                <div key={i} className="grid grid-cols-1 md:grid-cols-8 gap-3 items-center group">
                   {(["from", "companyName", "location", "item"] as const).map((field) => (
                     <input
                       key={field}
@@ -655,6 +668,20 @@ export default function LogisticsPage() {
                       </button>
                     )}
                   </div>
+                  <input
+                    placeholder="Phone Number"
+                    value={task.phoneNumber}
+                    onChange={(e) => updateRow(i, "phoneNumber", e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  />
+                <input 
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)} // You can actually remove this now!
+                  readOnly // <--- Add this
+                  className="border p-2 rounded bg-slate-100 cursor-not-allowed text-slate-500"
+                  placeholder="Enter name"
+                />
                 </div>
               ))}
             </div>

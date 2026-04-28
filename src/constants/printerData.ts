@@ -249,7 +249,26 @@ export const ARENA_ADDRESS = [
         name: "SELANGOR",
         address:
             "ARENA STABIL SDN BHD (795045-D)\n29 & 29A, LORONG SENTOSA 4A,\nTAMAN BAYU TINGGI,\n41200 KLANG,\nSELANGOR DARUL EHSAN",
-    }
+    },
+    {
+        name: "PULAU PINANG",
+        address:
+            "ARENA STABIL SDN BHD (795045-D)\nNO. 47, LORONG TENANG 5,\nTAMAN TENANG,\nSEBERANG PERAI TENGAH,\n14000 BUKIT MERTAJAM, PULAU PINANG.",
+    },
+    {
+        name: "PAHANG",
+        address:
+            "ARENA STABIL SDN BHD (795045-D)\n32, GROUND FLOOR,\nLORONG PANDAN DAMAI 2/201,\nJALAN GAMBANG,\n25152 KUANTAN, PAHANG",
+    },
+    {
+        name: "TERENGGANU",
+        address:
+            "ARENA STABIL SDN BHD (795045-D)\n447-E/1, JALAN KAMARUDIN,\n20400 KUALA TERENGGANU,\nTERENGGANU",
+    },{
+        name: "KELANTAN",
+        address:
+            "ARENA STABIL SDN BHD (795045-D)\nLOT 1.41, KB CYBER PLAZA, KB MALL,\n15000 KOTA BAHRU,\nKELANTAN",
+    },
 ];
 
 export const MODEL_LIST = [
