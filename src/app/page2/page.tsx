@@ -44,6 +44,7 @@ import {
   CircleDot,
   Settings,
   Phone,
+  Archive,
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
@@ -76,7 +77,7 @@ const STATUS_CONFIG: Record<
    COLUMNS CONFIG
 ========================= */
 const COLUMN_DEFS = [
-  { key: "orderNumber", label: "ID", icon: null, width: 100},
+  { key: "orderNumber", label: "ID", icon: null, width: 100 },
   { key: "createdAt", label: "At", icon: Clock, width: 100 },
   { key: "createdBy", label: "BY", icon: User, width: 60 },
   { key: "from", label: "From", icon: Building2, width: 160 },
@@ -372,7 +373,9 @@ export default function LogisticsPage() {
         ...task,
         createdBy: user?.nameUse || "Unknown",
         // Force the date to a UTC ISO string here!
-        scheduledTime: task.scheduledTime ? new Date(task.scheduledTime).toISOString() : null
+        scheduledTime: task.scheduledTime
+          ? new Date(task.scheduledTime).toISOString()
+          : null,
       }));
 
       const res = await fetch(API, {
@@ -413,16 +416,16 @@ export default function LogisticsPage() {
   };
 
   // ── PATCH ──
-const updateEstimate = async (id: any, value: string) => {
+  const updateEstimate = async (id: any, value: string) => {
     // "2026-04-30T10:30" -> add 'Z' to tell JS: "This is ALREADY UTC"
-    const utcString = value + ":00.000Z"; 
+    const utcString = value + ":00.000Z";
 
     await fetch(`${API}/estimate/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scheduledTime: utcString }),
     });
-};
+  };
   const updateSchedule = async (id: number, value: string) => {
     await fetch(`${API}/schedule/${id}`, {
       method: "PATCH",
@@ -538,14 +541,14 @@ const updateEstimate = async (id: any, value: string) => {
     const formatForInput = (utcDateString: string | number | Date) => {
       if (!utcDateString) return "";
       const date = new Date(utcDateString);
-      
+
       // 获取本地时间的 YYYY-MM-DDThh:mm 格式
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
     // 2. 使用 React.FC 定义组件，TypeScript 会自动推断类型
@@ -558,7 +561,8 @@ const updateEstimate = async (id: any, value: string) => {
         href={href}
         target='_blank'
         rel='noopener noreferrer'
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 border ${className || ""}`}
+        // Change "rounded-full" to "rounded-md"
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 border ${className || ""}`}
       >
         {children}
       </a>
@@ -780,6 +784,47 @@ const updateEstimate = async (id: any, value: string) => {
   };
   const { user } = useAuth();
   const [name, setName] = useState(user?.nameUse || "");
+  // 1. 定义状态
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+
+    try {
+      const response = await fetch(`${API}/export-full-zip`, {
+        method: "GET",
+        // If your API requires a token, add headers here
+        // headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error("Failed to generate zip");
+
+      // Convert the response to a binary blob
+      const blob = await response.blob();
+
+      // Create a temporary link to trigger the download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Format: Logistics_Backup_2026-05-04.zip
+      const date = new Date().toISOString().split("T")[0];
+      link.setAttribute("download", `Logistics_Backup_${date}.zip`);
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup memory and DOM
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Export failed. Please check your connection.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  // 2. JSX 绑定
   return (
     <div className='min-h-screen bg-slate-50'>
       {/* PAGE HEADER */}
@@ -817,6 +862,22 @@ const updateEstimate = async (id: any, value: string) => {
                 <Plus size={16} />
                 New Task
               </button>
+              <button
+                onClick={handleExportBackup} // No need to pass (v) => !v
+                disabled={isExporting} // Disable while downloading
+                className={`flex items-center gap-2 px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-md 
+                ${
+                  isExporting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
+                }`}
+              >
+                <Archive
+                  size={16}
+                  className={isExporting ? "animate-spin" : ""}
+                />
+                {isExporting ? "Packaging..." : "Generate Record"}
+              </button>{" "}
             </div>
           </div>
         </div>
@@ -875,7 +936,7 @@ const updateEstimate = async (id: any, value: string) => {
                       field === "item" ? (
                         <textarea
                           key={field}
-                          placeholder="Item"
+                          placeholder='Item'
                           value={task[field]}
                           onChange={(e) => updateRow(i, field, e.target.value)}
                           rows={2}

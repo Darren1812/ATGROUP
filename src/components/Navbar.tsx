@@ -56,8 +56,8 @@ export default function Navbar() {
 
   const navItems = [
     { label: "Home", href: "/dashboard", icon: Home },
-    { label: "Order", href: "/page2", icon: Truck },
     { label: "Model", href: "/ModelPage", icon: Printer },
+    { label: "BUTTON 3", href: "/" },
     { label: "BUTTON 4", href: "/page4" },
   ];
 
@@ -79,7 +79,6 @@ export default function Navbar() {
             </Link>
             <div className="hidden lg:block w-px h-8 bg-slate-300" />
             <div className="hidden lg:block">
-
               <p className="text-xs text-slate-500">Management System</p>
             </div>
           </div>

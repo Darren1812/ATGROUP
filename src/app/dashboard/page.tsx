@@ -175,6 +175,17 @@ export default function Dashboard() {
       allowedDepartments: ["Software Engineer"],
     },
     {
+      title: "SALES ORDER",
+      description: "SALES ORDER.",
+      route: "/page2",
+      icon: Truck,
+      color: "from-violet-500 to-purple-600",
+      lightColor: "bg-violet-50",
+      iconColor: "text-violet-600",
+      category: "CORE SYSTEM",
+      allowedDepartments: ["Software Engineer"],
+    },
+    {
       title: "DELIVERY",
       description: "Delivery Tasks.",
       route: "/logisticsmember",
