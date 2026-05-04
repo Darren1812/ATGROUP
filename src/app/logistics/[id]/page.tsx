@@ -9,6 +9,7 @@ const FIELD_CONFIG = [
   { key: "from",          label: "From / Sender",      placeholder: "Who is sending this?",    type: "text",           icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" },
   { key: "companyName",   label: "Company",             placeholder: "Company name",             type: "text",           icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H3m16 0h2M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 00-1-1h-2a1 1 0 00-1 1v5m4 0H9" },
   { key: "location",      label: "Destination",         placeholder: "Delivery location",        type: "text",           icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
+  { key: "phoneNumber",      label: "Phone Number",         placeholder: "Delivery location",        type: "text",           icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
   { key: "item",          label: "Item / Cargo",        placeholder: "What is being delivered?", type: "textarea",           icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { key: "scheduledTime", label: "Scheduled Time",      placeholder: "",                         type: "datetime-local", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
   { key: "picDeliver",    label: "Person In Charge",    placeholder: "Responsible person",       type: "text",           icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
@@ -108,7 +109,7 @@ export default function EditPage() {
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#312e81" }}>{task.companyName}</div>
-              <div style={{ fontSize: 12.5, color: "#6366f1", marginTop: 1 }}>{task.item} → {task.location}</div>
+              <div style={{ fontSize: 12.5, color: "#6366f1", marginTop: 1 }}>{task.location}</div>
             </div>
           </div>
         )}
