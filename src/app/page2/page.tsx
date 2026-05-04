@@ -575,7 +575,7 @@ const updateEstimate = async (id: any, value: string) => {
         return (
           <span className='text-[11px] w-[160px] text-gray-400 leading-snug'>
             {/* 直接传入处理后的字符串，而不是原始的 t.createdAt */}
-            <Highlight text={formatDateToMY(t.createdAt)} query={searchQuery} />
+            <Highlight text={t.createdAt} query={searchQuery} />
           </span>
         );
       case "createdBy":
@@ -780,23 +780,6 @@ const updateEstimate = async (id: any, value: string) => {
   };
   const { user } = useAuth();
   const [name, setName] = useState(user?.nameUse || "");
-  const formatDateToMY = (isoString: string | number | Date) => {
-    if (!isoString) return "";
-
-    // 1. 获取原始日期对象
-    const date = new Date(isoString);
-
-    const correctedDate = new Date(date.getTime() - (4 * 60 * 60 * 1000));
-    return new Intl.DateTimeFormat('en-MY', {
-      timeZone: 'Asia/Kuala_Lumpur',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(correctedDate);
-  };
   return (
     <div className='min-h-screen bg-slate-50'>
       {/* PAGE HEADER */}
@@ -871,7 +854,7 @@ const updateEstimate = async (id: any, value: string) => {
                   "Item",
                   "Estimate Time",
                   "PIC",
-                  "Email",
+                  "Phone Number",
                   "Created By",
                 ].map((h) => (
                   <p
