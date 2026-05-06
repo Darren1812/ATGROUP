@@ -243,9 +243,6 @@ export default function OnlineUsersTable() {
                         Role
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -272,14 +269,6 @@ export default function OnlineUsersTable() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-xs font-medium">
                             {user.role || "N/A"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.status
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-600"
-                            }`}>
-                            {user.status ? "Online" : "Offline"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
