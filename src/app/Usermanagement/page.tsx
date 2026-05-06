@@ -54,7 +54,12 @@ export default function OnlineUsersTable() {
     role: "",
     email: "",
     position: "",
-    mobile: ""
+    mobile: "",
+    name_use: "",
+    approval: "",
+    sign: "",
+    bod: "",
+    status: false
   });
 
   const addUser = async () => {
@@ -79,7 +84,7 @@ export default function OnlineUsersTable() {
 
       addToast("✅ User created successfully", "success");
       setShowAddModal(false);
-      setNewUser({ name: "", password: "", department: "", role: "", email: "", position: "", mobile: "" });
+      setNewUser({ name: "", password: "", department: "", role: "", email: "", position: "", mobile: "", name_use: "", approval: "", sign: "", bod: "", status: false });
       fetchUsers(); // refresh table
 
     } catch {
@@ -313,111 +318,181 @@ export default function OnlineUsersTable() {
         </div>
       </div>
 
-      {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-800">Add New User</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    {/* Increased max-w to 2xl to support two columns */}
+    <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl">
+      <div className="flex items-center justify-between p-6 border-b border-slate-200">
+        <h2 className="text-xl font-semibold text-slate-800">Add New User</h2>
+        <button
+          onClick={() => setShowAddModal(false)}
+          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          <X size={20} className="text-slate-500" />
+        </button>
+      </div>
 
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-                <input
-                  type="password"
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter department"
-                  value={newUser.department}
-                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter role"
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Position</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter position"
-                  value={newUser.position}
-                  onChange={(e) => setNewUser({ ...newUser, position: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Mobile</label>
-                <input
-                  className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter mobile number"
-                  value={newUser.mobile}
-                  onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end p-6 border-t border-slate-200">
-              <button
-                className="px-4 py-2.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
-                onClick={() => setShowAddModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addUser}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-              >
-                <UserPlus size={16} />
-                Create User
-              </button>
-            </div>
+      <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        {/* Grid Layout: 2 columns on larger screens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="John Doe"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+            />
           </div>
+
+          {/* Name Use (Display Name) */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Display Name (name_use)</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Johnny"
+              value={newUser.name_use}
+              onChange={(e) => setNewUser({ ...newUser, name_use: e.target.value })}
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input
+              type="password"
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="••••••••"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="john@company.com"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+            />
+          </div>
+
+          {/* Department */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Sales / IT"
+              value={newUser.department}
+              onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+            />
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Admin / User"
+              value={newUser.role}
+              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+            />
+          </div>
+
+          {/* Position */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Position</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Manager"
+              value={newUser.position}
+              onChange={(e) => setNewUser({ ...newUser, position: e.target.value })}
+            />
+          </div>
+
+          {/* Mobile */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Mobile</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="+60..."
+              value={newUser.mobile}
+              onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
+            />
+          </div>
+
+          {/* Bod (Birthdate) */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth (Bod)</label>
+            <input
+              type="text" // Using text as per your DB schema, but you could use type="date"
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="YYYY-MM-DD"
+              value={newUser.bod}
+              onChange={(e) => setNewUser({ ...newUser, bod: e.target.value })}
+            />
+          </div>
+
+          {/* Sign */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Signature String</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Digital Sign ID"
+              value={newUser.sign}
+              onChange={(e) => setNewUser({ ...newUser, sign: e.target.value })}
+            />
+          </div>
+
+          {/* Approval */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Approval Authority</label>
+            <input
+              className="border border-slate-300 p-2.5 w-full rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+              placeholder="Level 1"
+              value={newUser.approval}
+              onChange={(e) => setNewUser({ ...newUser, approval: e.target.value })}
+            />
+          </div>
+
+          {/* Status (Boolean) */}
+          <div className="flex items-center gap-3 pt-6">
+            <input
+              type="checkbox"
+              id="status"
+              className="w-5 h-5 accent-emerald-600 rounded"
+              checked={newUser.status}
+              onChange={(e) => setNewUser({ ...newUser, status: e.target.checked })}
+            />
+            <label htmlFor="status" className="text-sm font-medium text-slate-700">Active Account</label>
+          </div>
+
         </div>
-      )}
+      </div>
+
+      <div className="flex gap-3 justify-end p-6 border-t border-slate-200">
+        <button
+          className="px-4 py-2.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
+          onClick={() => setShowAddModal(false)}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={addUser}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+        >
+          <UserPlus size={16} />
+          Create User
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Edit User Modal */}
       {showEditModal && selectedUser && (
