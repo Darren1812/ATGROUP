@@ -250,59 +250,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              {/* Notification Button Container */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className={`relative p-2.5 rounded-lg transition-all duration-200 
-      ${showNotifications ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                >
-                  <Bell size={18} />
-                  {/* Notification Badge with Ring */}
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-white">
-                    3
-                  </span>
-                </button>
-
-                {/* Notification Dropdown */}
-                {showNotifications && (
-                  <>
-                    {/* Invisible backdrop to close on click outside */}
-                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-
-                    <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                      <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
-                        <button className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">Mark all as read</button>
-                      </div>
-
-                      <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                        {[
-                          { title: "Contract ABC", desc: "has been approved", time: "2m ago", unread: true },
-                          { title: "New Submission", desc: "Contract for review", time: "1h ago", unread: true },
-                          { title: "Expiration Warning", desc: "Contract XYZ expires soon", time: "3h ago", unread: false },
-                        ].map((n, i) => (
-                          <div key={i} className="group p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
-                            {/* Status Dot */}
-                            {n.unread && <div className="mt-1.5 w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />}
-
-                            <div className="flex-1">
-                              <p className="text-sm text-slate-600 leading-tight">
-                                <span className="font-semibold text-slate-900">{n.title}</span> {n.desc}
-                              </p>
-                              <span className="text-[11px] text-slate-400 mt-1 block">{n.time}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button className="w-full p-3 text-center text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-colors border-t border-slate-100">
-                        View all notifications
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
           </div>
         </div>
