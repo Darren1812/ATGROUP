@@ -193,12 +193,6 @@ export default function OnlineUsersTable() {
                   <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                     <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                   </div>
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium">Online</p>
-                    <p className="text-2xl font-light text-slate-800">
-                      {users.filter(u => u.status).length}
-                    </p>
-                  </div>
                 </div>
               </div>
 
