@@ -84,7 +84,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing", "Software Engineer"],
+      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
     },
     {
       title: "Archidex Database",
