@@ -205,14 +205,26 @@ export default function LogisticsPage() {
 
       if (!res.ok) throw new Error("Upload failed");
 
+      // --- INSTANT UI UPDATE ---
+      // This updates the local 'tasks' state so the card moves to the "Complete" tab immediately
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === id
+            ? { ...task, status: "Complete", hasComplete: true }
+            : task,
+        ),
+      );
+
       alert("Upload successful!");
-      window.location.reload();
+
+      // REMOVE THIS: window.location.reload();
+      // You don't need the reload anymore because the state update above
+      // handles the visual change instantly.
     } catch (err) {
       console.error(err);
       alert("Upload failed");
     }
   };
-
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-50'>
       {/* Header Section */}
@@ -301,7 +313,9 @@ export default function LogisticsPage() {
             >
               <div
                 className={`p-2 rounded-lg ${
-                  selectedStatus === "Complete" ? "bg-white/20" : "bg-emerald-100"
+                  selectedStatus === "Complete"
+                    ? "bg-white/20"
+                    : "bg-emerald-100"
                 }`}
               >
                 <CheckCheck
@@ -430,31 +444,46 @@ export default function LogisticsPage() {
                       </div>
 
                       {/* To (Destination - Highlighted) */}
-                      <div className='bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-4 rounded-xl border border-indigo-200/60 shadow-sm'>
-                        <div className='flex items-start gap-3'>
-                          <div className='flex-shrink-0 w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200'>
-                            <MapPin
-                              size={20}
-                              className='text-white'
-                              strokeWidth={2.5}
-                            />
-                          </div>
-                          <div className='flex-1 min-w-0'>
-                            <p className='text-[10px] font-black text-indigo-600 uppercase tracking-wider mb-1'>
-                              Destination
-                            </p>
-                            <h3
-                              className='text-base font-black text-slate-900 mb-1 leading-tight hover:underline cursor-pointer'
-                              onClick={() => openMap(t.companyName)}
-                            >
-                              {t.companyName}
-                            </h3>
-                            <p
-                              className='text-xs text-indigo-700/80 font-semibold leading-relaxed hover:underline cursor-pointer'
-                              onClick={() => openMap(t.location)}
-                            >
-                              {t.location}
-                            </p>
+                      <div className='flex items-center gap-2.5'>
+                        <div className='flex-shrink-0 w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-100 transition-colors'>
+                          <Building2
+                            size={16}
+                            className='text-slate-500 group-hover:text-indigo-600 transition-colors'
+                          />
+                        </div>
+                        <div
+                          className='flex-1 min-w-0 cursor-pointer'
+                          onClick={() => openMap(t.companyName)}
+                        >
+                          <p className='text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5'>
+                            To
+                          </p>
+                          <p className='text-sm font-bold text-slate-700 truncate hover:underline'>
+                            {t.companyName}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <div className='bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-4 rounded-xl border border-indigo-200/60 shadow-sm'>
+                          <div className='flex items-start gap-3'>
+                            <div className='flex-shrink-0 w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200'>
+                              <MapPin
+                                size={20}
+                                className='text-white'
+                                strokeWidth={2.5}
+                              />
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <p className='text-[10px] font-black text-indigo-600 uppercase tracking-wider mb-1'>
+                                Address
+                              </p>
+                              <p
+                                className='text-xs text-indigo-700/80 font-semibold leading-relaxed hover:underline cursor-pointer'
+                                onClick={() => openMap(t.location)}
+                              >
+                                {t.location}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>

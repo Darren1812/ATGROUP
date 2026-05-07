@@ -29,6 +29,7 @@ import {
   List,
   Download,
   Upload,
+  User,
 } from "lucide-react";
 
 interface User {
@@ -79,6 +80,18 @@ const DEPARTMENT_COLORS: Record<string, { bg: string; text: string; border: stri
     text: "text-cyan-700",
     border: "border-cyan-200",
     gradient: "from-cyan-500 to-cyan-600",
+  },
+  Boss: {
+    bg: "bg-amber-50",
+    text: "text-amber-800", // Darker text for better contrast on gold
+    border: "border-amber-300",
+    gradient: "from-amber-400 via-yellow-500 to-amber-600", // "Gold" effect
+  },
+  "Software Engineer": {
+    bg: "bg-orange-50",
+    text: "text-orange-700",
+    border: "border-orange-200",
+    gradient: "from-orange-400 to-orange-600",
   },
   Default: {
     bg: "bg-slate-50",
@@ -521,7 +534,7 @@ export default function OnlineUsersTable() {
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${deptColors.bg} ${deptColors.text} rounded-lg text-xs font-bold border ${deptColors.border}`}
                         >
-                          <Building2 size={12} />
+                          <User size={12} />
                           {user.department || "N/A"}
                         </span>
                         <span
@@ -591,9 +604,6 @@ export default function OnlineUsersTable() {
                       <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
                         Contact
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
-                        Status
-                      </th>
                       <th className="px-6 py-4 text-right text-xs font-black text-slate-600 uppercase tracking-wider">
                         Actions
                       </th>
@@ -631,7 +641,7 @@ export default function OnlineUsersTable() {
                             <span
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${deptColors.bg} ${deptColors.text} rounded-lg text-xs font-bold border ${deptColors.border}`}
                             >
-                              <Building2 size={12} />
+                              <User size={12} />
                               {user.department || "N/A"}
                             </span>
                           </td>
@@ -660,19 +670,6 @@ export default function OnlineUsersTable() {
                                 </div>
                               )}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {user.status ? (
-                              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 w-fit">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                                Active
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold border border-slate-200 w-fit">
-                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-                                Inactive
-                              </span>
-                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -885,37 +882,16 @@ export default function OnlineUsersTable() {
                 {/* Approval Authority */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Approval Authority
+                    Approval
                   </label>
                   <input
                     className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="Level 1"
+                    placeholder="Approval"
                     value={newUser.approval}
                     onChange={(e) =>
                       setNewUser({ ...newUser, approval: e.target.value })
                     }
                   />
-                </div>
-
-                {/* Status Toggle */}
-                <div className="md:col-span-2">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border-2 border-slate-200">
-                    <input
-                      type="checkbox"
-                      id="status"
-                      className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
-                      checked={newUser.status}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, status: e.target.checked })
-                      }
-                    />
-                    <label
-                      htmlFor="status"
-                      className="text-sm font-bold text-slate-700 cursor-pointer"
-                    >
-                      Active Account
-                    </label>
-                  </div>
                 </div>
               </div>
             </div>
