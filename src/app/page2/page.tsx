@@ -567,6 +567,13 @@ export default function LogisticsPage() {
         {children}
       </a>
     );
+
+    const getTodayMinString = () => {
+      const now = new Date();
+      // Offsets the time to local timezone to get the correct YYYY-MM-DDTHH:mm format
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    };
     switch (colKey) {
       case "orderNumber":
         return (
@@ -594,7 +601,6 @@ export default function LogisticsPage() {
             href={mapUrl(t.from)}
             className='bg-emerald-50 text emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200'
           >
-            <MapPin size={12} />
             <Highlight text={t.from} query={searchQuery} />
           </LinkWrapper>
         );
@@ -605,7 +611,6 @@ export default function LogisticsPage() {
             href={mapUrl(t.companyName)}
             className='bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200'
           >
-            <MapPin size={12} />
             <Highlight text={t.companyName} query={searchQuery} />
           </LinkWrapper>
         );
@@ -615,7 +620,6 @@ export default function LogisticsPage() {
             href={mapUrl(t.location)}
             className='bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 w-[100px]'
           >
-            <MapPin size={12} />
             <Highlight text={t.location} query={searchQuery} />
           </LinkWrapper>
         );
@@ -640,6 +644,7 @@ export default function LogisticsPage() {
         return (
           <input
             type='datetime-local'
+            min={getTodayMinString()} // Prevents past dates
             defaultValue={formatForInput(t.time)}
             onBlur={(e) => updateEstimate(t.id, e.target.value)}
             className='text-[11px] px-2 py-1.5 w-[160px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
@@ -649,6 +654,7 @@ export default function LogisticsPage() {
         return (
           <input
             type='datetime-local'
+            min={getTodayMinString()} // Prevents past dates
             defaultValue={formatDate(t.scheduledAt)}
             onBlur={(e) => updateSchedule(t.id, e.target.value)}
             className='text-[11px] px-2 py-1.5 w-[165px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
