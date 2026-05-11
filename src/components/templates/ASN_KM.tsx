@@ -1,12 +1,14 @@
 "use client";
 
+import { Plus, Trash2 } from "lucide-react";
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
-  KMImage,
+  getImageForModelAndFunctions,
   modelSpeedMap,
   STAFF_NAMES,
+  ASN_ADDRESS,
   KM_MODEL_LIST,
   DEFAULT_FUNCTIONS
 } from "../../constants/printerData";
@@ -73,8 +75,7 @@ const formatCustomDate = (
       return dateString;
   }
 };
-export default function C_ATP() {
-
+export default function ASN_29series() {
   const generateFileName = (request: ReturnType<typeof generateJSON>) => {
     const customerName = request.BeforeData.customername || "UnknownCustomer";
     const customerInitials = customerName
@@ -87,7 +88,7 @@ export default function C_ATP() {
       .filter(Boolean);
     const modelsPart = modelNames.join("_");
 
-    const basicFunctions = ["Copy", "Print", "Scan", "Store", "Email", "Send"];
+    const basicFunctions = ["Copy", "Print", "Scan", "Store"];
     const additionalFunctions = request.Items
       .flatMap((item) => (item.i_function || "").split(",").map((f) => f.trim()))
       .filter((f) => f && !basicFunctions.includes(f));
@@ -143,8 +144,9 @@ export default function C_ATP() {
   const [, setLastRentalScheme] = useState<string>("");
 
   // Document Placeholders
+  const [rentalTitle, setRentalTitle] = useState("");
   const [totalMonths, setTotalMonths] = useState<number>(0);
-  const [, setRentalItems] = useState([
+  const [rentalItems, setRentalItems] = useState([
     {
       Lokasi: "",
       Spesifikasi: "",
@@ -156,9 +158,16 @@ export default function C_ATP() {
     },
   ]);
 
+  const [printCostItems, setPrintCostItems] = useState([
+    {
+      NameAndSpecification: "",
+      EstimatedMonthlyMeterReading: 0,
+      PrintChargeRate: 0,
+    },
+  ]);
 
-
-  const [companyaddress, ] = useState("");
+  const [userNote, setUserNote] = useState("");
+  const [companyaddress, setcompanyaddress] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [staffName, setStaffName] = useState("");
   const [staffPosition, setStaffPosition] = useState("");
@@ -168,7 +177,7 @@ export default function C_ATP() {
   const [dateInput, setDateInput] = useState(
     new Date().toISOString().substring(0, 10)
   ); // YYYY-MM-DD
-  const [customer, setCustomer] = useState("");
+  const [customer,] = useState("");
   const [feature1, setFeature1] = useState("");
   const [feature2, setFeature2] = useState("");
 
@@ -196,13 +205,12 @@ export default function C_ATP() {
       i_detail_fontsize: "",
       itemimage: "",
       companyaddress: companyaddress,
-      Refundable_D: "",
     },
   ]);
 
   const generateJSON = () => {
     const data = {
-      TemplateName: "C_ATP",
+      TemplateName: "ASN",
       BeforeData: {
         companyaddress: companyaddress,
         customername: customerName,
@@ -219,6 +227,7 @@ export default function C_ATP() {
         customer: customer,
         feature: feature1,
         featureb: feature2
+
       },
       Items: items, // 👈 now correctly bound
       AfterData: {
@@ -227,7 +236,6 @@ export default function C_ATP() {
         staffposition: staffPosition,
         staffmobile: staffMobile,
         staffemail: staffEmail,
-        staffsign: staffSign
       },
       FeaturePage: featurePage,
 
@@ -259,7 +267,6 @@ export default function C_ATP() {
         i_detail_fontsize: "",
         itemimage: "",
         companyaddress: companyaddress,
-        Refundable_D: "",
       },
     ]);
     setKrdOptions((prev) => [
@@ -270,7 +277,6 @@ export default function C_ATP() {
       },
     ]);
   };
-
   interface KRDOption {
     selected: boolean;
     helai: string;
@@ -282,12 +288,47 @@ export default function C_ATP() {
     berwarna: KRDOption;
   }
 
-  const [, setKrdOptions] = useState<KRDCategories[]>(
+  const [krdOptions, setKrdOptions] = useState<KRDCategories[]>(
     items.map(() => ({
       hitamPutih: { selected: false, helai: "1000", sekali: false },
       berwarna: { selected: false, helai: "500", sekali: false },
     }))
   );
+
+
+  const updateKR_D_Display = (index: number, updatedKRD: KRDCategories) => {
+    setKrdOptions((prev) =>
+      prev.map((opt, i) => (i === index ? updatedKRD : opt))
+    );
+
+    const lines: string[] = [];
+
+    const formatNumber = (num: string | number) => {
+      const n = Number(num);
+      if (isNaN(n)) return num.toString();
+      return n.toLocaleString("en-US");
+    };
+
+    if (updatedKRD.hitamPutih.selected) {
+      const helai = formatNumber(updatedKRD.hitamPutih.helai);
+      const sekaliText = updatedKRD.hitamPutih.sekali ? "(one off)" : "setiap bulan";
+      lines.push(`• Percuma ${helai} helai pertama bagi cetakan Hitam Putih untuk setiap mesin ${sekaliText}`);
+    }
+
+    if (updatedKRD.berwarna.selected) {
+      const helai = formatNumber(updatedKRD.berwarna.helai);
+      const sekaliText = updatedKRD.berwarna.sekali ? "(one off)" : "setiap bulan";
+      lines.push(`• Percuma ${helai} helai pertama bagi cetakan Berwarna untuk setiap mesin ${sekaliText}`);
+    }
+
+    const result = lines.join("\n");
+
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, KR_D: result } : item))
+    );
+  };
+
+
   useEffect(() => {
     setItems((prev) =>
       prev.map((item) => ({
@@ -300,11 +341,9 @@ export default function C_ATP() {
 
   const handleItemChange = useCallback(
     (index: number, field: string, value: string) => {
-      // 1. Update the 'items' state array
       setItems((prev) => {
         let updated = [...prev];
 
-        // Logic for fields that update *all* items (rental_scheme, meter_reading)
         if (field === "rental_scheme") {
           updated = updated.map((item) => ({ ...item, rental_scheme: value }));
           const numericValue = Number(value);
@@ -312,30 +351,25 @@ export default function C_ATP() {
         } else if (field === "meter_reading") {
           updated = updated.map((item) => ({ ...item, meter_reading: value }));
         } else {
-          // This 'else' block correctly handles single-item updates for all other fields,
-          // including 'Refundable_D', 'itemname', 'modelname', etc.
           updated[index] = { ...updated[index], [field]: value };
         }
 
         return updated;
       });
 
-      // 2. Perform secondary updates for 'rentalItems' state (if needed)
       if (field === "itemname" || field === "modelname") {
         setRentalItems((prev) => {
           const updated = [...prev];
           if (updated[index]) {
-            // Note: Ensure 'CadanganModel' is the correct property name here
             updated[index] = { ...updated[index], CadanganModel: value };
           }
           return updated;
         });
       }
 
-      // 3. Perform final state updates (if needed)
       if (field === "rental_scheme") setLastRentalScheme(value);
     },
-    [setItems, setRentalItems] // Dependencies for useCallback
+    [setItems, setRentalItems]
   );
   // New states for API loading/error feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -405,6 +439,8 @@ export default function C_ATP() {
     Inner?: string;
     Booklet?: string;
     Puncher?: string;
+    ["3 Trays"]?: string;
+    ["5 Trays"]?: string;
     Details?: string;
     [key: string]: string | undefined; // dynamic fields
   }
@@ -462,6 +498,8 @@ export default function C_ATP() {
         handleItemChange(index, "Inner", data.Inner || "");
         handleItemChange(index, "Booklet", data.Booklet || "");
         handleItemChange(index, "Puncher", data.Puncher || "");
+        handleItemChange(index, "3 Trays", data["3 Trays"] || "");
+        handleItemChange(index, "5 Trays", data["5 Trays"] || "");
 
         // ✅ Use ref to safely access latest cache
         const lastModelData = modelDetailCacheRef.current[index]?.Details?.trim() || "";
@@ -581,11 +619,10 @@ export default function C_ATP() {
     handleItemChange(index, "i_function", displayList.join(", "));
     handleItemChange(index, "i_detail", details);
 
-    const newImage = KMImage(currentModel.value, newSelected);
+    const newImage = getImageForModelAndFunctions(currentModel.value, newSelected);
 
     handleItemChange(index, "itemimage", newImage);
   };
-
 
   // Use useMemo to calculate the different date formats
   const formattedDates = useMemo(() => {
@@ -600,6 +637,55 @@ export default function C_ATP() {
         formatCustomDate(dateInput, "date4" as DateFormatType) || "{date4}",
     };
   }, [dateInput]);
+
+  const handleGenerateRentalSummary = async () => {
+    const rentalData = {
+      title: rentalTitle,
+      brand: "ASN",
+      TotalMonths: totalMonths,
+      items: rentalItems,
+      PrintCostItems: printCostItems,
+      UserNote: userNote,
+    };
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/Document/generate-rental-summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(rentalData),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to generate rental summary");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        `${rentalTitle.replace(/\s+/g, "_")}.docx` || "Rental_Summary.docx";
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error generating rental summary:", error);
+      alert("Something went wrong while generating the rental summary.");
+    }
+  };
+  const removeRentalItem = (index: number) => {
+    setRentalItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const removePrintCostItem = (index: number) => {
+    setPrintCostItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
   const handleAddItemWithRental = () => {
     addNewItem(); // call your original function
 
@@ -739,10 +825,18 @@ export default function C_ATP() {
       );
     }
   }, [totalMonths]);
+  /*const calculateTotalPrice = (items: any[]) => {
+    return items.reduce((total, item) => {
+      // Calculation: EstimatedMonthlyMeterReading * PrintChargeRate
+      const itemPrice =
+        item.EstimatedMonthlyMeterReading * item.PrintChargeRate * totalMonths;
+      return total + itemPrice;
+    }, 0);
+  };*/
   const [featurePage, setFeaturePage] = useState("");
   useEffect(() => {
     if (featurePage) {
-      setFeature1(featurePage);            // normal text
+      setFeature1(featurePage);// normal text
       setFeature2(featurePage); // UPPERCASE
     } else {
       setFeature1("");
@@ -754,14 +848,14 @@ export default function C_ATP() {
     <ProtectedRoute>
       <div>
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-red-700 to-white rounded-xl p-6 shadow-xl">
+          <div className="bg-gradient-to-r from-green-700 to-white rounded-xl p-6 shadow-xl">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-red-800 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-800 rounded-lg flex items-center justify-center">
                 <span className="text-white text-xl">🖨️</span>
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  Proposal Generator for ATP (Commercial)
+                  Proposal Generator for ASN
                 </h2>
               </div>
             </div>
@@ -782,6 +876,36 @@ export default function C_ATP() {
                       Header 1
                     </h3>
                     <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Company Address
+                        </label>
+
+                        <select
+                          value={companyaddress}
+                          onChange={(e) => setcompanyaddress(e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm"
+                        >
+                          <option value="">Select company address</option>
+                          {ASN_ADDRESS.map((item, index) => (
+                            <option key={index} value={item.address}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Show selected address in text area */}
+                        {companyaddress && (
+                          <textarea
+                            value={companyaddress}
+                            readOnly
+                            rows={5}
+                            className="w-full mt-3 px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 resize-none"
+                          />
+                        )}
+                      </div>
+
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Customer Name
@@ -868,9 +992,9 @@ export default function C_ATP() {
 
                 {/* Column 2: Live Preview (w-1/2) */}
                 <td className="w-1/2 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
+                  <div className="ml-10 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200/50 rounded-xl p-6 shadow-lg">
                     <h4 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-white text-sm">👁</span>
                       </div>
                       Live Preview
@@ -882,7 +1006,7 @@ export default function C_ATP() {
                       {/* Simplified the container styling */}
                       <div className="rounded-lg overflow-hidden bg-gray-50">
                         <Image
-                          src="/images/C_ATP_KM.png"
+                          src="/images/ASNKM.png"
                           alt="Header Image Template"
                           width={1200}              // Required for layout stability
                           height={400}
@@ -896,7 +1020,7 @@ export default function C_ATP() {
 
                     <div className="text-sm space-y-1">
                       <p>
-                        <span className="text-red-600 underline ml-2">
+                        <span className="text-green-600 underline ml-2">
                           {customerName || "{customername}"}
                         </span>
                       </p>
@@ -970,18 +1094,6 @@ export default function C_ATP() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Customer
-                        </label>
-                        <input
-                          type="text"
-                          value={customer}
-                          onChange={(e) => setCustomer(e.target.value)}
-                          placeholder="Enter customer name"
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Date
                         </label>
                         <input
@@ -998,9 +1110,9 @@ export default function C_ATP() {
 
                 {/* Column 2: Document Preview (Adjusted to w-1/2 and styled like the document) */}
                 <td className="w-3/5 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
+                  <div className="ml-10 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200/50 rounded-xl p-6 shadow-lg">
                     <h4 className="font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-white text-sm">📄</span>
                       </div>
                       Document Preview
@@ -1027,8 +1139,9 @@ export default function C_ATP() {
                           {customerAddress || "{customeraddress}"}
                         </div>
                         <p>
-                          <span className="font-bold">Attention:</span>{" "}
-                          {customer || "{customer}"}
+                          <span className="font-bold">
+                            Attention: To Whom It May Concern,
+                          </span>
                         </p>
                       </div>
 
@@ -1036,12 +1149,13 @@ export default function C_ATP() {
                       <p className="pt-4">Dear Sir/Madam,</p>
 
                       <p className="font-bold pt-2">
-                        ACQUISITION OF KONICA MINOLTA DIGITAL OFFICE SOLUTION - KONICA MINOLTA Bizhub SERIES
+                        ACQUISITION OF KONICA MINOLTA DIGITAL OFFICE SOLUTION - KONICA MINOLTA Bizhub
+                        SERIES
                       </p>
 
                       {/* **FIX APPLIED HERE: Split the problematic nested <p> content** */}
                       <p className="text-gray-700">
-                        ATP Sales & Services Sdn. Bhd. values{" "}
+                        ASN Setia Cetak Sdn Bhd values{" "}
                         <span className="text-red-600 underline">
                           {customerName || "{customername}"}
                         </span>{" "}
@@ -1055,7 +1169,7 @@ export default function C_ATP() {
 
                       {/* This paragraph was previously nested. It now stands alone. */}
                       <p className="pt-4 text-gray-700">
-                        With the Konica Minolta Bizhub model, we have
+                        With the Konica Minolta Bizhub Model, we have
                         realized an ambitious goal. Now small departments and
                         workgroups can enjoy stunningly simplified and productive
                         workflow... all in a compact footprint.
@@ -1076,7 +1190,7 @@ export default function C_ATP() {
                       {/* Signature Block Preview (UNCHANGED) */}
                       <div className="pt-8 text-[10px] space-y-1">
                         <p>Yours faithfully,</p>
-                        <p>ATP Sales & Services Sdn. Bhd. (1275709-U)   </p>
+                        <p>for ASN Setia Cetak Sdn. Bhd.</p>
                         <div className="mt-8 w-48 pt-1">
                           <u className="font-bold">
                             {staffSign || "{staffsign}"}
@@ -1107,6 +1221,46 @@ export default function C_ATP() {
                       </h3>
 
                       <div className="space-y-4">
+                        {/* Title */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title
+                          </label>
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={(e) =>
+                              handleItemChange(index, "title", e.target.value)
+                            }
+                            placeholder="Enter title"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">EXAMPLE: </p>
+                          <p className="text-xs text-green-700 mt-1">
+                            Keperluan PTJ: ( ) unit Mesin Penyalin Hitam/Putih dengan berkelajuan ( ) ppm
+                          </p>
+
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Content
+                          </label>
+                          <input
+                            type="text"
+                            value={item.content}
+                            onChange={(e) =>
+                              handleItemChange(index, "content", e.target.value)
+                            }
+                            placeholder="Enter content"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+
+                          <p className="text-xs text-gray-500 mt-1">EXAMPLE: </p>
+                          <p className="text-xs text-red-700 mt-1">
+                            Tawaran Pembekal:  ( ) unit Mesin Penyalin Hitam/Putih dengan berkelajuan ( )ppm, dilengkapi dengan fungsi staple.
+                          </p>
+                        </div>
                         {/* Proposed Models */}
                         <div className="mt-4">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1135,7 +1289,7 @@ export default function C_ATP() {
                                 : [];
 
                               // 🟢 Compute new image based on model + functions
-                              const newImage = KMImage(formatted, currentFunctions);
+                              const newImage = getImageForModelAndFunctions(formatted, currentFunctions);
 
                               // 🟢 Update item image
                               handleItemChange(index, "itemimage", newImage);
@@ -1196,6 +1350,8 @@ export default function C_ATP() {
                               "Inner",
                               "Booklet",
                               "Puncher",
+                              "3 Trays",
+                              "5 Trays",
                               "Staple",
                             ].map((func) => {
                               // determine if selected from i_selectedFunction
@@ -1314,6 +1470,52 @@ export default function C_ATP() {
                             rows={3}
                           />
                         </div>
+
+                        {/* Monthly Recommended Print Volume */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Monthly Recommended Print Volume
+                          </label>
+                          <input
+                            type="text"
+                            value={item.mrpv}
+                            onChange={(e) =>
+                              handleItemChange(index, "mrpv", e.target.value)
+                            }
+                            placeholder="Enter Monthly Recommended Print Volume"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                        </div>
+                        {/* Rental Scheme */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Rental Duration
+                          </label>
+
+                          <input
+                            type="text"
+                            list={`rental-duration-${index}`}
+                            value={item.rental_scheme}
+                            onChange={(e) =>
+                              handleItemChange(
+                                index,
+                                "rental_scheme",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Enter or select rental duration"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+
+                          {/* Datalist provides dropdown suggestions but still allows typing freely */}
+                          <datalist id={`rental-duration-${index}`}>
+                            <option value="24" />
+                            <option value="36" />
+                            <option value="48" />
+                            <option value="60" />
+                          </datalist>
+                        </div>
+
                         {/* Rental/Unit */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1360,35 +1562,6 @@ export default function C_ATP() {
                             placeholder="Enter Rental/Unit"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                           />
-                        </div>
-                        {/* Rental Scheme */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Rental Duration
-                          </label>
-
-                          <input
-                            type="text"
-                            list={`rental-duration-${index}`}
-                            value={item.rental_scheme}
-                            onChange={(e) =>
-                              handleItemChange(
-                                index,
-                                "rental_scheme",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Enter or select rental duration"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                          />
-
-                          {/* Datalist provides dropdown suggestions but still allows typing freely */}
-                          <datalist id={`rental-duration-${index}`}>
-                            <option value="24" />
-                            <option value="36" />
-                            <option value="48" />
-                            <option value="60" />
-                          </datalist>
                         </div>
                         {/* Meter Reading */}
                         <div className="flex flex-col gap-2">
@@ -1495,27 +1668,159 @@ export default function C_ATP() {
                             );
                           })()}
                         </div>
-                        {/* Refundable Deposit */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Refundable Deposit
+
+                        <div className="flex flex-col gap-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Tawaran Tambahan
                           </label>
-                          <select
-                            value={item.Refundable_D}
-                            onChange={(e) => {
-                              // 当选择发生变化时，直接将选中的值存入 item
-                              handleItemChange(index, "Refundable_D", e.target.value);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                          >
-                            <option value="">Select deposit type</option>
-                            <option value="New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental">
-                              2 Month Rental (Refundable) + 1 Month Advance Rental
-                            </option>
-                            <option value="Used Machine: RM500 (Refundable) + 1 Month Advance Rental">
-                              RM500 (Refundable) + 1 Month Advance Rental
-                            </option>
-                          </select>
+
+                          {(() => {
+                            const option = krdOptions[index] || {
+                              hitamPutih: {
+                                selected: false,
+                                helai: "",
+                                sekali: false,
+                              },
+                              berwarna: {
+                                selected: false,
+                                helai: "",
+                                sekali: false,
+                              },
+                            };
+
+                            return (
+                              <>
+                                {/* Hitam Putih */}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <label className="flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.hitamPutih.selected}
+                                      onChange={(e) =>
+                                        updateKR_D_Display(index, {
+                                          ...option,
+                                          hitamPutih: {
+                                            ...option.hitamPutih,
+                                            selected: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    />
+                                    Hitam/Putih
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    value={option.hitamPutih.helai}
+                                    onChange={(e) =>
+                                      updateKR_D_Display(index, {
+                                        ...option,
+                                        hitamPutih: {
+                                          ...option.hitamPutih,
+                                          helai: e.target.value,
+                                        },
+                                      })
+                                    }
+                                    className="w-16 border rounded px-1 text-center"
+                                    placeholder="helai"
+                                  />
+
+                                  <label className="flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.hitamPutih.sekali}
+                                      onChange={(e) =>
+                                        updateKR_D_Display(index, {
+                                          ...option,
+                                          hitamPutih: {
+                                            ...option.hitamPutih,
+                                            sekali: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    />
+                                    one off
+                                  </label>
+                                </div>
+
+                                {/* Berwarna */}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <label className="flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.berwarna.selected}
+                                      onChange={(e) =>
+                                        updateKR_D_Display(index, {
+                                          ...option,
+                                          berwarna: {
+                                            ...option.berwarna,
+                                            selected: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    />
+                                    Berwarna
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    value={option.berwarna.helai}
+                                    onChange={(e) =>
+                                      updateKR_D_Display(index, {
+                                        ...option,
+                                        berwarna: {
+                                          ...option.berwarna,
+                                          helai: e.target.value,
+                                        },
+                                      })
+                                    }
+                                    className="w-16 border rounded px-1 text-center"
+                                    placeholder="helai"
+                                  />
+
+                                  <label className="flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.berwarna.sekali}
+                                      onChange={(e) =>
+                                        updateKR_D_Display(index, {
+                                          ...option,
+                                          berwarna: {
+                                            ...option.berwarna,
+                                            sekali: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    />
+                                    one off
+                                  </label>
+                                </div>
+
+                                {/* Display final string output (editable) */}
+                                {items[index]?.KR_D !== undefined && (
+                                  <div className="mt-2">
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                      Add On Here
+                                    </label>
+                                    <textarea
+                                      value={items[index].KR_D}
+                                      onChange={(e) =>
+                                        setItems((prev) =>
+                                          prev.map((item, i) =>
+                                            i === index
+                                              ? { ...item, KR_D: e.target.value }
+                                              : item
+                                          )
+                                        )
+                                      }
+                                      rows={3}
+                                      className="w-full text-xs border rounded-lg p-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1523,25 +1828,28 @@ export default function C_ATP() {
 
                   {/* Column 2: Merged Live Preview and Document Preview (now w-2/3) */}
                   <td className="w-2/3 p-4">
-                    <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
+                    <div className="ml-10 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200/50 rounded-xl p-6 shadow-lg">
                       <h4 className="font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
                           <span className="text-white text-sm">📄</span>
                         </div>
                         Document Preview
                       </h4>
-                      <h5>Pricing Schedule: </h5><p>{item.itemname}</p>
-                      <div className="mt-2 flex flex-col border border-gray-600 rounded-lg overflow-hidden">
-                        <div className="flex border-b border-gray-600">
-                          <p className="w-1/2 p-2 bg-gray-300 font-medium border-r border-gray-600 text-white">
+                      <h3 className="ml-2 font-bold text-green-500">
+                        {item.title || "Title"}
+                      </h3>
+                      <h4 className="ml-4">{item.content || "content"}</h4>
+                      <div className="mt-2 flex flex-col border border-gray-300 rounded-lg overflow-hidden">
+                        <div className="flex border-b border-gray-300">
+                          <p className="w-1/2 p-2 bg-green-400 font-medium border-r border-gray-300 text-white">
                             Proposed Model
                           </p>
-                          <p className="w-1/2 bg-gray-300 text-white p-2 text-sm">
+                          <p className="w-1/2 bg-green-400 text-white p-2 text-sm">
                             {item.i_model || "{i_model}"}
                           </p>
                         </div>
-                        <div className="flex border-b border-gray-600">
-                          <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600">
+                        <div className="flex border-b border-gray-300">
+                          <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-300">
                             Function
                           </p>
                           <p className="w-1/2 p-2 bg-gray-50 text-sm">
@@ -1549,9 +1857,9 @@ export default function C_ATP() {
                           </p>
                         </div>
                         {/* Top Section: Model/Function/Image */}
-                        <div className="flex border-b border-gray-600">
+                        <div className="flex border-b border-gray-300">
                           {/* Left Column: Image (w-1/2) */}
-                          <div className="w-1/2 p-4 border-r border-gray-600 text-center bg-gray-50">
+                          <div className="w-1/2 p-4 border-r border-gray-300 text-center bg-gray-50">
                             <div className="rounded-lg overflow-hidden shadow-md bg-gray-50 p-2">
                               Configuration & Feature available (depend on configuration)
                               {item.itemimage && (
@@ -1584,60 +1892,52 @@ export default function C_ATP() {
 
                         {/* Bottom Section: Pricing Details */}
                         <div className="flex flex-col text-sm">
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600">
-                              Proposed Model {""} {item.proposedmodel_type}
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-300">
+                              Proposed Model {""}{item.proposedmodel_type}
                             </p>
                             <p className="w-1/2 p-2 bg-gray-50">
                               {item.proposedmodel || "{proposedmodel}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
-                              Monthly Rental/Unit
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-300">
+                              Monthly Recommended Print Volume
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
-                              {item.rental_unit || "{rental_unit}"}
+                            <p className="w-1/2 p-2 bg-gray-50">
+                              {item.mrpv || "{mrpv}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-green-400 text-white font-medium border-r border-gray-300">
                               Rental Duration
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className="w-1/2 p-2 bg-green-400 text-white">
                               {item.rental_scheme || "{rental_scheme}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-green-400 text-white font-medium border-r border-gray-300">
+                              Monthly Rental/Unit
+                            </p>
+                            <p className="w-1/2 p-2 bg-green-400 text-white">
+                              {item.rental_unit || "{rental_unit}"}
+                            </p>
+                          </div>
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-green-400 text-white font-medium border-r border-gray-300">
                               Meter Reading
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className="w-1/2 p-2 bg-green-400 text-white">
                               {item.meter_reading || "{meter_reading}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
-                              Refundable Deposit
+                          <div className="flex border-b border-gray-300">
+                            <p className="w-1/2 p-2 bg-green-400 text-white font-medium border-r border-gray-300">
+                              Kadar Rebat/Diskaun
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
-                              {item.Refundable_D || "{Refundable_D}"}
-                            </p>
-                          </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600">
-                              Delivery & installation charges
-                            </p>
-                            <p className="w-1/2 p-2 bg-orange-300 text-white text-center">
-                              Waived
-                            </p>
-                          </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600">
-                              Delivery lead time
-                            </p>
-                            <p className="w-1/2 p-2 bg-orange-300 text-white text-center">
-                              14 Working Days and subject to availability of stock upon confirmation
+                            <p className="w-1/2 p-2 bg-green-400 text-white">
+                              {item.KR_D || "{KR_D}"}
                             </p>
                           </div>
                         </div>
@@ -1713,177 +2013,569 @@ export default function C_ATP() {
                   </button>
                 </td>
               </tr>
-              {/* Last Page */}
+              {/* Summary Page */}
               <tr>
-                {/* Column 1: Last Page Input Fields (w-1/2) */}
-                <td className="w-1/2 p-4">
-                  {/* Removed 'ml-10' to help centering if this is inside a w-full table */}
-                  <div className="h-182 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm font-bold">F</span>
-                      </div>
-                      Last Page
-                    </h3>
-                    <div className="space-y-4">
-                      {/* Staff Name Input */}
+                <td colSpan={2} className="p-4">
+                  <div className="bg-white rounded-xl shadow-lg p-8">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 border-b-4 border-blue-500 pb-4">
+                      Summary Table
+                    </h2>
+
+                    {/* Basic Information */}
+                    <div className="space-y-6 mb-8">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Staff Name
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Title
                         </label>
                         <input
                           type="text"
-                          value={staffName}
-                          onChange={(e) => setStaffName(e.target.value)}
-                          placeholder="Enter name"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        {isLoading && (
-                          <p className="text-xs text-blue-500 mt-1">
-                            Loading staff info...
-                          </p>
-                        )}
-                        {fetchError && (
-                          <p className="text-xs text-red-500 mt-1">
-                            {fetchError}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Staff Position Input */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Staff Position
-                        </label>
-                        <input
-                          type="text"
-                          value={staffPosition}
-                          onChange={(e) => setStaffPosition(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={rentalTitle}
+                          onChange={(e) => setRentalTitle(e.target.value)}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                          placeholder="Enter rental title"
                         />
                       </div>
 
-                      {/* Staff Mobile Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Staff Mobile
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Total Months
                         </label>
                         <input
-                          type="text"
-                          value={staffMobile}
-                          onChange={(e) => setStaffMobile(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      {/* Staff Email Input */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Staff Email
-                        </label>
-                        <input
-                          type="email"
-                          value={staffEmail}
-                          onChange={(e) => setStaffEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          type="number"
+                          value={totalMonths}
+                          onChange={(e) => setTotalMonths(Number(e.target.value))}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                          placeholder="Enter total months"
+                          min="1"
                         />
                       </div>
                     </div>
-                  </div>
-                </td>
 
-                {/* Column 2: Live Preview (Updated to w-1/2 and shows Last Page content) */}
-                <td className="w-1/2 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
-                    <h4 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm">👁</span>
-                      </div>
-                      Live Preview (Last Page)
-                    </h4>
-                    <div className="bg-white border border-gray-300 p-4 rounded-lg overflow-hidden text-xs space-y-3">
-                      <u>Advantage:</u>
-                      <p>
-                        <b>Cost Saving:</b> Lower Rental & Lower Meter Clicks,
-                        (Value Package) Saved monthly printing costing.{" "}
-                      </p>
-                      <p>
-                        <b>Fast Service Response: </b>Our customer service and
-                        service engineers are fast response to support in order to
-                        minimize the machine downtime.{" "}
-                      </p>
-                      <p>
-                        <b>Compact Design:</b> Latest model design (Color Touch
-                        screen).{" "}
-                      </p>
-                      <p>
-                        <b>Embedded software:</b> Able self-diagnose internal part
-                        lifespan (able to reduce machine downtime){" "}
-                      </p>
-                      <p>
-                        <b>Security:</b>
-                        Ensure device is safe from unknown firmware installation
-                        with system verification at startup.
-                      </p>
-                      <br></br>
-                      {/* Content matching the Last Page template (image_8d096c.png) */}
-                      <p className="font-bold text-red-500">
-                        WHY us? Why ATP Sales & Services Sdn Bhd?
-                      </p>
-                      <p className="text-gray-600 italic">
-                        *Kindly refer to attached file for company profile*
-                      </p>
-
-                      <div className="mt-2 pl-3">
-                        <p className="font-bold underline text-xs">
-                          ATP&apos;s Company Profile Summary:
-                        </p>
-
-                        <ul className="list-disc ml-5 space-y-0.5 text-gray-700">
-                          <li>Authorized Platinum Partner of CANON.</li>
-                          <li>
-                            Main CANON products distributor in Johor, dealers buy
-                            from us too.
-                          </li>
-                          <li>More than 10 years partnership with CANON.</li>
-                          <li>Highest Market Share Award Year 2018 &amp; 2019.</li>
-                          <li>
-                            &quot;Highest Growth Award&quot; Year 2022,
-                            &quot;Million Dollar Award&quot; Year 2022 and 2023.
-                          </li>
-                          <li>
-                            Trusted Partner by CANON, we help to serve Banks and
-                            Corporates across Johor.
-                          </li>
-                          <li>Our Technical team is trained by CANON.</li>
-                          <li>
-                            We have been taking care of many Major accounts with
-                            high standard of service.
-                          </li>
-                        </ul>
+                    {/* Rental Items Section */}
+                    <div className="mb-8">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                          <span className="w-2 h-8 bg-blue-500 rounded"></span>
+                          Hardware Table
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRentalItems((prev) => [
+                              ...prev,
+                              {
+                                Lokasi: "",
+                                Spesifikasi: "",
+                                Kelajuan: "",
+                                CadanganModel: "",
+                                Kuantiti: 1,
+                                HargaBulanan: 0,
+                                JumlahHarga: 0,
+                              },
+                            ])
+                          }
+                          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                        >
+                          <Plus size={18} />
+                          Add Item
+                        </button>
                       </div>
 
-                      <p className="pt-4 text-sm">
-                        Thank you very much for your precious time considering
-                        Canon Marketing as your solution business partner.
-                        <br />
-                        Should you need clarification, please do not hesitate to
-                        call me at the undersigned.
-                      </p>
+                      <div className="space-y-4">
+                        {rentalItems.map((item, idx) => {
+                          const hardwaretotal = item.JumlahHarga * totalMonths;
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 relative hover:shadow-md transition-shadow"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => removeRentalItem(idx)}
+                                className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-100 p-2 rounded-full transition-all"
+                                title="Remove item"
+                              >
+                                <Trash2 size={20} />
+                              </button>
 
-                      <p>Best Regards,</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Lokasi
+                                  </label>
+                                  <input
+                                    placeholder="Enter location"
+                                    value={item.Lokasi}
+                                    onChange={(e) =>
+                                      setRentalItems((prev) => {
+                                        const copy = [...prev];
+                                        copy[idx].Lokasi = e.target.value;
+                                        return copy;
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white"
+                                  />
+                                </div>
 
-                      {/* Signature Block (matching image_8d096c.png) */}
-                      <div className="pt-2 text-[10px] space-y-0.5">
-                        <u className="font-bold">
-                          {staffSign || "{staffsign}"}
-                        </u>
-                        <p>{staffPosition || "{staffposition}"}</p>
-                        <p>Mobile: {staffMobile || "{staffmobile}"}</p>
-                        <p>Email: {staffEmail || "{staffemail}"}</p>
+                                {/* Spesifikasi */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Spesifikasi
+                                  </label>
+
+                                  {/* Show current selection */}
+                                  <input
+                                    type="text"
+                                    value={item.Spesifikasi}
+                                    readOnly
+                                    placeholder="Selected specifications"
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-gray-50"
+                                  />
+
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {[
+                                      "4 in 1 copy",
+                                      "3 in 1 copy",
+                                      "Copy",
+                                      "Print",
+                                      "Scan",
+                                      "Fax",
+                                      "Puncher",
+                                      "Booklet",
+                                      "Inner",
+                                      "3 Trays",
+                                      "5 Trays",
+                                      "Staple",
+                                    ].map((spec) => {
+                                      const selected =
+                                        item.Spesifikasi?.split(", ").includes(
+                                          spec
+                                        );
+
+                                      const handleClick = () => {
+                                        const selectedList = item.Spesifikasi
+                                          ? item.Spesifikasi.split(", ")
+                                          : [];
+                                        let newList = [...selectedList];
+
+                                        // --- handle grouping logic ---
+                                        if (spec === "4 in 1 copy") {
+                                          const group = [
+                                            "4 in 1",
+                                            "Copy",
+                                            "Print",
+                                            "Scan",
+                                            "Fax",
+                                          ];
+                                          const alreadySelected = group.every(
+                                            (g) => newList.includes(g)
+                                          );
+                                          if (alreadySelected) {
+                                            // remove all if deselecting
+                                            newList = newList.filter(
+                                              (s) => !group.includes(s)
+                                            );
+                                          } else {
+                                            // add all group items
+                                            newList = Array.from(
+                                              new Set([...newList, ...group])
+                                            );
+                                          }
+                                        } else if (spec === "3 in 1 copy") {
+                                          const group = [
+                                            "3 in 1",
+                                            "Copy",
+                                            "Print",
+                                            "Scan",
+                                          ];
+                                          const alreadySelected = group.every(
+                                            (g) => newList.includes(g)
+                                          );
+                                          if (alreadySelected) {
+                                            newList = newList.filter(
+                                              (s) => !group.includes(s)
+                                            );
+                                          } else {
+                                            newList = Array.from(
+                                              new Set([...newList, ...group])
+                                            );
+                                          }
+                                        } else {
+                                          // toggle individual item
+                                          if (newList.includes(spec)) {
+                                            newList = newList.filter(
+                                              (s) => s !== spec
+                                            );
+                                          } else {
+                                            newList.push(spec);
+                                          }
+                                        }
+
+                                        setRentalItems((prev) => {
+                                          const copy = [...prev];
+                                          copy[idx].Spesifikasi =
+                                            newList.join(", ");
+                                          return copy;
+                                        });
+                                      };
+
+                                      return (
+                                        <button
+                                          key={spec}
+                                          type="button"
+                                          onClick={handleClick}
+                                          className={`px-3 py-1 rounded-lg border ${selected
+                                            ? "bg-grey-500 text-blue-400 border-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-300 hover:border-blue-800 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                            : "bg-white text-gray-700 border-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-300 hover:border-gray-400 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+                                            }`}
+                                        >
+                                          {spec}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Kelajuan */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Kelajuan
+                                  </label>
+                                  <select
+                                    value={item.Kelajuan}
+                                    onChange={(e) =>
+                                      setRentalItems((prev) => {
+                                        const copy = [...prev];
+                                        copy[idx].Kelajuan = e.target.value;
+                                        return copy;
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white"
+                                  >
+                                    <option value="">Select speed</option>
+                                    <option value="22ppm">22ppm</option>
+                                    <option value="24ppm">24ppm</option>
+                                    <option value="25ppm">25ppm</option>
+                                    <option value="26ppm">26ppm</option>
+                                    <option value="30ppm">30ppm</option>
+                                    <option value="33ppm">33ppm</option>
+                                    <option value="35ppm">35ppm</option>
+                                    <option value="40ppm">40ppm</option>
+                                    <option value="43ppm">43ppm</option>
+                                    <option value="45ppm">45ppm</option>
+                                    <option value="50ppm">50ppm</option>
+                                    <option value="55ppm">55ppm</option>
+                                    <option value="60ppm">60ppm</option>
+                                    <option value="65ppm">65ppm</option>
+                                    <option value="70ppm">70ppm</option>
+                                    <option value="80ppm">80ppm</option>
+                                    <option value="86ppm">86ppm</option>
+                                    <option value="95ppm">95ppm</option>
+                                    <option value="105ppm">105ppm</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Cadangan Model
+                                  </label>
+                                  <input
+                                    placeholder="Enter suggested model"
+                                    value={item.CadanganModel}
+                                    onChange={(e) =>
+                                      setRentalItems((prev) => {
+                                        const copy = [...prev];
+                                        copy[idx].CadanganModel = e.target.value;
+                                        return copy;
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Kuantiti
+                                  </label>
+                                  <input
+                                    type="number"
+                                    placeholder="Quantity"
+                                    value={item.Kuantiti}
+                                    onChange={(e) =>
+                                      setRentalItems((prev) => {
+                                        const copy = [...prev];
+                                        copy[idx].Kuantiti = Number(
+                                          e.target.value
+                                        );
+                                        copy[idx].JumlahHarga =
+                                          copy[idx].HargaBulanan *
+                                          copy[idx].Kuantiti;
+                                        return copy;
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white"
+                                    min="1"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    Harga Bulanan
+                                  </label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Monthly price"
+                                    value={
+                                      item.HargaBulanan !== undefined && item.HargaBulanan !== null
+                                        ? item.HargaBulanan.toFixed(2)
+                                        : ""
+                                    }
+                                    onChange={(e) =>
+                                      setRentalItems((prev) => {
+                                        const copy = [...prev];
+                                        const value = parseFloat(e.target.value) || 0;
+                                        copy[idx].HargaBulanan = value;
+                                        copy[idx].JumlahHarga = value * copy[idx].Kuantiti;
+                                        return copy;
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white"
+                                    min="0"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center bg-blue 200/50 rounded-lg p-3 border-2 border-blue-300">
+                                <span className="text-base font-bold text-grey-700">
+                                  Jumlah Harga:
+                                </span>
+                                <span className="text-xl font-extrabold text-blue-800">
+                                  RM {item.JumlahHarga.toFixed(2)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-base font-bold text-gray-700">
+                                  Jumlah Harga ({totalMonths} Bulan):
+                                </span>
+                                <span className="text-xl font-extrabold text-blue-800">
+                                  RM {hardwaretotal.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
+
+                    {/* Print Cost Items Section */}
+                    <div className="mb-8">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                          <span className="w-2 h-8 bg-green-500 rounded"></span>
+                          Meter Budget Table
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPrintCostItems((prev) => [
+                              ...prev,
+                              {
+                                NameAndSpecification: "",
+                                EstimatedMonthlyMeterReading: 0,
+                                PrintChargeRate: 0,
+                              },
+                            ])
+                          }
+                          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                        >
+                          <Plus size={18} />
+                          Add Item
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {printCostItems.map((p, idx) => {
+                          // 1. Calculate the total price for the current item
+                          const itemTotal =
+                            p.EstimatedMonthlyMeterReading * p.PrintChargeRate;
+                          const itemTotalMonthsPrice = itemTotal * totalMonths;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 relative hover:shadow-md transition-shadow"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => removePrintCostItem(idx)}
+                                className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-100 p-2 rounded-full transition-all"
+                                title="Remove item"
+                              >
+                                <Trash2 size={20} />
+                              </button>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                    NAMA DAN SPESIFIKASI BARANG
+                                  </label>
+
+                                  <select
+                                    value={p.NameAndSpecification}
+                                    onChange={(e) => {
+                                      const selected = e.target.value;
+                                      setPrintCostItems((prev) => {
+                                        const copy = [...prev];
+                                        copy[idx].NameAndSpecification = selected;
+
+                                        // Logic to get the rate from meterOptions[0] (as previously agreed)
+                                        const meter = meterOptions[0];
+
+                                        if (
+                                          selected ===
+                                          "KADAR CETAKAN HITAM PUTIH" &&
+                                          meter?.bw?.rm
+                                        ) {
+                                          copy[idx].PrintChargeRate = Number(
+                                            meter.bw.rm
+                                          );
+                                        } else if (
+                                          selected === "KADAR CETAKAN BERWARNA" &&
+                                          meter?.color?.rm
+                                        ) {
+                                          copy[idx].PrintChargeRate = Number(
+                                            meter.color.rm
+                                          );
+                                        }
+
+                                        return copy;
+                                      });
+                                    }}
+                                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none bg-white"
+                                  >
+                                    <option value="">Select an option</option>
+                                    <option value="KADAR CETAKAN HITAM PUTIH">
+                                      KADAR CETAKAN HITAM PUTIH
+                                    </option>
+                                    <option value="KADAR CETAKAN BERWARNA">
+                                      KADAR CETAKAN BERWARNA
+                                    </option>
+                                  </select>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                      ANGGARAN KADAR BACAAN METER
+                                    </label>
+                                    <input
+                                      type="number"
+                                      placeholder="Enter meter reading"
+                                      value={p.EstimatedMonthlyMeterReading}
+                                      onChange={(e) =>
+                                        setPrintCostItems((prev) => {
+                                          const copy = [...prev];
+                                          copy[idx].EstimatedMonthlyMeterReading =
+                                            Number(e.target.value);
+                                          return copy;
+                                        })
+                                      }
+                                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none bg-white"
+                                      min="0"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                      KADAR CAJ CETAKAN BAGI
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="Enter charge rate"
+                                      value={p.PrintChargeRate}
+                                      onChange={(e) =>
+                                        setPrintCostItems((prev) => {
+                                          const copy = [...prev];
+                                          copy[idx].PrintChargeRate = Number(
+                                            e.target.value
+                                          );
+                                          return copy;
+                                        })
+                                      }
+                                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none bg-white"
+                                      min="0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* ✅ NEW: INDIVIDUAL JUMLAH HARGA ROW */}
+                                <div className="pt-2">
+                                  <div className="flex justify-between items-center px-4 py-3 bg-green-200/50 rounded-lg border border-green-300">
+                                    <span className="text-base font-bold text-gray-700">
+                                      Jumlah Harga:
+                                    </span>
+                                    <span className="text-xl font-extrabold text-green-800">
+                                      RM {itemTotal.toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-base font-bold text-gray-700">
+                                  Jumlah Harga ({totalMonths} Bulan):
+                                </span>
+                                <span className="text-xl font-extrabold text-green-800">
+                                  RM {itemTotalMonthsPrice.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* User Note */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Note :
+                      </label>
+                      <textarea
+                        value={userNote}
+                        onChange={(e) => setUserNote(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none resize-y min-h-32"
+                        placeholder="Enter any additional notes here..."
+                      />
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateRentalSummary}
+                    className="
+                    // Base Styling
+                    px-6 py-2 mt-4
+                    text-sm font-semibold text-red-800 
+                    rounded-lg
+                    border-2 border-red-800
+                    transition-all duration-200
+                    w-auto
+
+                    // Color Scheme: Neutral Base with Indigo Accent
+                    text-gray-700
+                    bg-red-100
+                    shadow-sm
+
+                    // Hover Effect
+                    hover:bg-red-50
+                    hover:border-red-400
+                    hover:text-red-400
+                    hover:shadow-md
+
+                    // Focus Ring
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50
+                  "
+                  >
+                    Confirm Summary Table
+                  </button>
                 </td>
               </tr>
             </tbody>

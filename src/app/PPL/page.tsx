@@ -7,31 +7,28 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Dynamic Imports
 const C_ATP = dynamic(() => import("@/components/templates/C_ATP"), { ssr: false });
-
 const G_ATP = dynamic(() => import("@/components/templates/G_ATP"), { ssr: false });
-
 const ASN_29series = dynamic(() => import("@/components/templates/ASN_29series"), { ssr: false });
-
 const ARENA = dynamic(() => import("@/components/templates/ARENA"), { ssr: false });
-
 const SKY = dynamic(() => import("@/components/templates/SKY"), { ssr: false });
-
 const C_ATP_KM = dynamic(() => import("@/components/templates/C_ATP_KM"), { ssr: false });
+const ASN_KM = dynamic(() => import("@/components/templates/ASN_KM"), { ssr: false });
+const SKY_KM = dynamic(() => import("@/components/templates/KMSKY"), { ssr: false });
+const ARENA_KM = dynamic(() => import("@/components/templates/KMARENA"), { ssr: false });
+
 
 // 2. The Component Map - This handles "the others" automatically
 const TEMPLATE_MAP: Record<string, React.ComponentType> = {
 
   C_ATP: C_ATP,
-
   G_ATP: G_ATP,
-
   ASN_29series: ASN_29series,
-
   ARENA: ARENA,
-
   SKY: SKY,
-
-  C_ATP_KM: C_ATP_KM
+  C_ATP_KM: C_ATP_KM,
+  ASN_KM: ASN_KM,
+  SKY_KM: SKY_KM,
+  ARENA_KM: ARENA_KM,
 };
 
 
@@ -39,18 +36,14 @@ const TEMPLATE_MAP: Record<string, React.ComponentType> = {
 const allTemplates = [
 
   { id: "C_ATP", brand: "Canon", name: "ATP Commercial", desc: "ATP COMMERCIAL PROPOSAL", icon: <FileText size={20} /> },
-
   { id: "G_ATP", brand: "Canon", name: "Government ATP", desc: "NOT AVAILABLE NOW", icon: <FileText size={20} /> },
-
-  { id: "ASN_29series", brand: "Canon", name: "ASN Series", desc: "ASN PROPOSAL ", icon: <FileText size={20} /> },
-
+  { id: "ASN_29series", brand: "Canon", name: "ASN", desc: "ASN PROPOSAL ", icon: <FileText size={20} /> },
   { id: "ARENA", brand: "Canon", name: "ARENA", desc: "ARENA PROPOSAL", icon: <FileText size={20} /> },
-
   { id: "SKY", brand: "Canon", name: "SKY", desc: "SKY PROPOSAL", icon: <FileText size={20} /> },
-
   { id: "C_ATP_KM", brand: "KM", name: "ATP Commercial", desc: "ATP COMMERCIAL PROPOSAL", icon: <FileText size={20} /> },
-
-
+  { id: "ASN_KM", brand: "KM", name: "ASN", desc: "ASN PROPOSAL", icon: <FileText size={20} /> },
+  { id: "SKY_KM", brand: "KM", name: "SKY", desc: "SKY PROPOSAL", icon: <FileText size={20} /> },
+  { id: "ARENA_KM", brand: "KM", name: "ARENA", desc: "ARENA PROPOSAL", icon: <FileText size={20} /> },
 ];
 
 

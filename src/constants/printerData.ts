@@ -1,5 +1,14 @@
 // src/constants/printerData.ts
-
+export const KMImage = (model: string, functions: string[]) => {
+    if(!model) return "";
+    if (model.includes("651") && functions.includes("Staple"))
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/24`;
+    if (model.includes("651") && functions.includes("Booklet"))
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/25`;
+    if (model.includes("651"))
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/23`;
+    return "";
+}
 export const getImageForModelAndFunctions = (model: string, functions: string[]) => {
     if (!model) return "";
 
@@ -178,7 +187,8 @@ export const STAFF_NAMES = [
     "Sonia Lee",
     "Nik Mohd Azlan",
     "Alya Amran",
-    "Khloe Wong"
+    "Khloe Wong",
+    "Lily Lim"
 ];
 
 export const ARENASTAFF_NAMES = [
