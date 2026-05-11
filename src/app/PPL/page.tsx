@@ -85,14 +85,7 @@ export default function PPLPage() {
               >
                 <Layers size={16} /> Canon
               </button>
-              <button
-                onClick={() => { setActiveBrand("KM"); setSelectedTemplate(""); }}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                  activeBrand === "KM" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <LayoutGrid size={16} /> Konica Minolta
-              </button>
+
             </div>
           </header>
 
