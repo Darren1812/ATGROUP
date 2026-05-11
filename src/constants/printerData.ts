@@ -1,14 +1,56 @@
 // src/constants/printerData.ts
 export const KMImage = (model: string, functions: string[]) => {
-    if(!model) return "";
-    if (model.includes("651") && functions.includes("Staple"))
-        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/24`;
-    if (model.includes("651") && functions.includes("Booklet"))
-        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/25`;
-    if (model.includes("651"))
+    if (!model) return "";
+
+    const isBasicModel = /(C)?(451|551|651)i/i.test(model);
+    const is751Model = /(C)?751i/i.test(model);
+    const is361Model = /(C)?361i/i.test(model);
+    const is950Model = /(C)?950i/i.test(model);
+
+
+    // 751i logic
+    if (is751Model) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/27`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/28`;
+
+        // Standard
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/26`;
+    }
+
+    // 451i / 551i / 651i logic
+    if (isBasicModel) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/25`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/24`;
+
+        // Standard
         return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/23`;
+    }
+    if (is361Model) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/31`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/30`;
+        // Standard
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/29`;
+    }
+    if (is950Model) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/34`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/33`;
+        // Standard
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/32`;
+    }
     return "";
-}
+};
 export const getImageForModelAndFunctions = (model: string, functions: string[]) => {
     if (!model) return "";
 
@@ -292,6 +334,10 @@ export const KM_MODEL_LIST = [
     {
         name: "451i",
         fullName: "Mono Multi-Function Printer Konica Minolta bizhub 451i"
+    },
+    {
+        name: "551i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 551i"
     },
     {
         name: "651i",
