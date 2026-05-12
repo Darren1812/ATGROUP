@@ -6,6 +6,9 @@ export const KMImage = (model: string, functions: string[]) => {
     const is751Model = /(C)?751i/i.test(model);
     const is361Model = /(C)?361i/i.test(model);
     const is950Model = /(C)?950i/i.test(model);
+    const is251Model = /(C)?251i/i.test(model);
+    const is301Model = /(C)?301i/i.test(model);
+
 
 
     // 751i logic
@@ -49,6 +52,28 @@ export const KMImage = (model: string, functions: string[]) => {
         // Standard
         return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/32`;
     }
+    if (is251Model) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/37`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/36`;
+        // Standard
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/35`;
+    }
+    if (is301Model) {
+        if (functions.includes("Booklet"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/41`;
+
+        if (functions.includes("Staple"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/40`;
+        if (functions.includes("Inner"))
+            return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/39`;
+
+        // Standard
+        return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/PrinteImage/view/38`;
+    }
+
     return "";
 };
 export const getImageForModelAndFunctions = (model: string, functions: string[]) => {
