@@ -267,7 +267,36 @@ export const ARENASTAFF_NAMES = [
 export const SKYSTAFF_NAMES = [
     "MIRZA ADZREEM"
 ]
-
+export const ATP_ADDRESS = [
+    {
+        name: "JOHOR",
+        address: "142A, JALAN LAYANG 16,\nTAMAN PERLING,\n81200 JOHOR BAHRU, JOHOR."
+    },
+    {
+        name: "MELAKA",
+        address: "NO.15-1, JALAN PNBBU 4,\nPUSAT NIAGA BUKIT BARU UTAMA,\n75150 BUKIT BARU, MELAKA."
+    },
+    {
+        name: "KUALA LUMPUR",
+        address: "NO. 40 SUITE 3, JALAN 30A/119,\nTAMAN TAYNTON VIEW,\n56000 KUALA LUMPUR, W.P. KUALA LUMPUR"
+    },
+    {
+        name: "NEGERI SEMBILAN",
+        address: "NO. 76-01, SUITE 03, JALAN METRO SENDAYAN 1/4,\nSENDAYAN METRO PARK SEREMBAN, BANDAR SRI SENDAYAN,\n79150 NEGERI SEMBILAN."
+    },
+    {
+        name: "TERENGGANU",
+        address: "K-7752, TINGKAT 1,\nTAMAN BERSEKUTU, JALAN KUBANG KURUS,\n24000 KEMAMAN, TERENGGANU."
+    },
+    {
+        name: "PAHANG",
+        address: "E-1732, TINGKAT 1,\nJALAN DATO' WONG AH JANG,\n25100 KUANTAN, PAHANG."
+    },
+    {
+        name: "KELANTAN",
+        address: "PT 259, TINGKAT 2,\nJALAN KEBUN SULTAN, SEKSYEN 8,\n15350 KOTA BAHRU, KELANTAN."
+    },
+];
 export const ASN_ADDRESS = [
     {
         name: "Johor",

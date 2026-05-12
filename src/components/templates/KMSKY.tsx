@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
-    getImageForModelAndFunctions,
+    KMImage,
     modelSpeedMap,
     SKYSTAFF_NAMES,
     KM_MODEL_LIST,
@@ -234,7 +234,7 @@ export default function SKY() {
 
     const generateJSON = () => {
         const data = {
-            TemplateName: "SKY",
+            TemplateName: "KMSKY",
             BeforeData: {
                 companyaddress: companyaddress,
                 customername: customerName,
@@ -846,7 +846,7 @@ export default function SKY() {
         );
 
         // --- Image update ---
-        const newImage = getImageForModelAndFunctions(currentModel.value, newSelected);
+        const newImage = KMImage(currentModel.value, newSelected);
         handleItemChange(index, "itemimage", newImage);
     };
 
@@ -1467,7 +1467,7 @@ export default function SKY() {
                                                                 : [];
 
                                                             // 🟢 Compute new image based on model + functions
-                                                            const newImage = getImageForModelAndFunctions(formatted, currentFunctions);
+                                                            const newImage = KMImage(formatted, currentFunctions);
 
                                                             // 🟢 Update item image
                                                             handleItemChange(index, "itemimage", newImage);

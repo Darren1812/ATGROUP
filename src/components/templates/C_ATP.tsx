@@ -1,14 +1,21 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import Image from "next/image";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
   getImageForModelAndFunctions,
   modelSpeedMap,
   STAFF_NAMES,
+  ATP_ADDRESS,
   MODEL_LIST,
-  DEFAULT_FUNCTIONS
+  DEFAULT_FUNCTIONS,
 } from "../../constants/printerData";
 import ReactSelect from "react-select";
 
@@ -16,7 +23,7 @@ type DateFormatType = "date1" | "date2" | "date3" | "date4";
 
 const formatCustomDate = (
   dateString: string,
-  formatType: DateFormatType
+  formatType: DateFormatType,
 ): string | null => {
   if (!dateString) return null;
 
@@ -59,7 +66,7 @@ const formatCustomDate = (
       // Replace numeric day with suffixed version
       return formattedDateString.replace(
         String(dayOfMonth),
-        dayOfMonth + suffix
+        dayOfMonth + suffix,
       );
     }
 
@@ -74,6 +81,16 @@ const formatCustomDate = (
   }
 };
 export default function C_ATP() {
+  const [refundableDepositOptions, setRefundableDepositOptions] = useState<
+    any[]
+  >([]);
+  const updateRefundableDeposit = (index: number, value: any) => {
+    setRefundableDepositOptions((prev) => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
 
   const generateFileName = (request: ReturnType<typeof generateJSON>) => {
     const customerName = request.BeforeData.customername || "UnknownCustomer";
@@ -82,33 +99,34 @@ export default function C_ATP() {
       .map((w) => w[0].toUpperCase())
       .join("");
 
-    const modelNames = request.Items
-      .map((item) => item.i_model?.split(" ").pop() || "")
-      .filter(Boolean);
+    const modelNames = request.Items.map(
+      (item) => item.i_model?.split(" ").pop() || "",
+    ).filter(Boolean);
     const modelsPart = modelNames.join("_");
 
     const basicFunctions = ["Copy", "Print", "Scan", "Store", "Email", "Send"];
-    const additionalFunctions = request.Items
-      .flatMap((item) => (item.i_function || "").split(",").map((f) => f.trim()))
-      .filter((f) => f && !basicFunctions.includes(f));
+    const additionalFunctions = request.Items.flatMap((item) =>
+      (item.i_function || "").split(",").map((f) => f.trim()),
+    ).filter((f) => f && !basicFunctions.includes(f));
     const functionPart =
       additionalFunctions.length > 0
         ? [...new Set(additionalFunctions)].join("_")
         : "Function";
 
     const templateMap: Record<string, string> = { C_ATP: "ATP", G_ATP: "ATP" };
-    const templatePart = templateMap[request.TemplateName] || request.TemplateName;
+    const templatePart =
+      templateMap[request.TemplateName] || request.TemplateName;
 
-    return ["Proposal", templatePart, customerInitials, modelsPart, functionPart]
-      .filter(Boolean)
-      .join("_") + ".docx";
+    return (
+      ["Proposal", templatePart, customerInitials, modelsPart, functionPart]
+        .filter(Boolean)
+        .join("_") + ".docx"
+    );
   };
-
 
   const handleGenerate = async () => {
     const data = generateJSON();
     const filename = generateFileName(data);
-
 
     try {
       const response = await fetch(
@@ -119,7 +137,7 @@ export default function C_ATP() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Failed to generate proposal");
@@ -156,9 +174,7 @@ export default function C_ATP() {
     },
   ]);
 
-
-
-  const [companyaddress, ] = useState("");
+  const [companyaddress, setcompanyaddress] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [staffName, setStaffName] = useState("");
   const [staffPosition, setStaffPosition] = useState("");
@@ -166,7 +182,7 @@ export default function C_ATP() {
   const [staffEmail, setStaffEmail] = useState("");
   const [staffSign, setStaffSign] = useState("");
   const [dateInput, setDateInput] = useState(
-    new Date().toISOString().substring(0, 10)
+    new Date().toISOString().substring(0, 10),
   ); // YYYY-MM-DD
   const [customer, setCustomer] = useState("");
   const [feature1, setFeature1] = useState("");
@@ -174,6 +190,7 @@ export default function C_ATP() {
 
   // Document Fields 2
   const [customerAddress, setCustomerAddress] = useState("");
+  const [refNumber, setRefNumber] = useState("001");
 
   const [items, setItems] = useState([
     {
@@ -201,6 +218,7 @@ export default function C_ATP() {
   ]);
 
   const generateJSON = () => {
+    const ourRef = `${formattedDates.date2}/${refNumber}`;
     const data = {
       TemplateName: "C_ATP",
       BeforeData: {
@@ -212,13 +230,13 @@ export default function C_ATP() {
         staffemail: staffEmail,
         staffsign: staffSign,
         date1: formattedDates.date1,
-        date2: formattedDates.date2,
+        date2: ourRef,
         date3: formattedDates.date3,
         date4: formattedDates.date4,
         customeraddress: customerAddress,
         customer: customer,
         feature: feature1,
-        featureb: feature2
+        featureb: feature2,
       },
       Items: items, // 👈 now correctly bound
       AfterData: {
@@ -227,10 +245,9 @@ export default function C_ATP() {
         staffposition: staffPosition,
         staffmobile: staffMobile,
         staffemail: staffEmail,
-        staffsign: staffSign
+        staffsign: staffSign,
       },
       FeaturePage: featurePage,
-
     };
 
     return data;
@@ -286,17 +303,16 @@ export default function C_ATP() {
     items.map(() => ({
       hitamPutih: { selected: false, helai: "1000", sekali: false },
       berwarna: { selected: false, helai: "500", sekali: false },
-    }))
+    })),
   );
   useEffect(() => {
     setItems((prev) =>
       prev.map((item) => ({
         ...item,
         companyaddress: companyaddress,
-      }))
+      })),
     );
   }, [companyaddress]);
-
 
   const handleItemChange = useCallback(
     (index: number, field: string, value: string) => {
@@ -335,7 +351,7 @@ export default function C_ATP() {
       // 3. Perform final state updates (if needed)
       if (field === "rental_scheme") setLastRentalScheme(value);
     },
-    [setItems, setRentalItems] // Dependencies for useCallback
+    [setItems, setRentalItems], // Dependencies for useCallback
   );
   // New states for API loading/error feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -370,7 +386,7 @@ export default function C_ATP() {
           .json()
           .catch(() => ({ message: response.statusText }));
         throw new Error(
-          errorData.message || `HTTP error! Status: ${response.status}`
+          errorData.message || `HTTP error! Status: ${response.status}`,
         );
       }
 
@@ -384,8 +400,9 @@ export default function C_ATP() {
     } catch (error) {
       // Display an error message to the user
       setFetchError(
-        `Error fetching staff info: ${error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Error fetching staff info: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
 
       // Optionally clear the auto-fill fields if fetch failed
@@ -411,7 +428,9 @@ export default function C_ATP() {
     [key: string]: string | undefined; // dynamic fields
   }
 
-  const [modelDetailCache, setModelDetailCache] = useState<Record<number, ModelDetail>>({});
+  const [modelDetailCache, setModelDetailCache] = useState<
+    Record<number, ModelDetail>
+  >({});
 
   const modelDetailCacheRef = useRef(modelDetailCache);
 
@@ -427,9 +446,17 @@ export default function C_ATP() {
     async (modelName: string, index: number) => {
       if (modelName.trim() === "") {
         // clear fields
-        ["proposedmodel", "mrpv", "Fax", "Inner", "Booklet", "Puncher", "Trays_2_4", "i_detail", "Staple"].forEach(field =>
-          handleItemChange(index, field, "")
-        );
+        [
+          "proposedmodel",
+          "mrpv",
+          "Fax",
+          "Inner",
+          "Booklet",
+          "Puncher",
+          "Trays_2_4",
+          "i_detail",
+          "Staple",
+        ].forEach((field) => handleItemChange(index, field, ""));
         setModelFetchError(null);
         setModelDetailCache((prev) => {
           const copy = { ...prev };
@@ -450,8 +477,12 @@ export default function C_ATP() {
       try {
         const response = await fetch(url);
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: response.statusText }));
-          throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+          const errorData = await response
+            .json()
+            .catch(() => ({ message: response.statusText }));
+          throw new Error(
+            errorData.message || `HTTP error! Status: ${response.status}`,
+          );
         }
 
         const data: ModelDetail = await response.json(); // ✅ typed
@@ -459,7 +490,11 @@ export default function C_ATP() {
         setModelDetailCache((prev) => ({ ...prev, [index]: data }));
 
         handleItemChange(index, "proposedmodel", data.ProposedModel || "");
-        handleItemChange(index, "mrpv", data.MonthlyRecommendedPrintVolume || "");
+        handleItemChange(
+          index,
+          "mrpv",
+          data.MonthlyRecommendedPrintVolume || "",
+        );
         handleItemChange(index, "Fax", data.Fax || "");
         handleItemChange(index, "Inner", data.Inner || "");
         handleItemChange(index, "Booklet", data.Booklet || "");
@@ -468,7 +503,8 @@ export default function C_ATP() {
         handleItemChange(index, "5 Trays", data["5 Trays"] || "");
 
         // ✅ Use ref to safely access latest cache
-        const lastModelData = modelDetailCacheRef.current[index]?.Details?.trim() || "";
+        const lastModelData =
+          modelDetailCacheRef.current[index]?.Details?.trim() || "";
         const currentDetail = items[index]?.i_detail?.trim() || "";
 
         if (!currentDetail || currentDetail === lastModelData) {
@@ -476,16 +512,14 @@ export default function C_ATP() {
         }
       } catch (error) {
         setModelFetchError(
-          `Error fetching model details: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Error fetching model details: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       } finally {
         setIsModelLoading(false);
       }
     },
-    [handleItemChange, items]
+    [handleItemChange, items],
   );
-
-
 
   // useEffect hook to call the API whenever staffName changes
 
@@ -497,7 +531,7 @@ export default function C_ATP() {
 
     // --- 2️⃣ Determine the matching speed from the model code
     const matchedKey = Object.keys(modelSpeedMap).find((key) =>
-      value.includes(key)
+      value.includes(key),
     );
 
     const speed = matchedKey ? modelSpeedMap[matchedKey] : "";
@@ -575,21 +609,20 @@ export default function C_ATP() {
       newSelected = [...selectedList, func];
     }
 
-
     handleItemChange(index, "i_selectedFunction", newSelected.join(", "));
 
-    const displayList = newSelected.map((f) =>
-      f === "Inner" ? "Staple" : f
-    );
+    const displayList = newSelected.map((f) => (f === "Inner" ? "Staple" : f));
 
     handleItemChange(index, "i_function", displayList.join(", "));
     handleItemChange(index, "i_detail", details);
 
-    const newImage = getImageForModelAndFunctions(currentModel.value, newSelected);
+    const newImage = getImageForModelAndFunctions(
+      currentModel.value,
+      newSelected,
+    );
 
     handleItemChange(index, "itemimage", newImage);
   };
-
 
   // Use useMemo to calculate the different date formats
   const formattedDates = useMemo(() => {
@@ -632,7 +665,7 @@ export default function C_ATP() {
       prev.map((rental) => ({
         ...rental,
         Lokasi: customerName,
-      }))
+      })),
     );
   }, [customerName]);
   const [meterOptions, setMeterOptions] = useState<
@@ -647,11 +680,11 @@ export default function C_ATP() {
     updatedMeter: {
       bw: { selected: boolean; rm: string };
       color: { selected: boolean; rm: string };
-    }
+    },
   ) => {
     // --- 1️⃣ Update only the meter option for the current item
     setMeterOptions((prev: typeof meterOptions) =>
-      prev.map((opt, i) => (i === index ? updatedMeter : opt))
+      prev.map((opt, i) => (i === index ? updatedMeter : opt)),
     );
 
     // --- 2️⃣ Build readable meter description for the selected item
@@ -678,25 +711,23 @@ export default function C_ATP() {
       prev.map((item, i) =>
         i === index
           ? {
-            ...item,
-            meter_reading: result,
-          }
-          : item
-      )
+              ...item,
+              meter_reading: result,
+            }
+          : item,
+      ),
     );
   };
-
 
   // 🟢 Keep meterOptions length synced with items
   useEffect(() => {
     setMeterOptions((prev) => {
       if (prev.length !== items.length) {
         const newOptions = [...prev];
-        const lastOption =
-          prev[prev.length - 1] || {
-            bw: { selected: false, rm: "" },
-            color: { selected: false, rm: "" },
-          };
+        const lastOption = prev[prev.length - 1] || {
+          bw: { selected: false, rm: "" },
+          color: { selected: false, rm: "" },
+        };
 
         while (newOptions.length < items.length) {
           newOptions.push(JSON.parse(JSON.stringify(lastOption)));
@@ -732,21 +763,20 @@ export default function C_ATP() {
     // ✅ Run only when the *number* of items changes
   }, [items.length]);
 
-
   useEffect(() => {
     if (totalMonths > 0) {
       setItems((prev) =>
         prev.map((item) => ({
           ...item,
           rental_scheme: totalMonths.toString(),
-        }))
+        })),
       );
     }
   }, [totalMonths]);
   const [featurePage, setFeaturePage] = useState("");
   useEffect(() => {
     if (featurePage) {
-      setFeature1(featurePage);            // normal text
+      setFeature1(featurePage); // normal text
       setFeature2(featurePage); // UPPERCASE
     } else {
       setFeature1("");
@@ -757,58 +787,86 @@ export default function C_ATP() {
   return (
     <ProtectedRoute>
       <div>
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-red-700 to-white rounded-xl p-6 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-red-800 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl">🖨️</span>
+        <div className='mb-8'>
+          <div className='bg-gradient-to-r from-red-700 to-white rounded-xl p-6 shadow-xl'>
+            <div className='flex items-center gap-4'>
+              <div className='w-12 h-12 bg-red-800 rounded-lg flex items-center justify-center'>
+                <span className='text-white text-xl'>🖨️</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className='text-xl font-bold text-white'>
                   Proposal Generator for ATP (Commercial)
                 </h2>
               </div>
             </div>
           </div>
         </div>
-        <div className="max-w-screen-xl mx-auto p-4 w-450 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-8 mb-6 text-gray-500 border border-gray-200/50 mx-auto">
-          <table className="w-full">
+        <div className='max-w-screen-xl mx-auto p-4 w-450 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-8 mb-6 text-gray-500 border border-gray-200/50 mx-auto'>
+          <table className='w-full'>
             <tbody>
               {/*Heading 1*/}
               <tr>
                 {/* Column 1: Header Input Fields (Adjusted to w-1/2) */}
-                <td className="w-1/2 p-4 ">
-                  <div className="h-200 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm font-bold">H</span>
+                <td className='w-1/2 p-4 '>
+                  <div className='h-200 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50'>
+                    <h3 className='text-xl font-bold text-gray-800 mb-6 flex items-center'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm font-bold'>H</span>
                       </div>
                       Header 1
                     </h3>
-                    <div className="space-y-4">
+                    <div className='space-y-4'>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Company Address
+                        </label>
+
+                        <select
+                          value={companyaddress}
+                          onChange={(e) => setcompanyaddress(e.target.value)}
+                          className='w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm'
+                        >
+                          <option value=''>Select company address</option>
+                          {ATP_ADDRESS.map((item, index) => (
+                            <option key={index} value={item.address}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Show selected address in text area */}
+                        {companyaddress && (
+                          <textarea
+                            value={companyaddress}
+                            readOnly
+                            rows={5}
+                            className='w-full mt-3 px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 resize-none'
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Customer Name
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
-                          placeholder="Enter customer name"
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm"
+                          placeholder='Enter customer name'
+                          className='w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm'
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Name
                         </label>
                         <select
                           value={staffName}
                           onChange={(e) => setStaffName(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                         >
-                          <option value="">Select staff name</option>
+                          <option value=''>Select staff name</option>
                           {STAFF_NAMES.map((name) => (
                             <option key={name} value={name}>
                               {name}
@@ -816,52 +874,52 @@ export default function C_ATP() {
                           ))}
                         </select>
                         {isLoading && (
-                          <p className="text-xs text-blue-500 mt-1">
+                          <p className='text-xs text-blue-500 mt-1'>
                             Loading staff info...
                           </p>
                         )}
                         {fetchError && (
-                          <p className="text-xs text-red-500 mt-1">
+                          <p className='text-xs text-red-500 mt-1'>
                             {fetchError}
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Mobile
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={staffMobile}
                           onChange={(e) => setStaffMobile(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Email
                         </label>
                         <input
-                          type="email"
+                          type='email'
                           value={staffEmail}
                           onChange={(e) => setStaffEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Date
                         </label>
                         <input
-                          type="date"
+                          type='date'
                           value={dateInput}
                           onChange={(e) => setDateInput(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                         />
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className='text-xs text-gray-500 mt-1'>
                           Current value:{" "}
-                          <span className="font-semibold text-blue-600">
+                          <span className='font-semibold text-blue-600'>
                             {dateInput}
                           </span>
                         </p>
@@ -871,40 +929,39 @@ export default function C_ATP() {
                 </td>
 
                 {/* Column 2: Live Preview (w-1/2) */}
-                <td className="w-1/2 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
-                    <h4 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm">👁</span>
+                <td className='w-1/2 p-4'>
+                  <div className='ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg'>
+                    <h4 className='font-bold text-gray-800 mb-4 flex items-center'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm'>👁</span>
                       </div>
                       Live Preview
                     </h4>
 
                     {/* Header Image Preview */}
-                    <div className="rounded-xl p-4 mb-6 border border-gray-300 bg-gray-50">
+                    <div className='rounded-xl p-4 mb-6 border border-gray-300 bg-gray-50'>
                       {" "}
                       {/* Simplified the container styling */}
-                      <div className="rounded-lg overflow-hidden bg-gray-50">
+                      <div className='rounded-lg overflow-hidden bg-gray-50'>
                         <Image
-                          src="/images/header1.png"
-                          alt="Header Image Template"
-                          width={1200}              // Required for layout stability
+                          src='/images/header1.png'
+                          alt='Header Image Template'
+                          width={1200} // Required for layout stability
                           height={400}
-                          className="w-full max-h-72 object-contain"
-                          priority                  // Optional: load early for better performance
+                          className='w-full max-h-72 object-contain'
+                          priority // Optional: load early for better performance
                         />
                       </div>
-
                     </div>
                     {/* END Header Image Section */}
 
-                    <div className="text-sm space-y-1">
+                    <div className='text-sm space-y-1'>
                       <p>
-                        <span className="text-red-600 underline ml-2">
+                        <span className='text-red-600 underline ml-2'>
                           {customerName || "{customername}"}
                         </span>
                       </p>
-                      <div className="bg-white p-3 rounded mt-2">
+                      <div className='bg-white p-3 rounded mt-2'>
                         <p>
                           <strong>Prepared by:</strong>{" "}
                           {staffName || "{staffname}"}
@@ -927,90 +984,103 @@ export default function C_ATP() {
               {/* Heading 2 */}
               <tr>
                 {/* Column 1: Header Input Fields (Adjusted to w-1/2) */}
-                <td className="w-1/2 p-4">
-                  <div className="h-200 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm font-bold">H</span>
+                <td className='w-1/2 p-4'>
+                  <div className='h-200 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50'>
+                    <h3 className='text-xl font-bold text-gray-800 mb-6 flex items-center'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm font-bold'>H</span>
                       </div>
                       Header 2
                     </h3>
-                    <div className="space-y-4">
+                    <div className='space-y-4'>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Our Ref
                         </label>
-                        <input
-                          type="text"
-                          value={`${formattedDates.date2}/001`}
-                          readOnly
-                          placeholder="Auto-generated reference"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
-                        />
+
+                        <div className='flex'>
+                          {/* Read-only date prefix */}
+                          <div className='px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-100 text-gray-700'>
+                            {formattedDates.date2}/
+                          </div>
+
+                          {/* Editable suffix */}
+                          <input
+                            type='text'
+                            value={refNumber}
+                            onChange={(e) => setRefNumber(e.target.value)}
+                            placeholder='001'
+                            className='w-full px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Date
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={formattedDates.date3}
                           readOnly
-                          placeholder="Auto-generated date"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                          placeholder='Auto-generated date'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100'
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Customer Address
                         </label>
                         <textarea
                           value={customerAddress}
                           onChange={(e) => setCustomerAddress(e.target.value)}
-                          placeholder="Enter customer address"
+                          placeholder='Enter customer address'
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Customer
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={customer}
                           onChange={(e) => setCustomer(e.target.value)}
-                          placeholder="Enter customer name"
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm"
+                          placeholder='Enter customer name'
+                          className='w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/70 backdrop-blur-sm'
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Date
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={formattedDates.date4}
                           readOnly
-                          placeholder="Auto-generated date"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                          placeholder='Auto-generated date'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100'
                         />
                       </div>
                       <div>
-                        <label className="block text-xl font-medium text-red-700 mt-10 mb-1">
+                        <label className='block text-xl font-medium text-red-700 mt-10 mb-1'>
                           Features Page
                         </label>
 
                         <select
                           value={featurePage}
                           onChange={(e) => setFeaturePage(e.target.value)}
-                          className="w-full px-3 py-2 border border-red-500 rounded-lg 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className='w-full px-3 py-2 border border-red-500 rounded-lg 
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                         >
-                          <option value="">Select feature</option>
-                          <option value="imageRUNNER ADVANCE">imageRUNNER ADVANCE</option>
-                          <option value="imageRUNNER ADVANCE DX">imageRUNNER ADVANCE DX</option>
-                          <option value="imageFORCE">imageFORCE</option>
+                          <option value=''>Select feature</option>
+                          <option value='imageRUNNER ADVANCE'>
+                            imageRUNNER ADVANCE
+                          </option>
+                          <option value='imageRUNNER ADVANCE DX'>
+                            imageRUNNER ADVANCE DX
+                          </option>
+                          <option value='imageFORCE'>imageFORCE</option>
                         </select>
                       </div>
                     </div>
@@ -1018,94 +1088,95 @@ export default function C_ATP() {
                 </td>
 
                 {/* Column 2: Document Preview (Adjusted to w-1/2 and styled like the document) */}
-                <td className="w-3/5 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
-                    <h4 className="font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm">📄</span>
+                <td className='w-3/5 p-4'>
+                  <div className='ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg'>
+                    <h4 className='font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm'>📄</span>
                       </div>
                       Document Preview
                     </h4>
                     {/* Document Style Container (A4-like box) */}
-                    <div className="w-150 bg-white border border-gray-300 p-8 shadow-inner overflow-hidden text-xs space-y-3">
-                      <div className="space-y-1">
-                        <p className="flex justify-left">
-                          <span className="font-bold">Our Ref</span>
-                          <span className="ml-2 text-blue-700">
+                    <div className='w-150 bg-white border border-gray-300 p-8 shadow-inner overflow-hidden text-xs space-y-3'>
+                      <div className='space-y-1'>
+                        <p className='flex justify-left'>
+                          <span className='font-bold'>Our Ref</span>
+                          <span className='ml-2 text-blue-700'>
                             {formattedDates.date2 || "{date2}"}/001
                           </span>
                         </p>
-                        <p className="flex justify-left">
+                        <p className='flex justify-left'>
                           <span>{formattedDates.date3 || "{date3}"}</span>
                         </p>
                       </div>
 
-                      <div className="pt-4 space-y-1">
-                        <p className="font-bold text-sm text-red-600">
+                      <div className='pt-4 space-y-1'>
+                        <p className='font-bold text-sm text-red-600'>
                           {customerName || "{customername}"}
                         </p>
-                        <div className="whitespace-pre-wrap">
+                        <div className='whitespace-pre-wrap'>
                           {customerAddress || "{customeraddress}"}
                         </div>
                         <p>
-                          <span className="font-bold">Attention:</span>{" "}
+                          <span className='font-bold'>Attention:</span>{" "}
                           {customer || "{customer}"}
                         </p>
                       </div>
 
                       {/* Salutation and main text preview (UNCHANGED) */}
-                      <p className="pt-4">Dear Sir/Madam,</p>
+                      <p className='pt-4'>Dear Sir/Madam,</p>
 
-                      <p className="font-bold pt-2">
+                      <p className='font-bold pt-2'>
                         ACQUISITION OF CANON DIGITAL OFFICE SOLUTION - CANON
-                        <span className="text-red-600 underline ml-2">
+                        <span className='text-red-600 underline ml-2'>
                           {feature2 || "{feature2}"}
                         </span>
                       </p>
 
                       {/* **FIX APPLIED HERE: Split the problematic nested <p> content** */}
-                      <p className="text-gray-700">
+                      <p className='text-gray-700'>
                         ATP Sales & Services Sdn. Bhd. values{" "}
-                        <span className="text-red-600 underline">
+                        <span className='text-red-600 underline'>
                           {customerName || "{customername}"}
                         </span>{" "}
                         business and takes pride in being able to contribute to
                         your continued success... at{" "}
-                        <span className="text-red-600 underline">
+                        <span className='text-red-600 underline'>
                           {customerName || "{customername}"}
                         </span>
                         .
                       </p>
 
                       {/* This paragraph was previously nested. It now stands alone. */}
-                      <p className="pt-4 text-gray-700">
+                      <p className='pt-4 text-gray-700'>
                         With the Canon
-                        <span className="text-red-600 underline ml-2">
+                        <span className='text-red-600 underline ml-2'>
                           {feature1 || "{feature1}"}
-                        </span> model, we have
-                        realized an ambitious goal. Now small departments and
-                        workgroups can enjoy stunningly simplified and productive
-                        workflow... all in a compact footprint.
+                        </span>{" "}
+                        model, we have realized an ambitious goal. Now small
+                        departments and workgroups can enjoy stunningly
+                        simplified and productive workflow... all in a compact
+                        footprint.
                       </p>
 
-                      <p className="pt-4">
+                      <p className='pt-4'>
                         We are confident our proposed solution will meet your
-                        organization’s immediate and future requirements. We shall
-                        look forward to your approval on the implementation of our
-                        proposed solution by{" "}
-                        <span className="text-blue-700">
+                        organization’s immediate and future requirements. We
+                        shall look forward to your approval on the
+                        implementation of our proposed solution by{" "}
+                        <span className='text-blue-700'>
                           {formattedDates.date4 || "{date4}"}
                         </span>
                         .
                       </p>
-                      <p className="pt-4">Thank you.</p>
+                      <p className='pt-4'>Thank you.</p>
 
                       {/* Signature Block Preview (UNCHANGED) */}
-                      <div className="pt-8 text-[10px] space-y-1">
+                      <div className='pt-8 text-[10px] space-y-1'>
                         <p>Yours faithfully,</p>
-                        <p>ATP Sales & Services Sdn. Bhd. (1275709-U)   </p>
-                        <div className="mt-8 w-48 pt-1">
-                          <u className="font-bold">
+                        <p>ATP Sales & Services Sdn. Bhd. (1275709-U) </p>
+                        <div className='mt-8 w-48 pt-1'>
+                          <u className='font-bold'>
                             {staffSign || "{staffsign}"}
                           </u>
                           <p>{staffPosition || "{staffposition}"}</p>
@@ -1122,32 +1193,37 @@ export default function C_ATP() {
               {items.map((item, index) => (
                 <tr key={index}>
                   {/* Column 1: Item Input Fields (Keep as w-1/3) */}
-                  <td className="w-1/3 p-4 align-top">
-                    <div className="ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                      <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
-                          <span className="text-white text-sm font-bold">
+                  <td className='w-1/3 p-4 align-top'>
+                    <div className='ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50'>
+                      <h3 className='text-xl font-bold text-gray-800 mb-6 flex items-center'>
+                        <div className='w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3'>
+                          <span className='text-white text-sm font-bold'>
                             {index + 1}
                           </span>
                         </div>
                         Item {index + 1}
                       </h3>
 
-                      <div className="space-y-4">
+                      <div className='space-y-4'>
                         {/* Proposed Models */}
-                        <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <div className='mt-4'>
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Model
                           </label>
 
                           <ReactSelect
                             value={
                               item.modelname
-                                ? { label: item.modelname, value: item.modelname }
+                                ? {
+                                    label: item.modelname,
+                                    value: item.modelname,
+                                  }
                                 : null
                             }
                             onChange={(selectedOption) => {
-                              const selected = selectedOption ? selectedOption.value : "";
+                              const selected = selectedOption
+                                ? selectedOption.value
+                                : "";
 
                               // 🟢 Format model display
                               const formatted = selected.replace("", "");
@@ -1158,11 +1234,16 @@ export default function C_ATP() {
 
                               // 🟢 Keep current selected functions
                               const currentFunctions = item.i_selectedFunction
-                                ? item.i_selectedFunction.split(", ").filter(Boolean)
+                                ? item.i_selectedFunction
+                                    .split(", ")
+                                    .filter(Boolean)
                                 : [];
 
                               // 🟢 Compute new image based on model + functions
-                              const newImage = getImageForModelAndFunctions(formatted, currentFunctions);
+                              const newImage = getImageForModelAndFunctions(
+                                formatted,
+                                currentFunctions,
+                              );
 
                               // 🟢 Update item image
                               handleItemChange(index, "itemimage", newImage);
@@ -1175,48 +1256,61 @@ export default function C_ATP() {
                               label: model.name,
                               value: model.fullName,
                             }))}
-                            placeholder="Select model..."
+                            placeholder='Select model...'
                             isClearable
-                            className="basic-multi-select"
-                            classNamePrefix="select"
+                            className='basic-multi-select'
+                            classNamePrefix='select'
                           />
 
                           {/* Loading & Error states */}
                           {isModelLoading && (
-                            <p className="text-xs text-blue-500 mt-1">Fetching model data...</p>
+                            <p className='text-xs text-blue-500 mt-1'>
+                              Fetching model data...
+                            </p>
                           )}
                           {modelFetchError && (
-                            <p className="text-xs text-red-500 mt-1">{modelFetchError}</p>
+                            <p className='text-xs text-red-500 mt-1'>
+                              {modelFetchError}
+                            </p>
                           )}
 
                           {/* Textarea */}
-                          <label className="block text-sm font-medium text-gray-700 mt-3 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mt-3 mb-1'>
                             Editable Model Name
                           </label>
                           <textarea
                             value={item.i_model || ""}
                             onChange={(e) => {
-                              handleItemChange(index, "i_model", e.target.value);
+                              handleItemChange(
+                                index,
+                                "i_model",
+                                e.target.value,
+                              );
                             }}
                             rows={3}
-                            placeholder="Enter or edit model name"
-                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all"
+                            placeholder='Enter or edit model name'
+                            className='w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all'
                           />
                         </div>
 
-
                         {/* Function */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Function
                           </label>
 
                           {/* Ensure default selection */}
-                          {!item.i_selectedFunction || item.i_selectedFunction.trim() === ""
-                            ? (handleItemChange(index, "i_selectedFunction", DEFAULT_FUNCTIONS.join(", ")), null)
+                          {!item.i_selectedFunction ||
+                          item.i_selectedFunction.trim() === ""
+                            ? (handleItemChange(
+                                index,
+                                "i_selectedFunction",
+                                DEFAULT_FUNCTIONS.join(", "),
+                              ),
+                              null)
                             : null}
 
-                          <div className="flex flex-wrap gap-2 mt-2">
+                          <div className='flex flex-wrap gap-2 mt-2'>
                             {[
                               ...DEFAULT_FUNCTIONS, // default ones
                               "Fax",
@@ -1235,12 +1329,15 @@ export default function C_ATP() {
                               return (
                                 <button
                                   key={func}
-                                  type="button"
-                                  onClick={() => handleFunctionToggle(index, func)}
-                                  className={`px-3 py-1 rounded-lg border text-sm font-semibold transition-all duration-200 focus:outline-none ${selected
-                                    ? "bg-grey-500 text-blue-400 border-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-300 hover:border-blue-800 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                                    : "bg-white text-gray-700 border-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-300 hover:border-gray-400 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
-                                    }`}
+                                  type='button'
+                                  onClick={() =>
+                                    handleFunctionToggle(index, func)
+                                  }
+                                  className={`px-3 py-1 rounded-lg border text-sm font-semibold transition-all duration-200 focus:outline-none ${
+                                    selected
+                                      ? "bg-grey-500 text-blue-400 border-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-300 hover:border-blue-800 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                                      : "bg-white text-gray-700 border-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-300 hover:border-gray-400 hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+                                  }`}
                                 >
                                   {func}
                                 </button>
@@ -1249,62 +1346,66 @@ export default function C_ATP() {
                           </div>
                           {/* Display: replace Inner → Staple */}
                           <input
-                            type="text"
+                            type='text'
                             value={
                               item.i_selectedFunction
                                 ? item.i_selectedFunction
-                                  .split(", ")
-                                  .map((f) => (f === "Inner" ? "Staple" : f))
-                                  .join(", ")
+                                    .split(", ")
+                                    .map((f) => (f === "Inner" ? "Staple" : f))
+                                    .join(", ")
                                 : ""
                             }
                             readOnly
-                            placeholder="Selected functions"
-                            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            placeholder='Selected functions'
+                            className='w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                           />
                         </div>
                         {/* Details */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Details/Features
                             <label
                               htmlFor={`i_detail_fontsize_${index}`}
-                              className="ml-5 text-xs font-medium text-gray-500 whitespace-nowrap"
+                              className='ml-5 text-xs font-medium text-gray-500 whitespace-nowrap'
                             >
                               Detail Font Size (pt):
                             </label>
                             <input
                               id={`i_detail_fontsize_${index}`}
-                              type="number"
-                              min="8"
-                              max="14"
+                              type='number'
+                              min='8'
+                              max='14'
                               value={item.i_detail_fontsize || "9"}
                               onChange={(e) =>
                                 handleItemChange(
                                   index,
                                   "i_detail_fontsize",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
-                              placeholder="e.g. 9"
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-blue-500 bg-white"
+                              placeholder='e.g. 9'
+                              className='w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-blue-500 bg-white'
                             />
                           </label>
 
                           <textarea
                             value={item.i_detail}
                             onChange={(e) =>
-                              handleItemChange(index, "i_detail", e.target.value)
+                              handleItemChange(
+                                index,
+                                "i_detail",
+                                e.target.value,
+                              )
                             }
-                            placeholder="Enter details"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            placeholder='Enter details'
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                             rows={3}
                           />
                         </div>
 
                         {/* Proposed Model Type */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Proposed Model Type
                           </label>
                           <select
@@ -1313,20 +1414,22 @@ export default function C_ATP() {
                               handleItemChange(
                                 index,
                                 "proposedmodel_type",
-                                e.target.value
+                                e.target.value,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg bg-white'
                           >
-                            <option value="(New)">New</option>
-                            <option value="(Showroom Unit)">Showroom Unit</option>
-                            <option value="">Nope</option>
+                            <option value='(New)'>New</option>
+                            <option value='(Showroom Unit)'>
+                              Showroom Unit
+                            </option>
+                            <option value=''>Nope</option>
                           </select>
                         </div>
 
                         {/* Proposed Model */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Proposed Model
                           </label>
                           <textarea
@@ -1335,38 +1438,47 @@ export default function C_ATP() {
                               handleItemChange(
                                 index,
                                 "proposedmodel",
-                                e.target.value
+                                e.target.value,
                               )
                             }
-                            placeholder="Enter proposed model"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            placeholder='Enter proposed model'
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                             rows={3}
                           />
                         </div>
                         {/* Rental/Unit */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Monthly Rental/Unit
                           </label>
                           <input
-                            type="text"
+                            type='text'
                             value={item.rental_unit}
                             onChange={(e) => {
                               const rawValue = e.target.value;
 
                               // Allow only numbers, commas, and dots
-                              const cleanValue = rawValue.replace(/[^0-9.]/g, "");
+                              const cleanValue = rawValue.replace(
+                                /[^0-9.]/g,
+                                "",
+                              );
 
                               // Let user type freely (don’t format yet)
-                              handleItemChange(index, "rental_unit", cleanValue);
+                              handleItemChange(
+                                index,
+                                "rental_unit",
+                                cleanValue,
+                              );
 
                               // Update calculations live
-                              const numericValue = parseFloat(cleanValue.replace(/,/g, "")) || 0;
+                              const numericValue =
+                                parseFloat(cleanValue.replace(/,/g, "")) || 0;
                               setRentalItems((prev) => {
                                 const copy = [...prev];
                                 if (!copy[index]) return prev;
 
-                                const quantity = Number(copy[index].Kuantiti) || 0;
+                                const quantity =
+                                  Number(copy[index].Kuantiti) || 0;
                                 const total = numericValue * quantity;
 
                                 copy[index] = {
@@ -1379,49 +1491,54 @@ export default function C_ATP() {
                             }}
                             onBlur={(e) => {
                               // Format with commas and 2 decimals on blur
-                              const numericValue = parseFloat(e.target.value.replace(/,/g, "")) || 0;
-                              const formatted = numericValue.toLocaleString("en-MY", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              });
+                              const numericValue =
+                                parseFloat(e.target.value.replace(/,/g, "")) ||
+                                0;
+                              const formatted = numericValue.toLocaleString(
+                                "en-MY",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              );
                               handleItemChange(index, "rental_unit", formatted);
                             }}
-                            placeholder="Enter Rental/Unit"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            placeholder='Enter Rental/Unit'
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                           />
                         </div>
                         {/* Rental Scheme */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Rental Duration
                           </label>
 
                           <input
-                            type="text"
+                            type='text'
                             list={`rental-duration-${index}`}
                             value={item.rental_scheme}
                             onChange={(e) =>
                               handleItemChange(
                                 index,
                                 "rental_scheme",
-                                e.target.value
+                                e.target.value,
                               )
                             }
-                            placeholder="Enter or select rental duration"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            placeholder='Enter or select rental duration'
+                            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
                           />
 
                           {/* Datalist provides dropdown suggestions but still allows typing freely */}
                           <datalist id={`rental-duration-${index}`}>
-                            <option value="24" />
-                            <option value="36" />
-                            <option value="48" />
-                            <option value="60" />
+                            <option value='24' />
+                            <option value='36' />
+                            <option value='48' />
+                            <option value='60' />
                           </datalist>
                         </div>
                         {/* Meter Reading */}
-                        <div className="flex flex-col gap-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <div className='flex flex-col gap-2'>
+                          <label className='block text-sm font-medium text-gray-700 mb-1'>
                             Meter Reading
                           </label>
 
@@ -1435,10 +1552,10 @@ export default function C_ATP() {
                             return (
                               <>
                                 {/* B/W Option */}
-                                <div className="flex items-center gap-2 text-sm">
-                                  <label className="flex items-center gap-1">
+                                <div className='flex items-center gap-2 text-sm'>
+                                  <label className='flex items-center gap-1'>
                                     <input
-                                      type="checkbox"
+                                      type='checkbox'
                                       checked={option.bw.selected}
                                       onChange={(e) =>
                                         updateMeterDisplay(index, {
@@ -1453,26 +1570,29 @@ export default function C_ATP() {
                                     B/W
                                   </label>
 
-                                  <span className="text-gray-600">RM</span>
+                                  <span className='text-gray-600'>RM</span>
                                   <input
-                                    type="text"
+                                    type='text'
                                     value={option.bw.rm}
                                     onChange={(e) =>
                                       updateMeterDisplay(index, {
                                         ...option,
-                                        bw: { ...option.bw, rm: e.target.value },
+                                        bw: {
+                                          ...option.bw,
+                                          rm: e.target.value,
+                                        },
                                       })
                                     }
-                                    placeholder="0.00"
-                                    className="w-20 border rounded px-2 text-center"
+                                    placeholder='0.00'
+                                    className='w-20 border rounded px-2 text-center'
                                   />
                                 </div>
 
                                 {/* Color Option */}
-                                <div className="flex items-center gap-2 text-sm">
-                                  <label className="flex items-center gap-1">
+                                <div className='flex items-center gap-2 text-sm'>
+                                  <label className='flex items-center gap-1'>
                                     <input
-                                      type="checkbox"
+                                      type='checkbox'
                                       checked={option.color.selected}
                                       onChange={(e) =>
                                         updateMeterDisplay(index, {
@@ -1487,9 +1607,9 @@ export default function C_ATP() {
                                     CL
                                   </label>
 
-                                  <span className="text-gray-600">RM</span>
+                                  <span className='text-gray-600'>RM</span>
                                   <input
-                                    type="text"
+                                    type='text'
                                     value={option.color.rm}
                                     onChange={(e) =>
                                       updateMeterDisplay(index, {
@@ -1500,23 +1620,28 @@ export default function C_ATP() {
                                         },
                                       })
                                     }
-                                    placeholder="0.00"
-                                    className="w-20 border rounded px-2 text-center"
+                                    placeholder='0.00'
+                                    className='w-20 border rounded px-2 text-center'
                                   />
                                 </div>
 
                                 {/* Display formatted output (editable like KR_D) */}
                                 {items[index]?.meter_reading && (
-                                  <div className="mt-2">
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                  <div className='mt-2'>
+                                    <label className='block text-xs font-semibold text-gray-600 mb-1'>
                                       Custom Meter Reading Description
                                     </label>
                                     <textarea
                                       value={items[index].meter_reading}
-                                      onChange={(e) => handleItemChange(index, "meter_reading", e.target.value)}
-
+                                      onChange={(e) =>
+                                        handleItemChange(
+                                          index,
+                                          "meter_reading",
+                                          e.target.value,
+                                        )
+                                      }
                                       rows={2}
-                                      className="w-full text-xs border rounded-lg p-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                      className='w-full text-xs border rounded-lg p-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
                                     />
                                   </div>
                                 )}
@@ -1525,71 +1650,162 @@ export default function C_ATP() {
                           })()}
                         </div>
                         {/* Refundable Deposit */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Refundable Deposit
+                        <div className='flex flex-col gap-2'>
+                          <label className='block text-sm font-medium text-gray-700'>
+                            Remark
                           </label>
-                          <select
-                            value={item.Refundable_D}
-                            onChange={(e) => {
-                              // 当选择发生变化时，直接将选中的值存入 item
-                              handleItemChange(index, "Refundable_D", e.target.value);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                          >
-                            <option value="">Select deposit type</option>
-                            <option value="New machine: 2 Month Rental (Refundable) + 1 Month Advance Rental">
-                              2 Month Rental (Refundable) + 1 Month Advance Rental
-                            </option>
-                            <option value="Used Machine: RM500 (Refundable) + 1 Month Advance Rental">
-                              RM500 (Refundable) + 1 Month Advance Rental
-                            </option>
-                          </select>
+
+                          {(() => {
+                            const depositOption = refundableDepositOptions[
+                              index
+                            ] || {
+                              newMachine: false,
+                              usedMachine: false,
+                            };
+
+                            return (
+                              <>
+                                {/* New Machine */}
+                                <div className='flex items-center gap-2 text-sm'>
+                                  <label className='flex items-center gap-1'>
+                                    <input
+                                      type='checkbox'
+                                      checked={depositOption.newMachine}
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+
+                                        const updated = {
+                                          newMachine: checked,
+                                          usedMachine: false, // auto untick other
+                                        };
+
+                                        updateRefundableDeposit(index, updated);
+
+                                        handleItemChange(
+                                          index,
+                                          "Refundable_D",
+                                          checked
+                                            ? "2 Month Rental (Refundable) + 1 Month Advance Rental"
+                                            : "",
+                                        );
+                                      }}
+                                    />
+                                  </label>
+
+                                  <span className='text-gray-600 text-xs'>
+                                    2 Month Rental (Refundable) + 1 Month
+                                    Advance Rental
+                                  </span>
+                                </div>
+
+                                {/* Used Machine */}
+                                <div className='flex items-center gap-2 text-sm'>
+                                  <label className='flex items-center gap-1'>
+                                    <input
+                                      type='checkbox'
+                                      checked={depositOption.usedMachine}
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+
+                                        const updated = {
+                                          newMachine: false, // auto untick other
+                                          usedMachine: checked,
+                                        };
+
+                                        updateRefundableDeposit(index, updated);
+
+                                        handleItemChange(
+                                          index,
+                                          "Refundable_D",
+                                          checked
+                                            ? "RM500 (Refundable) + 1 Month Advance Rental"
+                                            : "",
+                                        );
+                                      }}
+                                    />
+                                  </label>
+
+                                  <span className='text-gray-600 text-xs'>
+                                    RM500 (Refundable) + 1 Month Advance Rental
+                                  </span>
+                                </div>
+
+                                {/* Editable Output */}
+                                {items[index]?.Refundable_D !== undefined && (
+                                  <div className='mt-2'>
+                                    <label className='block text-xs font-semibold text-gray-600 mb-1'>
+                                      Refundable Deposit Output
+                                    </label>
+
+                                    <textarea
+                                      value={items[index].Refundable_D}
+                                      onChange={(e) =>
+                                        setItems((prev) =>
+                                          prev.map((item, i) =>
+                                            i === index
+                                              ? {
+                                                  ...item,
+                                                  Refundable_D: e.target.value,
+                                                }
+                                              : item,
+                                          ),
+                                        )
+                                      }
+                                      rows={3}
+                                      className='w-full text-xs border rounded-lg p-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
                   </td>
 
                   {/* Column 2: Merged Live Preview and Document Preview (now w-2/3) */}
-                  <td className="w-2/3 p-4">
-                    <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
-                      <h4 className="font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3">
-                          <span className="text-white text-sm">📄</span>
+                  <td className='w-2/3 p-4'>
+                    <div className='ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg'>
+                      <h4 className='font-bold text-lg text-gray-800 mb-4 flex items-center border-b pb-3'>
+                        <div className='w-8 h-8 bg-gradient-to-r from-red-900 to-red-500 rounded-lg flex items-center justify-center mr-3'>
+                          <span className='text-white text-sm'>📄</span>
                         </div>
                         Document Preview
                       </h4>
-                      <h5>Pricing Schedule: </h5><p>{item.itemname}</p>
-                      <div className="mt-2 flex flex-col border border-gray-600 rounded-lg overflow-hidden">
-                        <div className="flex border-b border-gray-600">
-                          <p className="w-1/2 p-2 bg-gray-300 font-medium border-r border-gray-600 text-white">
+                      <h5>Pricing Schedule: </h5>
+                      <p>{item.itemname}</p>
+                      <div className='mt-2 flex flex-col border border-gray-600 rounded-lg overflow-hidden'>
+                        <div className='flex border-b border-gray-600'>
+                          <p className='w-1/2 p-2 bg-gray-300 font-medium border-r border-gray-600 text-white'>
                             Proposed Model
                           </p>
-                          <p className="w-1/2 bg-gray-300 text-white p-2 text-sm">
+                          <p className='w-1/2 bg-gray-300 text-white p-2 text-sm'>
                             {item.i_model || "{i_model}"}
                           </p>
                         </div>
-                        <div className="flex border-b border-gray-600">
-                          <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600">
+                        <div className='flex border-b border-gray-600'>
+                          <p className='w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600'>
                             Function
                           </p>
-                          <p className="w-1/2 p-2 bg-gray-50 text-sm">
+                          <p className='w-1/2 p-2 bg-gray-50 text-sm'>
                             {item.i_function || "{i_function}"}
                           </p>
                         </div>
                         {/* Top Section: Model/Function/Image */}
-                        <div className="flex border-b border-gray-600">
+                        <div className='flex border-b border-gray-600'>
                           {/* Left Column: Image (w-1/2) */}
-                          <div className="w-1/2 p-4 border-r border-gray-600 text-center bg-gray-50">
-                            <div className="rounded-lg overflow-hidden shadow-md bg-gray-50 p-2">
-                              Configuration & Feature available (depend on configuration)
+                          <div className='w-1/2 p-4 border-r border-gray-600 text-center bg-gray-50'>
+                            <div className='rounded-lg overflow-hidden shadow-md bg-gray-50 p-2'>
+                              Configuration & Feature available (depend on
+                              configuration)
                               {item.itemimage && (
                                 <Image
                                   src={item.itemimage}
-                                  alt="Item Image"
+                                  alt='Item Image'
                                   width={400}
                                   height={300}
-                                  className="mt-5 w-full h-auto max-h-48 object-contain"
+                                  className='mt-5 w-full h-auto max-h-48 object-contain'
                                   unoptimized // ⚠️ disables Next.js image optimization
                                 />
                               )}
@@ -1597,12 +1813,12 @@ export default function C_ATP() {
                           </div>
 
                           {/* Right Column: Function & Details (w-1/2) */}
-                          <div className="w-1/2 p-4 bg-gray-50">
-                            <p className="font-semibold text-sm mb-2">
+                          <div className='w-1/2 p-4 bg-gray-50'>
+                            <p className='font-semibold text-sm mb-2'>
                               Details/Features:
                             </p>
                             <div
-                              className="whitespace-pre-wrap text-xs text-gray-700 border border-gray-200 p-2 rounded-md bg-white overflow-y-auto"
+                              className='whitespace-pre-wrap text-xs text-gray-700 border border-gray-200 p-2 rounded-md bg-white overflow-y-auto'
                               style={{ maxHeight: "200px" }}
                             >
                               {item.i_detail ||
@@ -1612,61 +1828,62 @@ export default function C_ATP() {
                         </div>
 
                         {/* Bottom Section: Pricing Details */}
-                        <div className="flex flex-col text-sm">
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600">
+                        <div className='flex flex-col text-sm'>
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-gray-50 font-medium border-r border-gray-600'>
                               Proposed Model {""} {item.proposedmodel_type}
                             </p>
-                            <p className="w-1/2 p-2 bg-gray-50">
+                            <p className='w-1/2 p-2 bg-gray-50'>
                               {item.proposedmodel || "{proposedmodel}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600'>
                               Monthly Rental/Unit
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className='w-1/2 p-2 bg-blue-200 text-white'>
                               {item.rental_unit || "{rental_unit}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600'>
                               Rental Duration
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className='w-1/2 p-2 bg-blue-200 text-white'>
                               {item.rental_scheme || "{rental_scheme}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600'>
                               Meter Reading
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className='w-1/2 p-2 bg-blue-200 text-white'>
                               {item.meter_reading || "{meter_reading}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600'>
                               Refundable Deposit
                             </p>
-                            <p className="w-1/2 p-2 bg-blue-200 text-white">
+                            <p className='w-1/2 p-2 bg-blue-200 text-white'>
                               {item.Refundable_D || "{Refundable_D}"}
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600'>
                               Delivery & installation charges
                             </p>
-                            <p className="w-1/2 p-2 bg-orange-300 text-white text-center">
+                            <p className='w-1/2 p-2 bg-orange-300 text-white text-center'>
                               Waived
                             </p>
                           </div>
-                          <div className="flex border-b border-gray-600">
-                            <p className="w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600">
+                          <div className='flex border-b border-gray-600'>
+                            <p className='w-1/2 p-2 bg-orange-300 text-white font-medium border-r border-gray-600'>
                               Delivery lead time
                             </p>
-                            <p className="w-1/2 p-2 bg-orange-300 text-white text-center">
-                              14 Working Days and subject to availability of stock upon confirmation
+                            <p className='w-1/2 p-2 bg-orange-300 text-white text-center'>
+                              14 Working Days and subject to availability of
+                              stock upon confirmation
                             </p>
                           </div>
                         </div>
@@ -1674,21 +1891,21 @@ export default function C_ATP() {
                     </div>
                     {/* Remove button */}
                     {items.length > 1 && ( // Only show remove button if there is more than 1 item
-                      <div className="text-right mt-4">
+                      <div className='text-right mt-4'>
                         <button
-                          type="button"
+                          type='button'
                           onClick={() => {
                             if (
                               confirm(
-                                "Are you sure you want to remove this item?"
+                                "Are you sure you want to remove this item?",
                               )
                             ) {
                               setItems((prev) =>
-                                prev.filter((_, i) => i !== index)
+                                prev.filter((_, i) => i !== index),
                               );
                             }
                           }}
-                          className="
+                          className='
                             px-4 py-2
                             text-sm font-semibold
                             rounded-lg
@@ -1700,7 +1917,7 @@ export default function C_ATP() {
                             hover:text-red-700
                             focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50
                             transition-all duration-200
-                        "
+                        '
                         >
                           🗑 Remove Item
                         </button>
@@ -1711,10 +1928,10 @@ export default function C_ATP() {
               ))}
               {/* Add button */}
               <tr>
-                <td colSpan={3} className="text-center py-4">
+                <td colSpan={3} className='text-center py-4'>
                   <button
                     onClick={handleAddItemWithRental}
-                    className="
+                    className='
                     // Base Styling
                     px-6 py-2
                     text-sm font-semibold
@@ -1736,7 +1953,7 @@ export default function C_ATP() {
 
                     // Focus Ring
                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50
-                "
+                '
                   >
                     ➕ Add Another Item
                   </button>
@@ -1745,35 +1962,35 @@ export default function C_ATP() {
               {/* Last Page */}
               <tr>
                 {/* Column 1: Last Page Input Fields (w-1/2) */}
-                <td className="w-1/2 p-4">
+                <td className='w-1/2 p-4'>
                   {/* Removed 'ml-10' to help centering if this is inside a w-full table */}
-                  <div className="h-182 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm font-bold">F</span>
+                  <div className='h-182 ml-10 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50'>
+                    <h3 className='text-xl font-bold text-gray-800 mb-6 flex items-center'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm font-bold'>F</span>
                       </div>
                       Last Page
                     </h3>
-                    <div className="space-y-4">
+                    <div className='space-y-4'>
                       {/* Staff Name Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Name
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={staffName}
                           onChange={(e) => setStaffName(e.target.value)}
-                          placeholder="Enter name"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder='Enter name'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                         {isLoading && (
-                          <p className="text-xs text-blue-500 mt-1">
+                          <p className='text-xs text-blue-500 mt-1'>
                             Loading staff info...
                           </p>
                         )}
                         {fetchError && (
-                          <p className="text-xs text-red-500 mt-1">
+                          <p className='text-xs text-red-500 mt-1'>
                             {fetchError}
                           </p>
                         )}
@@ -1781,40 +1998,40 @@ export default function C_ATP() {
 
                       {/* Staff Position Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Position
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={staffPosition}
                           onChange={(e) => setStaffPosition(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
 
                       {/* Staff Mobile Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Mobile
                         </label>
                         <input
-                          type="text"
+                          type='text'
                           value={staffMobile}
                           onChange={(e) => setStaffMobile(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
 
                       {/* Staff Email Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
                           Staff Email
                         </label>
                         <input
-                          type="email"
+                          type='email'
                           value={staffEmail}
                           onChange={(e) => setStaffEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                         />
                       </div>
                     </div>
@@ -1822,15 +2039,15 @@ export default function C_ATP() {
                 </td>
 
                 {/* Column 2: Live Preview (Updated to w-1/2 and shows Last Page content) */}
-                <td className="w-1/2 p-4">
-                  <div className="ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg">
-                    <h4 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-500 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-white text-sm">👁</span>
+                <td className='w-1/2 p-4'>
+                  <div className='ml-10 bg-gradient-to-br from-red-50 to-red-50 border-2 border-red-200/50 rounded-xl p-6 shadow-lg'>
+                    <h4 className='font-bold text-gray-800 mb-4 flex items-center'>
+                      <div className='w-8 h-8 bg-gradient-to-r from-red-500 to-red-500 rounded-lg flex items-center justify-center mr-3'>
+                        <span className='text-white text-sm'>👁</span>
                       </div>
                       Live Preview (Last Page)
                     </h4>
-                    <div className="bg-white border border-gray-300 p-4 rounded-lg overflow-hidden text-xs space-y-3">
+                    <div className='bg-white border border-gray-300 p-4 rounded-lg overflow-hidden text-xs space-y-3'>
                       <u>Advantage:</u>
                       <p>
                         <b>Cost Saving:</b> Lower Rental & Lower Meter Clicks,
@@ -1838,16 +2055,16 @@ export default function C_ATP() {
                       </p>
                       <p>
                         <b>Fast Service Response: </b>Our customer service and
-                        service engineers are fast response to support in order to
-                        minimize the machine downtime.{" "}
+                        service engineers are fast response to support in order
+                        to minimize the machine downtime.{" "}
                       </p>
                       <p>
                         <b>Compact Design:</b> Latest model design (Color Touch
                         screen).{" "}
                       </p>
                       <p>
-                        <b>Embedded software:</b> Able self-diagnose internal part
-                        lifespan (able to reduce machine downtime){" "}
+                        <b>Embedded software:</b> Able self-diagnose internal
+                        part lifespan (able to reduce machine downtime){" "}
                       </p>
                       <p>
                         <b>Security:</b>
@@ -1856,26 +2073,28 @@ export default function C_ATP() {
                       </p>
                       <br></br>
                       {/* Content matching the Last Page template (image_8d096c.png) */}
-                      <p className="font-bold text-red-500">
+                      <p className='font-bold text-red-500'>
                         WHY us? Why ATP Sales & Services Sdn Bhd?
                       </p>
-                      <p className="text-gray-600 italic">
+                      <p className='text-gray-600 italic'>
                         *Kindly refer to attached file for company profile*
                       </p>
 
-                      <div className="mt-2 pl-3">
-                        <p className="font-bold underline text-xs">
+                      <div className='mt-2 pl-3'>
+                        <p className='font-bold underline text-xs'>
                           ATP&apos;s Company Profile Summary:
                         </p>
 
-                        <ul className="list-disc ml-5 space-y-0.5 text-gray-700">
+                        <ul className='list-disc ml-5 space-y-0.5 text-gray-700'>
                           <li>Authorized Platinum Partner of CANON.</li>
                           <li>
-                            Main CANON products distributor in Johor, dealers buy
-                            from us too.
+                            Main CANON products distributor in Johor, dealers
+                            buy from us too.
                           </li>
                           <li>More than 10 years partnership with CANON.</li>
-                          <li>Highest Market Share Award Year 2018 &amp; 2019.</li>
+                          <li>
+                            Highest Market Share Award Year 2018 &amp; 2019.
+                          </li>
                           <li>
                             &quot;Highest Growth Award&quot; Year 2022,
                             &quot;Million Dollar Award&quot; Year 2022 and 2023.
@@ -1892,7 +2111,7 @@ export default function C_ATP() {
                         </ul>
                       </div>
 
-                      <p className="pt-4 text-sm">
+                      <p className='pt-4 text-sm'>
                         Thank you very much for your precious time considering
                         Canon Marketing as your solution business partner.
                         <br />
@@ -1903,8 +2122,8 @@ export default function C_ATP() {
                       <p>Best Regards,</p>
 
                       {/* Signature Block (matching image_8d096c.png) */}
-                      <div className="pt-2 text-[10px] space-y-0.5">
-                        <u className="font-bold">
+                      <div className='pt-2 text-[10px] space-y-0.5'>
+                        <u className='font-bold'>
                           {staffSign || "{staffsign}"}
                         </u>
                         <p>{staffPosition || "{staffposition}"}</p>
@@ -1919,7 +2138,7 @@ export default function C_ATP() {
           </table>
           <button
             onClick={handleGenerate}
-            className="
+            className='
             // Base Styling: Clean and Structured
             px-6 py-3
             text-sm font-semibold
@@ -1941,7 +2160,7 @@ export default function C_ATP() {
 
             // Focus Ring (for accessibility and clean emphasis)
             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50
-        "
+        '
           >
             Generate Proposal
           </button>{" "}

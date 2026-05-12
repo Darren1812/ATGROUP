@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
-  getImageForModelAndFunctions,
+  KMImage,
   modelSpeedMap,
   STAFF_NAMES,
   ASN_ADDRESS,
@@ -210,7 +210,7 @@ export default function ASN_29series() {
 
   const generateJSON = () => {
     const data = {
-      TemplateName: "ASN",
+      TemplateName: "KMASN",
       BeforeData: {
         companyaddress: companyaddress,
         customername: customerName,
@@ -619,7 +619,7 @@ export default function ASN_29series() {
     handleItemChange(index, "i_function", displayList.join(", "));
     handleItemChange(index, "i_detail", details);
 
-    const newImage = getImageForModelAndFunctions(currentModel.value, newSelected);
+    const newImage = KMImage(currentModel.value, newSelected);
 
     handleItemChange(index, "itemimage", newImage);
   };
@@ -1289,7 +1289,7 @@ export default function ASN_29series() {
                                 : [];
 
                               // 🟢 Compute new image based on model + functions
-                              const newImage = getImageForModelAndFunctions(formatted, currentFunctions);
+                              const newImage = KMImage(formatted, currentFunctions);
 
                               // 🟢 Update item image
                               handleItemChange(index, "itemimage", newImage);

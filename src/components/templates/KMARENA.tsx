@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
-  getImageForModelAndFunctions,
+  KMImage,
   modelSpeedMap,
   ARENASTAFF_NAMES,
   ARENA_ADDRESS,
@@ -75,6 +75,7 @@ const formatCustomDate = (
       return dateString;
   }
 };
+
 export default function ARENA() {
   const generateFileName = (request: ReturnType<typeof generateJSON>) => {
     const customerName = request.BeforeData.customername || "UnknownCustomer";
@@ -234,7 +235,7 @@ export default function ARENA() {
 
   const generateJSON = () => {
     const data = {
-      TemplateName: "ARENA",
+      TemplateName: "KMARENA",
       BeforeData: {
         companyaddress: companyaddress,
         customername: customerName,
@@ -795,7 +796,7 @@ export default function ARENA() {
     );
 
     // --- Image update ---
-    const newImage = getImageForModelAndFunctions(currentModel.value, newSelected);
+    const newImage = KMImage(currentModel.value, newSelected);
     handleItemChange(index, "itemimage", newImage);
   };
 
@@ -1451,7 +1452,7 @@ export default function ARENA() {
                                 : [];
 
                               // 🟢 Compute new image based on model + functions
-                              const newImage = getImageForModelAndFunctions(formatted, currentFunctions);
+                              const newImage = KMImage(formatted, currentFunctions);
 
                               // 🟢 Update item image
                               handleItemChange(index, "itemimage", newImage);
