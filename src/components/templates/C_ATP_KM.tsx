@@ -1695,10 +1695,6 @@ export default function C_ATP() {
                                 {/* Editable Output */}
                                 {items[index]?.Refundable_D !== undefined && (
                                   <div className='mt-2'>
-                                    <label className='block text-xs font-semibold text-gray-600 mb-1'>
-                                      Refundable Deposit Output
-                                    </label>
-
                                     <textarea
                                       value={items[index].Refundable_D}
                                       onChange={(e) =>
@@ -1825,9 +1821,9 @@ export default function C_ATP() {
                           </div>
                           <div className='flex border-b border-gray-600'>
                             <p className='w-1/2 p-2 bg-blue-200 text-white font-medium border-r border-gray-600'>
-                              Refundable Deposit
+                              Remark
                             </p>
-                            <p className='w-1/2 p-2 bg-blue-200 text-white'>
+                            <p className='w-1/2 p-2 bg-blue-200 text-white whitespace-pre-line'>
                               {item.Refundable_D || "{Refundable_D}"}
                             </p>
                           </div>
