@@ -1072,7 +1072,7 @@ export default function C_ATP() {
                         <p className='flex justify-left'>
                           <span className='font-bold'>Our Ref</span>
                           <span className='ml-2 text-blue-700'>
-                            {formattedDates.date2 || "{date2}"}/001
+                            {formattedDates.date2 || "{date2}"}/{refNumber}
                           </span>
                         </p>
                         <p className='flex justify-left'>
@@ -1098,7 +1098,7 @@ export default function C_ATP() {
 
                       <p className='font-bold pt-2'>
                         ACQUISITION OF KONICA MINOLTA DIGITAL OFFICE SOLUTION -
-                        KONICA MINOLTA Bizhub SERIES
+                        KONICA MINOLTA BIZHUB SERIES
                       </p>
 
                       {/* **FIX APPLIED HERE: Split the problematic nested <p> content** */}
@@ -1117,7 +1117,7 @@ export default function C_ATP() {
 
                       {/* This paragraph was previously nested. It now stands alone. */}
                       <p className='pt-4 text-gray-700'>
-                        With the Konica Minolta Bizhub model, we have realized
+                        With the Konica Minolta bizhub model, we have realized
                         an ambitious goal. Now small departments and workgroups
                         can enjoy stunningly simplified and productive
                         workflow... all in a compact footprint.
@@ -2044,12 +2044,11 @@ export default function C_ATP() {
                         </p>
 
                         <ul className='list-disc ml-5 space-y-0.5 text-gray-700'>
-                          <li>Authorized Platinum Partner of CANON.</li>
+                          <li>Authorized Platinum Partner of KONICA MINOLTA.</li>
                           <li>
-                            Main CANON products distributor in Johor, dealers
+                            Main KONICA MINOLTA products distributor in Johor, dealers
                             buy from us too.
                           </li>
-                          <li>More than 10 years partnership with CANON.</li>
                           <li>
                             Highest Market Share Award Year 2018 &amp; 2019.
                           </li>
@@ -2058,10 +2057,10 @@ export default function C_ATP() {
                             &quot;Million Dollar Award&quot; Year 2022 and 2023.
                           </li>
                           <li>
-                            Trusted Partner by CANON, we help to serve Banks and
+                            Trusted Partner by KONICA MINOLTA, we help to serve Banks and
                             Corporates across Johor.
                           </li>
-                          <li>Our Technical team is trained by CANON.</li>
+                          <li>Our Technical team is trained by Konica Minolta.</li>
                           <li>
                             We have been taking care of many Major accounts with
                             high standard of service.
@@ -2071,7 +2070,7 @@ export default function C_ATP() {
 
                       <p className='pt-4 text-sm'>
                         Thank you very much for your precious time considering
-                        Canon Marketing as your solution business partner.
+                        Konica Minolta Marketing as your solution business partner.
                         <br />
                         Should you need clarification, please do not hesitate to
                         call me at the undersigned.

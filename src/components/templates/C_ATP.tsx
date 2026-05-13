@@ -1102,7 +1102,7 @@ export default function C_ATP() {
                         <p className='flex justify-left'>
                           <span className='font-bold'>Our Ref</span>
                           <span className='ml-2 text-blue-700'>
-                            {formattedDates.date2 || "{date2}"}/001
+                            {formattedDates.date2 || "{date2}"}/{refNumber}
                           </span>
                         </p>
                         <p className='flex justify-left'>

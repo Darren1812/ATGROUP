@@ -36,14 +36,13 @@ const TEMPLATE_MAP: Record<string, React.ComponentType> = {
 const allTemplates = [
 
   { id: "C_ATP", brand: "Canon", name: "ATP Commercial", desc: "ATP COMMERCIAL PROPOSAL", icon: <FileText size={20} /> },
-  { id: "G_ATP", brand: "Canon", name: "Government ATP", desc: "NOT AVAILABLE NOW", icon: <FileText size={20} /> },
   { id: "ASN_29series", brand: "Canon", name: "ASN", desc: "ASN PROPOSAL ", icon: <FileText size={20} /> },
   { id: "ARENA", brand: "Canon", name: "ARENA", desc: "ARENA PROPOSAL", icon: <FileText size={20} /> },
   { id: "SKY", brand: "Canon", name: "SKY", desc: "SKY PROPOSAL", icon: <FileText size={20} /> },
   { id: "C_ATP_KM", brand: "KM", name: "ATP Commercial", desc: "ATP COMMERCIAL PROPOSAL", icon: <FileText size={20} /> },
   { id: "ASN_KM", brand: "KM", name: "ASN", desc: "ASN PROPOSAL", icon: <FileText size={20} /> },
-  { id: "SKY_KM", brand: "KM", name: "SKY", desc: "SKY PROPOSAL", icon: <FileText size={20} /> },
   { id: "ARENA_KM", brand: "KM", name: "ARENA", desc: "ARENA PROPOSAL", icon: <FileText size={20} /> },
+  { id: "SKY_KM", brand: "KM", name: "SKY", desc: "SKY PROPOSAL", icon: <FileText size={20} /> },
 ];
 
 
