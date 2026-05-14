@@ -434,64 +434,6 @@ export const ALL_MODEL_LIST = [
         name: "C751i",
         fullName: "Color Multi-Function Printer Konica Minolta bizhub C751i"
     },
-]
-export const KM_MODEL_LIST = [
-    {
-        name: "301i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 301i"
-    },
-    {
-        name: "361i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 361i"
-    },
-    {
-        name: "451i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 451i"
-    },
-    {
-        name: "551i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 551i"
-    },
-    {
-        name: "651i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 651i"
-    },
-    {
-        name: "751i",
-        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 751i"
-    },
-    {
-        name: "950i",
-        fullName: "Mono Multi-Function Printer Konica Minolta AccurioPrint 950i"
-    },
-    {
-        name: "C251i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C251i"
-    },
-    {
-        name: "C301i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C301i"
-    },
-    {
-        name: "C361i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C361i"
-    },
-    {
-        name: "C451i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C451i"
-    },
-    {
-        name: "C551i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C551i"
-    },
-    {
-        name: "C651i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C651i"
-    },
-    {
-        name: "C751i",
-        fullName: "Color Multi-Function Printer Konica Minolta bizhub C751i"
-    },
     {
         name: "2925i",
         fullName: "Canon Mono Multi-Function Printer imageRUNNER 2925i",
@@ -656,6 +598,65 @@ export const KM_MODEL_LIST = [
         name: "C3530i",
         fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C3530i"
     },
+]
+export const KM_MODEL_LIST = [
+    {
+        name: "301i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 301i"
+    },
+    {
+        name: "361i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 361i"
+    },
+    {
+        name: "451i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 451i"
+    },
+    {
+        name: "551i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 551i"
+    },
+    {
+        name: "651i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 651i"
+    },
+    {
+        name: "751i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 751i"
+    },
+    {
+        name: "950i",
+        fullName: "Mono Multi-Function Printer Konica Minolta AccurioPrint 950i"
+    },
+    {
+        name: "C251i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C251i"
+    },
+    {
+        name: "C301i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C301i"
+    },
+    {
+        name: "C361i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C361i"
+    },
+    {
+        name: "C451i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C451i"
+    },
+    {
+        name: "C551i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C551i"
+    },
+    {
+        name: "C651i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C651i"
+    },
+    {
+        name: "C751i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C751i"
+    },
+    
 ]
 export const MODEL_LIST = [
     {
