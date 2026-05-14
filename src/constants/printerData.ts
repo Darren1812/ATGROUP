@@ -376,6 +376,65 @@ export const ARENA_ADDRESS = [
             "ARENA STABIL SDN BHD (795045-D)\nLOT 1.41, KB CYBER PLAZA, KB MALL,\n15000 KOTA BAHRU,\nKELANTAN",
     },
 ];
+
+export const ALL_MODEL_LIST = [
+    {
+        name: "301i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 301i"
+    },
+    {
+        name: "361i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 361i"
+    },
+    {
+        name: "451i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 451i"
+    },
+    {
+        name: "551i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 551i"
+    },
+    {
+        name: "651i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 651i"
+    },
+    {
+        name: "751i",
+        fullName: "Mono Multi-Function Printer Konica Minolta bizhub 751i"
+    },
+    {
+        name: "950i",
+        fullName: "Mono Multi-Function Printer Konica Minolta AccurioPrint 950i"
+    },
+    {
+        name: "C251i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C251i"
+    },
+    {
+        name: "C301i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C301i"
+    },
+    {
+        name: "C361i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C361i"
+    },
+    {
+        name: "C451i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C451i"
+    },
+    {
+        name: "C551i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C551i"
+    },
+    {
+        name: "C651i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C651i"
+    },
+    {
+        name: "C751i",
+        fullName: "Color Multi-Function Printer Konica Minolta bizhub C751i"
+    },
+]
 export const KM_MODEL_LIST = [
     {
         name: "301i",
@@ -432,6 +491,170 @@ export const KM_MODEL_LIST = [
     {
         name: "C751i",
         fullName: "Color Multi-Function Printer Konica Minolta bizhub C751i"
+    },
+    {
+        name: "2925i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER 2925i",
+    },
+    {
+        name: "2930i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER 2930i",
+    },
+    {
+        name: "2935i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER 2935i",
+    },
+    {
+        name: "2945i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER 2945i",
+    },
+    {
+        name: "4925i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 4925i",
+    },
+    {
+        name: "4935i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 4935i",
+    },
+    {
+        name: "4945i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 4945i",
+    },
+    {
+        name: "6855i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 6855i",
+    },
+    {
+        name: "6860i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 6860i"
+    },
+    {
+        name: "6870i",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 6870i"
+    },
+    {
+        name: "C5840i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C5840i",
+    },
+    {
+        name: "C5850i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C5850i",
+    },
+    {
+        name: "C5860i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C5860i"
+    },
+    {
+        name: "C5870i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C5870i"
+    },
+    {
+        name: "8986",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 8986",
+    },
+    {
+        name: "8995",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 8995"
+    },
+    {
+        name: "8905",
+        fullName: "Canon Mono Multi-Function Printer imageRUNNER ADVANCE DX 8905"
+    },
+    {
+        name: "C3935i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C3935i"
+    },
+    {
+        name: "C3930i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C3930i",
+    },
+    {
+        name: "C3926i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C3926i"
+    },
+    {
+        name: "C3922i",
+        fullName: "Canon Color Multi-Function Printer imageRUNNER ADVANCE DX C3922i"
+    },
+    {
+        name: "C265",
+        fullName: "Canon Color Multi-Function Printer imagePRESS C265"
+    },
+    {
+        name: "C270",
+        fullName: "Canon Color Multi-Function Printer imagePRESS C270"
+    },
+    {
+        name: "C5140",
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5140"
+    },
+    {
+        name: "C5150",
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5150"
+    },
+    {
+        name: "C5160",
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5160"
+    },
+    {
+        name: "C5170",
+        fullName: "Canon Color Multi-Function Printer Canon imageFORCE C5170"
+    },
+    {
+        name: "6155",
+        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE 6155"
+    },
+    {
+        name: "6160",
+        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE 6160"
+    },
+    {
+        name: "6170",
+        fullName: "Canon Mono Multi-Function Printer Canon imageFORCE 6170"
+    },
+    {
+        name: "1643i",
+        fullName: "Canon Mono Multi-Function Printer Canon imageRUNNER 1643i II"
+    },
+    {
+        name: "1643iF",
+        fullName: "Canon Mono Multi-Function Printer Canon imageRUNNER 1643iF II"
+    },
+    {
+        name: "2224",
+        fullName: "Canon Mono Multi-Function Printer Canon imageRUNNER 2224"
+    },
+    {
+        name: "2224N",
+        fullName: "Canon Mono Multi-Function Printer Canon imageRUNNER 2224N"
+    },
+    {
+        name: "C5535i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C5535i"
+    },
+    {
+        name: "C5540i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C5540i"
+    },
+    {
+        name: "C5550i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C5550i"
+    },
+    {
+        name: "C5560i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C5535i"
+    },
+    {
+        name: "C3520i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C3520i"
+    },
+    {
+        name: "C3525i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C3525i"
+    },
+    {
+        name: "C3530i",
+        fullName: "Canon Color Multi-Function Printer Canon imageRUNNER ADVANCE C3530i"
     },
 ]
 export const MODEL_LIST = [
