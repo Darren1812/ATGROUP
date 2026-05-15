@@ -44,7 +44,10 @@ interface User {
   status: boolean;
 }
 
-const DEPARTMENT_COLORS: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
+const DEPARTMENT_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string; gradient: string }
+> = {
   Sales: {
     bg: "bg-blue-50",
     text: "text-blue-700",
@@ -122,7 +125,7 @@ export default function OnlineUsersTable() {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`,
       );
       if (!response.ok) throw new Error("Failed to fetch users");
 
@@ -159,8 +162,7 @@ export default function OnlineUsersTable() {
         user.department?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDepartment =
-        selectedDepartment === "all" ||
-        user.department === selectedDepartment;
+        selectedDepartment === "all" || user.department === selectedDepartment;
 
       return matchesSearch && matchesDepartment;
     });
@@ -196,7 +198,7 @@ export default function OnlineUsersTable() {
             ...newUser,
             status: false,
           }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -238,7 +240,7 @@ export default function OnlineUsersTable() {
       {
         method: "DELETE",
         credentials: "include",
-      }
+      },
     );
 
     if (!res.ok) {
@@ -268,7 +270,7 @@ export default function OnlineUsersTable() {
           mobile: selectedUser.mobile,
           status: selectedUser.status,
         }),
-      }
+      },
     );
 
     if (!res.ok) {
@@ -291,26 +293,26 @@ export default function OnlineUsersTable() {
 
   return (
     <div>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50">
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50'>
         {/* Premium Header */}
-        <div className="bg-white border-b border-slate-200/60 backdrop-blur-sm sticky top-0 z-40 shadow-sm">
-          <div className="max-w-7xl mx-auto px-8 py-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className='bg-white border-b border-slate-200/60 backdrop-blur-sm sticky top-0 z-40 shadow-sm'>
+          <div className='max-w-7xl mx-auto px-8 py-6'>
+            <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-6'>
               {/* Title Section */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+              <div className='flex items-center gap-4'>
+                <div className='w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 relative overflow-hidden'>
+                  <div className='absolute inset-0 bg-white/10 backdrop-blur-sm'></div>
                   <Users
-                    className="text-white relative z-10"
+                    className='text-white relative z-10'
                     size={28}
                     strokeWidth={2.5}
                   />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+                  <h1 className='text-3xl font-black text-slate-800 tracking-tight'>
                     User Management
                   </h1>
-                  <p className="text-slate-500 text-sm font-medium mt-1">
+                  <p className='text-slate-500 text-sm font-medium mt-1'>
                     {users.length} total users across{" "}
                     {Object.keys(departmentStats).length} departments
                   </p>
@@ -318,24 +320,24 @@ export default function OnlineUsersTable() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className='flex items-center gap-3'>
                 <button
                   onClick={fetchUsers}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 font-semibold"
+                  className='flex items-center gap-2 px-4 py-2.5 text-sm bg-white border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 font-semibold'
                 >
                   <RefreshCw
                     size={16}
                     className={loading ? "animate-spin" : ""}
                   />
-                  <span className="hidden sm:inline">
+                  <span className='hidden sm:inline'>
                     {loading ? "Loading..." : "Refresh"}
                   </span>
                 </button>
 
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-200 font-semibold"
+                  className='flex items-center gap-2 px-5 py-2.5 text-sm bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-200 font-semibold'
                 >
                   <UserPlus size={16} strokeWidth={2.5} />
                   <span>Add User</span>
@@ -344,19 +346,19 @@ export default function OnlineUsersTable() {
             </div>
 
             {/* Search and Filters */}
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <div className='mt-6 flex flex-col sm:flex-row gap-3'>
               {/* Search Bar */}
-              <div className="relative flex-1">
+              <div className='relative flex-1'>
                 <Search
                   size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400'
                 />
                 <input
-                  type="text"
-                  placeholder="Search by name, email, department..."
+                  type='text'
+                  placeholder='Search by name, email, department...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
+                  className='w-full pl-11 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
                 />
               </div>
 
@@ -378,7 +380,7 @@ export default function OnlineUsersTable() {
               </button>
 
               {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+              <div className='flex items-center gap-1 p-1 bg-slate-100 rounded-xl'>
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-2.5 rounded-lg transition-all ${
@@ -404,11 +406,11 @@ export default function OnlineUsersTable() {
 
             {/* Department Filters */}
             {showFilters && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-xl border border-slate-200">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              <div className='mt-4 p-4 bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-xl border border-slate-200'>
+                <p className='text-xs font-bold text-slate-500 uppercase tracking-wider mb-3'>
                   Filter by Department
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className='flex flex-wrap gap-2'>
                   <button
                     onClick={() => setSelectedDepartment("all")}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -442,29 +444,29 @@ export default function OnlineUsersTable() {
         </div>
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className='max-w-7xl mx-auto px-8 py-8'>
           {loading && users.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-20 text-center">
+            <div className='bg-white rounded-2xl shadow-sm border border-slate-200 p-20 text-center'>
               <RefreshCw
-                className="animate-spin mx-auto text-indigo-600 mb-4"
+                className='animate-spin mx-auto text-indigo-600 mb-4'
                 size={48}
               />
-              <p className="text-slate-600 font-semibold text-lg">
+              <p className='text-slate-600 font-semibold text-lg'>
                 Loading users...
               </p>
-              <p className="text-slate-400 text-sm mt-2">
+              <p className='text-slate-400 text-sm mt-2'>
                 Please wait while we fetch the data
               </p>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-20 text-center">
-              <div className="inline-flex p-6 rounded-full bg-slate-100 mb-4">
-                <Users className="text-slate-300" size={48} />
+            <div className='bg-white rounded-2xl shadow-sm border border-slate-200 p-20 text-center'>
+              <div className='inline-flex p-6 rounded-full bg-slate-100 mb-4'>
+                <Users className='text-slate-300' size={48} />
               </div>
-              <h3 className="text-xl font-bold text-slate-600 mb-2">
+              <h3 className='text-xl font-bold text-slate-600 mb-2'>
                 No users found
               </h3>
-              <p className="text-slate-400 text-sm">
+              <p className='text-slate-400 text-sm'>
                 {searchTerm || selectedDepartment !== "all"
                   ? "Try adjusting your filters"
                   : "Add your first user to get started"}
@@ -472,7 +474,7 @@ export default function OnlineUsersTable() {
             </div>
           ) : viewMode === "grid" ? (
             /* Grid View */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
               {filteredUsers.map((user) => {
                 const deptColors = getDepartmentColor(user.department);
                 const roleBadge = getRoleBadge(user.role);
@@ -481,24 +483,24 @@ export default function OnlineUsersTable() {
                 return (
                   <div
                     key={user.id}
-                    className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 hover:border-indigo-200 hover:-translate-y-1"
+                    className='group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 hover:border-indigo-200 hover:-translate-y-1'
                   >
                     {/* Gradient Header */}
                     <div
                       className={`h-24 bg-gradient-to-r ${deptColors.gradient} relative overflow-hidden`}
                     >
-                      <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                      <div className="absolute right-4 top-4">
-                        <button className="p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-all">
-                          <MoreVertical size={16} className="text-white" />
+                      <div className='absolute inset-0 bg-white/10 backdrop-blur-sm'></div>
+                      <div className='absolute right-4 top-4'>
+                        <button className='p-2 bg-white/20 hover:bg-white/30 rounded-lg backdrop-blur-sm transition-all'>
+                          <MoreVertical size={16} className='text-white' />
                         </button>
                       </div>
                     </div>
 
                     {/* User Info */}
-                    <div className="p-6 -mt-12 relative">
+                    <div className='p-6 -mt-12 relative'>
                       {/* Avatar */}
-                      <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg border-4 border-white mb-4">
+                      <div className='w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-lg border-4 border-white mb-4'>
                         <span
                           className={`bg-gradient-to-br ${deptColors.gradient} bg-clip-text text-transparent`}
                         >
@@ -507,30 +509,30 @@ export default function OnlineUsersTable() {
                       </div>
 
                       {/* Name and Status */}
-                      <div className="mb-4">
-                        <div className="flex items-start justify-between mb-1">
-                          <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                      <div className='mb-4'>
+                        <div className='flex items-start justify-between mb-1'>
+                          <h3 className='text-lg font-bold text-slate-900 leading-tight'>
                             {user.name}
                           </h3>
                           {user.status ? (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold">
-                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span className='flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold'>
+                              <span className='w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse'></span>
                               Active
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-bold">
-                              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+                            <span className='flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-bold'>
+                              <span className='w-1.5 h-1.5 bg-slate-400 rounded-full'></span>
                               Inactive
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-500 font-medium">
+                        <p className='text-sm text-slate-500 font-medium'>
                           {user.position || "No position"}
                         </p>
                       </div>
 
                       {/* Badges */}
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className='flex flex-wrap gap-2 mb-4'>
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${deptColors.bg} ${deptColors.text} rounded-lg text-xs font-bold border ${deptColors.border}`}
                         >
@@ -546,36 +548,36 @@ export default function OnlineUsersTable() {
                       </div>
 
                       {/* Contact Info */}
-                      <div className="space-y-2 mb-4 pb-4 border-b border-slate-100">
+                      <div className='space-y-2 mb-4 pb-4 border-b border-slate-100'>
                         {user.email && (
-                          <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Mail size={14} className="text-slate-400" />
-                            <span className="truncate">{user.email}</span>
+                          <div className='flex items-center gap-2 text-xs text-slate-600'>
+                            <Mail size={14} className='text-slate-400' />
+                            <span className='truncate'>{user.email}</span>
                           </div>
                         )}
                         {user.mobile && (
-                          <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Phone size={14} className="text-slate-400" />
+                          <div className='flex items-center gap-2 text-xs text-slate-600'>
+                            <Phone size={14} className='text-slate-400' />
                             <span>{user.mobile}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className='flex gap-2'>
                         <button
                           onClick={() => {
                             setSelectedUser(user);
                             setShowEditModal(true);
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-all font-semibold text-sm border border-indigo-100"
+                          className='flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-all font-semibold text-sm border border-indigo-100'
                         >
                           <Edit2 size={14} />
                           Edit
                         </button>
                         <button
                           onClick={() => deleteUser(user.id)}
-                          className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all border border-red-100"
+                          className='px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all border border-red-100'
                         >
                           <Trash2 size={14} />
                         </button>
@@ -587,29 +589,29 @@ export default function OnlineUsersTable() {
             </div>
           ) : (
             /* List View */
-            <div className="bg-white shadow-sm rounded-2xl overflow-hidden border border-slate-200">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-gradient-to-r from-slate-50 to-indigo-50/30">
+            <div className='bg-white shadow-sm rounded-2xl overflow-hidden border border-slate-200'>
+              <div className='overflow-x-auto'>
+                <table className='min-w-full divide-y divide-slate-200'>
+                  <thead className='bg-gradient-to-r from-slate-50 to-indigo-50/30'>
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
+                      <th className='px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider'>
                         User
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
+                      <th className='px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider'>
                         Department
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
+                      <th className='px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider'>
                         Role
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider">
+                      <th className='px-6 py-4 text-left text-xs font-black text-slate-600 uppercase tracking-wider'>
                         Contact
                       </th>
-                      <th className="px-6 py-4 text-right text-xs font-black text-slate-600 uppercase tracking-wider">
+                      <th className='px-6 py-4 text-right text-xs font-black text-slate-600 uppercase tracking-wider'>
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-slate-100">
+                  <tbody className='bg-white divide-y divide-slate-100'>
                     {filteredUsers.map((user) => {
                       const deptColors = getDepartmentColor(user.department);
                       const roleBadge = getRoleBadge(user.role);
@@ -618,26 +620,26 @@ export default function OnlineUsersTable() {
                       return (
                         <tr
                           key={user.id}
-                          className="hover:bg-slate-50/70 transition-colors group"
+                          className='hover:bg-slate-50/70 transition-colors group'
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
+                          <td className='px-6 py-4 whitespace-nowrap'>
+                            <div className='flex items-center gap-3'>
                               <div
                                 className={`w-10 h-10 bg-gradient-to-br ${deptColors.gradient} rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md`}
                               >
                                 {user.name.charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p className="text-sm font-bold text-slate-900">
+                                <p className='text-sm font-bold text-slate-900'>
                                   {user.name}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className='text-xs text-slate-500'>
                                   {user.position || "No position"}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className='px-6 py-4 whitespace-nowrap'>
                             <span
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${deptColors.bg} ${deptColors.text} rounded-lg text-xs font-bold border ${deptColors.border}`}
                             >
@@ -645,7 +647,7 @@ export default function OnlineUsersTable() {
                               {user.department || "N/A"}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className='px-6 py-4 whitespace-nowrap'>
                             <span
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${roleBadge.color}`}
                             >
@@ -653,38 +655,38 @@ export default function OnlineUsersTable() {
                               {user.role || "N/A"}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="space-y-1">
+                          <td className='px-6 py-4'>
+                            <div className='space-y-1'>
                               {user.email && (
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                  <Mail size={12} className="text-slate-400" />
-                                  <span className="truncate max-w-[200px]">
+                                <div className='flex items-center gap-2 text-xs text-slate-600'>
+                                  <Mail size={12} className='text-slate-400' />
+                                  <span className='truncate max-w-[200px]'>
                                     {user.email}
                                   </span>
                                 </div>
                               )}
                               {user.mobile && (
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                  <Phone size={12} className="text-slate-400" />
+                                <div className='flex items-center gap-2 text-xs text-slate-600'>
+                                  <Phone size={12} className='text-slate-400' />
                                   <span>{user.mobile}</span>
                                 </div>
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <td className='px-6 py-4 whitespace-nowrap text-right'>
+                            <div className='flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>
                               <button
                                 onClick={() => {
                                   setSelectedUser(user);
                                   setShowEditModal(true);
                                 }}
-                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                className='p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all'
                               >
                                 <Edit2 size={16} />
                               </button>
                               <button
                                 onClick={() => deleteUser(user.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                className='p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all'
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -703,42 +705,42 @@ export default function OnlineUsersTable() {
 
       {/* Add User Modal - Enhanced */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden">
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-hidden'>
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <UserPlus size={20} className="text-white" />
+            <div className='bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 flex items-center justify-between'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center'>
+                  <UserPlus size={20} className='text-white' />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-white">
+                  <h2 className='text-xl font-black text-white'>
                     Add New User
                   </h2>
-                  <p className="text-indigo-100 text-sm">
+                  <p className='text-indigo-100 text-sm'>
                     Create a new user account
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className='p-2 hover:bg-white/20 rounded-lg transition-colors'
               >
-                <X size={20} className="text-white" />
+                <X size={20} className='text-white' />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className='p-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 {/* Full Name */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
+                    Full Name <span className='text-red-500'>*</span>
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="John Doe"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='John Doe'
                     value={newUser.name}
                     onChange={(e) =>
                       setNewUser({ ...newUser, name: e.target.value })
@@ -748,12 +750,12 @@ export default function OnlineUsersTable() {
 
                 {/* Display Name */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Display Name
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="Johnny"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='Johnny'
                     value={newUser.name_use}
                     onChange={(e) =>
                       setNewUser({ ...newUser, name_use: e.target.value })
@@ -763,13 +765,13 @@ export default function OnlineUsersTable() {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Password <span className="text-red-500">*</span>
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
+                    Password <span className='text-red-500'>*</span>
                   </label>
                   <input
-                    type="password"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="••••••••"
+                    type='password'
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='••••••••'
                     value={newUser.password}
                     onChange={(e) =>
                       setNewUser({ ...newUser, password: e.target.value })
@@ -779,13 +781,13 @@ export default function OnlineUsersTable() {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Email
                   </label>
                   <input
-                    type="email"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="john@company.com"
+                    type='email'
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='john@company.com'
                     value={newUser.email}
                     onChange={(e) =>
                       setNewUser({ ...newUser, email: e.target.value })
@@ -795,53 +797,53 @@ export default function OnlineUsersTable() {
 
                 {/* Department */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Department
                   </label>
                   <select
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none bg-white cursor-pointer"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none bg-white cursor-pointer'
                     value={newUser.department}
                     onChange={(e) =>
                       setNewUser({ ...newUser, department: e.target.value })
                     }
                   >
-                    <option value="">Select Department</option>
-                    <option value="Sales">Sales</option>
-                    <option value="IT">IT</option>
-                    <option value="HR">HR</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Operations">Operations</option>
+                    <option value=''>Select Department</option>
+                    <option value='Sales'>Sales</option>
+                    <option value='IT'>IT</option>
+                    <option value='HR'>HR</option>
+                    <option value='Finance'>Finance</option>
+                    <option value='Marketing'>Marketing</option>
+                    <option value='Operations'>Operations</option>
                   </select>
                 </div>
 
                 {/* Role */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Role
                   </label>
                   <select
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none bg-white cursor-pointer"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none bg-white cursor-pointer'
                     value={newUser.role}
                     onChange={(e) =>
                       setNewUser({ ...newUser, role: e.target.value })
                     }
                   >
-                    <option value="">Select Role</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="User">User</option>
+                    <option value=''>Select Role</option>
+                    <option value='Admin'>Admin</option>
+                    <option value='Manager'>Manager</option>
+                    <option value='User'>User</option>
                   </select>
                 </div>
 
                 {/* Position */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Position
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="Senior Manager"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='Senior Manager'
                     value={newUser.position}
                     onChange={(e) =>
                       setNewUser({ ...newUser, position: e.target.value })
@@ -851,12 +853,12 @@ export default function OnlineUsersTable() {
 
                 {/* Mobile */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Mobile
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="+60 12-345 6789"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='+60 12-345 6789'
                     value={newUser.mobile}
                     onChange={(e) =>
                       setNewUser({ ...newUser, mobile: e.target.value })
@@ -866,12 +868,12 @@ export default function OnlineUsersTable() {
 
                 {/* Date of Birth */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Date of Birth
                   </label>
                   <input
-                    type="date"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
+                    type='date'
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
                     value={newUser.bod}
                     onChange={(e) =>
                       setNewUser({ ...newUser, bod: e.target.value })
@@ -881,12 +883,12 @@ export default function OnlineUsersTable() {
 
                 {/* Approval Authority */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Approval
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium"
-                    placeholder="Approval"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
+                    placeholder='Approval'
                     value={newUser.approval}
                     onChange={(e) =>
                       setNewUser({ ...newUser, approval: e.target.value })
@@ -897,16 +899,16 @@ export default function OnlineUsersTable() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex gap-3 justify-end p-6 border-t-2 border-slate-100 bg-slate-50">
+            <div className='flex gap-3 justify-end p-6 border-t-2 border-slate-100 bg-slate-50'>
               <button
-                className="px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-100 transition-all font-bold border-2 border-slate-200"
+                className='px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-100 transition-all font-bold border-2 border-slate-200'
                 onClick={() => setShowAddModal(false)}
               >
                 Cancel
               </button>
               <button
                 onClick={addUser}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all font-bold shadow-lg shadow-indigo-200"
+                className='flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all font-bold shadow-lg shadow-indigo-200'
               >
                 <UserPlus size={18} />
                 Create User
@@ -918,38 +920,38 @@ export default function OnlineUsersTable() {
 
       {/* Edit User Modal - Similar enhancement */}
       {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-hidden">
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-hidden'>
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Edit2 size={20} className="text-white" />
+            <div className='bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center'>
+                  <Edit2 size={20} className='text-white' />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-white">Edit User</h2>
-                  <p className="text-blue-100 text-sm">
+                  <h2 className='text-xl font-black text-white'>Edit User</h2>
+                  <p className='text-blue-100 text-sm'>
                     Update user information
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className='p-2 hover:bg-white/20 rounded-lg transition-colors'
               >
-                <X size={20} className="text-white" />
+                <X size={20} className='text-white' />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className='p-6 space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Name
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser.name ?? ""}
                     onChange={(e) =>
                       setSelectedUser({ ...selectedUser, name: e.target.value })
@@ -958,11 +960,11 @@ export default function OnlineUsersTable() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Email
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser.email ?? ""}
                     onChange={(e) =>
                       setSelectedUser({
@@ -974,11 +976,14 @@ export default function OnlineUsersTable() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Department
                   </label>
-                  <select
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium appearance-none bg-white"
+
+                  <input
+                    type='text'
+                    placeholder='Enter Department'
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser.department ?? ""}
                     onChange={(e) =>
                       setSelectedUser({
@@ -986,41 +991,32 @@ export default function OnlineUsersTable() {
                         department: e.target.value,
                       })
                     }
-                  >
-                    <option value="">Select Department</option>
-                    <option value="Sales">Sales</option>
-                    <option value="IT">IT</option>
-                    <option value="HR">HR</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Operations">Operations</option>
-                  </select>
+                  />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Role
                   </label>
                   <select
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium appearance-none bg-white"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium appearance-none bg-white'
                     value={selectedUser.role ?? ""}
                     onChange={(e) =>
                       setSelectedUser({ ...selectedUser, role: e.target.value })
                     }
                   >
-                    <option value="">Select Role</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="User">User</option>
+                    <option value=''>Select Role</option>
+                    <option value='Admin'>Admin</option>
+                    <option value='Manager'>Manager</option>
+                    <option value='User'>User</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Position
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser.position ?? ""}
                     onChange={(e) =>
                       setSelectedUser({
@@ -1032,11 +1028,11 @@ export default function OnlineUsersTable() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                  <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Mobile
                   </label>
                   <input
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium"
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser.mobile ?? ""}
                     onChange={(e) =>
                       setSelectedUser({
@@ -1050,15 +1046,15 @@ export default function OnlineUsersTable() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex gap-3 justify-end p-6 border-t-2 border-slate-100 bg-slate-50">
+            <div className='flex gap-3 justify-end p-6 border-t-2 border-slate-100 bg-slate-50'>
               <button
-                className="px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-100 transition-all font-bold border-2 border-slate-200"
+                className='px-6 py-3 bg-white text-slate-700 rounded-xl hover:bg-slate-100 transition-all font-bold border-2 border-slate-200'
                 onClick={() => setShowEditModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-bold shadow-lg shadow-blue-200"
+                className='flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-bold shadow-lg shadow-blue-200'
                 onClick={updateUser}
               >
                 <Save size={18} />
