@@ -800,21 +800,21 @@ export default function OnlineUsersTable() {
                   <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Department
                   </label>
-                  <select
-                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none bg-white cursor-pointer'
-                    value={newUser.department}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, department: e.target.value })
-                    }
-                  >
-                    <option value=''>Select Department</option>
-                    <option value='Sales'>Sales</option>
-                    <option value='IT'>IT</option>
-                    <option value='HR'>HR</option>
-                    <option value='Finance'>Finance</option>
-                    <option value='Marketing'>Marketing</option>
-                    <option value='Operations'>Operations</option>
-                  </select>
+
+                  <input
+                    type='text'
+                    placeholder='Enter Department'
+                    className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
+                    value={selectedUser?.department ?? ""}
+                    onChange={(e) => {
+                      if (!selectedUser) return;
+
+                      setSelectedUser({
+                        ...selectedUser,
+                        department: e.target.value,
+                      });
+                    }}
+                  />
                 </div>
 
                 {/* Role */}
@@ -984,13 +984,15 @@ export default function OnlineUsersTable() {
                     type='text'
                     placeholder='Enter Department'
                     className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
-                    value={selectedUser.department ?? ""}
-                    onChange={(e) =>
+                    value={selectedUser?.department ?? ""}
+                    onChange={(e) => {
+                      if (!selectedUser) return;
+
                       setSelectedUser({
                         ...selectedUser,
                         department: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                   />
                 </div>
                 <div>
