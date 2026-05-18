@@ -377,9 +377,7 @@ export default function LogisticsPage() {
         ...task,
         createdBy: user?.nameUse || "Unknown",
         // Force the date to a UTC ISO string here!
-        scheduledTime: task.scheduledTime
-          ? new Date(task.scheduledTime).toISOString()
-          : null,
+        scheduledTime: task.scheduledTime || null,
       }));
 
       const res = await fetch(API, {
