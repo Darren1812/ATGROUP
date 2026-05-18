@@ -1149,56 +1149,27 @@ export default function LogisticsPage() {
           {/* Row 2: filter dropdowns (collapsible) */}
           {showFilters && (
             <div className='px-5 pb-5 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {/* From */}
+              {/* OrderNumber */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
-                  <Building size={10} /> From
+                  <Building size={10} /> Order Number
                 </label>
                 <div className='relative'>
                   <input
                     type='text'
-                    value={filterFrom}
-                    onChange={(e) => setFilterFrom(e.target.value)}
-                    placeholder='Search From...'
+                    value={filterorderNumber}
+                    onChange={(e) => setFilterorderNumber(e.target.value)}
+                    placeholder='Search Order Number...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
                       ${
-                        filterCompanyName
+                        filterorderNumber
                           ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
                           : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
                       }`}
                   />
-                  {filterFrom && (
+                  {filterorderNumber && (
                     <button
-                      onClick={() => setFilterFrom("")}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Company Name */}
-              <div className='flex flex-col gap-1.5'>
-                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
-                  <Building size={10} /> Company Name
-                </label>
-                <div className='relative'>
-                  <input
-                    type='text'
-                    value={filterCompanyName}
-                    onChange={(e) => setFilterCompanyName(e.target.value)}
-                    placeholder='Search company...'
-                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${
-                        filterCompanyName
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
-                  />
-                  {filterCompanyName && (
-                    <button
-                      onClick={() => setFilterCompanyName("")}
+                      onClick={() => setFilterorderNumber("")}
                       className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
                     >
                       <X size={13} />
@@ -1234,27 +1205,27 @@ export default function LogisticsPage() {
                   )}
                 </div>
               </div>
-              {/* OrderNumber */}
+              {/* From */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
-                  <Building size={10} /> Order Number
+                  <Building size={10} /> From
                 </label>
                 <div className='relative'>
                   <input
                     type='text'
-                    value={filterorderNumber}
-                    onChange={(e) => setFilterorderNumber(e.target.value)}
-                    placeholder='Search Order Number...'
+                    value={filterFrom}
+                    onChange={(e) => setFilterFrom(e.target.value)}
+                    placeholder='Search From...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
                       ${
-                        filterorderNumber
+                        filterCompanyName
                           ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
                           : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
                       }`}
                   />
-                  {filterorderNumber && (
+                  {filterFrom && (
                     <button
-                      onClick={() => setFilterorderNumber("")}
+                      onClick={() => setFilterFrom("")}
                       className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
                     >
                       <X size={13} />
@@ -1262,7 +1233,34 @@ export default function LogisticsPage() {
                   )}
                 </div>
               </div>
-
+              {/* Company Name */}
+              <div className='flex flex-col gap-1.5'>
+                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                  <Building size={10} /> Company Name
+                </label>
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={filterCompanyName}
+                    onChange={(e) => setFilterCompanyName(e.target.value)}
+                    placeholder='Search company...'
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                      ${
+                        filterCompanyName
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  />
+                  {filterCompanyName && (
+                    <button
+                      onClick={() => setFilterCompanyName("")}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <User size={10} /> PIC
