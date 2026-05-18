@@ -45,6 +45,7 @@ import {
   Settings,
   Phone,
   Archive,
+  Building,
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
@@ -200,7 +201,10 @@ export default function LogisticsPage() {
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-
+  const [filterCompanyName, setFilterCompanyName] = useState("");
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterorderNumber, setFilterorderNumber] = useState("");
+  const [filterCreatedAt, setFilterCreatedAt] = useState("");
   // ── Column Management ──
   const [columns, setColumns] = useState(
     COLUMN_DEFS.map((c) => ({ ...c, visible: true })),
@@ -468,11 +472,15 @@ export default function LogisticsPage() {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const haystack = [
+          t.companyName,
           t.createdAt,
           t.item,
           t.location,
           t.companyName,
           t.picDeliver,
+          t.from,
+          t.createdAt,
+          t.orderNumber,
         ]
           .filter(Boolean)
           .join(" ")
@@ -499,24 +507,61 @@ export default function LogisticsPage() {
           if (scheduled > to) return false;
         }
       }
+      if (filterCompanyName) {
+        const company = t.companyName?.toLowerCase() || "";
+        if (!company.includes(filterCompanyName.toLowerCase())) {
+          return false;
+        }
+      }
+      if (filterFrom) {
+        const from = t.from?.toLowerCase() || "";
+        if (!from.includes(filterFrom.toLowerCase())) {
+          return false;
+        }
+      }
+      if (filterorderNumber) {
+        const orderNumber = t.orderNumber?.toLowerCase() || "";
+        if (!orderNumber.includes(filterorderNumber.toLowerCase())) {
+          return false;
+        }
+      }
+      if (filterCreatedAt) {
+        const createdAt = t.createdAt?.toLowerCase() || "";
+        if (!createdAt.includes(filterCreatedAt.toLowerCase())) {
+          return false;
+        }
+      }
+
       return true;
     });
   }, [
     tasks,
     searchQuery,
+    filterCompanyName,
     filterPic,
     filterStatus,
     filterDateFrom,
     filterDateTo,
+    filterFrom,
+    filterCreatedAt,
+    filterorderNumber,
   ]);
 
   const activeFilterCount = [
+    filterCompanyName,
+    filterFrom,
     filterPic,
     filterStatus,
     filterDateFrom,
     filterDateTo,
+    filterCreatedAt,
+    filterorderNumber,
   ].filter(Boolean).length;
   const clearAllFilters = () => {
+    setFilterCreatedAt("");
+    setFilterorderNumber("");
+    setFilterFrom("");
+    setFilterCompanyName("");
     setSearchQuery("");
     setFilterPic("");
     setFilterStatus("");
@@ -1104,11 +1149,125 @@ export default function LogisticsPage() {
           {/* Row 2: filter dropdowns (collapsible) */}
           {showFilters && (
             <div className='px-5 pb-5 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {/* PIC */}
+              {/* From */}
+              <div className='flex flex-col gap-1.5'>
+                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                  <Building size={10} /> From
+                </label>
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={filterFrom}
+                    onChange={(e) => setFilterFrom(e.target.value)}
+                    placeholder='Search From...'
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                      ${
+                        filterCompanyName
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  />
+                  {filterFrom && (
+                    <button
+                      onClick={() => setFilterFrom("")}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Company Name */}
+              <div className='flex flex-col gap-1.5'>
+                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                  <Building size={10} /> Company Name
+                </label>
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={filterCompanyName}
+                    onChange={(e) => setFilterCompanyName(e.target.value)}
+                    placeholder='Search company...'
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                      ${
+                        filterCompanyName
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  />
+                  {filterCompanyName && (
+                    <button
+                      onClick={() => setFilterCompanyName("")}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* CreatedAt */}
+              <div className='flex flex-col gap-1.5'>
+                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                  <Building size={10} /> Created At
+                </label>
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={filterCreatedAt}
+                    onChange={(e) => setFilterCreatedAt(e.target.value)}
+                    placeholder='Search Created Date...'
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                      ${
+                        filterCreatedAt
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  />
+                  {filterCreatedAt && (
+                    <button
+                      onClick={() => setFilterCreatedAt("")}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* OrderNumber */}
+              <div className='flex flex-col gap-1.5'>
+                <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
+                  <Building size={10} /> Order Number
+                </label>
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={filterorderNumber}
+                    onChange={(e) => setFilterorderNumber(e.target.value)}
+                    placeholder='Search Order Number...'
+                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
+                      ${
+                        filterorderNumber
+                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
+                      }`}
+                  />
+                  {filterorderNumber && (
+                    <button
+                      onClick={() => setFilterorderNumber("")}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <User size={10} /> PIC
                 </label>
+
                 <div className='relative'>
                   <select
                     value={filterPic}

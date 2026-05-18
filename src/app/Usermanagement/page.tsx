@@ -806,14 +806,12 @@ export default function OnlineUsersTable() {
                     placeholder='Enter Department'
                     className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
                     value={selectedUser?.department ?? ""}
-                    onChange={(e) => {
-                      if (!selectedUser) return;
-
-                      setSelectedUser({
-                        ...selectedUser,
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
                         department: e.target.value,
-                      });
-                    }}
+                      })
+                    }
                   />
                 </div>
 
@@ -979,20 +977,17 @@ export default function OnlineUsersTable() {
                   <label className='block text-sm font-bold text-slate-700 mb-2'>
                     Department
                   </label>
-
                   <input
                     type='text'
                     placeholder='Enter Department'
                     className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
-                    value={selectedUser?.department ?? ""}
-                    onChange={(e) => {
-                      if (!selectedUser) return;
-
+                    value={selectedUser.department}
+                    onChange={(e) =>
                       setSelectedUser({
                         ...selectedUser,
                         department: e.target.value,
-                      });
-                    }}
+                      })
+                    }
                   />
                 </div>
                 <div>
