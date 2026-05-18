@@ -809,7 +809,7 @@ export default function LogisticsPage() {
         );
       case "action":
         return (
-          <div className='flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
+          <div className='flex items-center gap-2 opacity-100 transition-opacity duration-200'>
             <button
               onClick={() => (window.location.href = `/logistics/${t.id}`)}
               className='flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition-colors whitespace-nowrap'
