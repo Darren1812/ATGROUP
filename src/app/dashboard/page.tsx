@@ -183,7 +183,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales (JB)", "Marketing (JB)", "Operations Director"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Logistics Team", "Sales (JB)", "Marketing (JB)", "Operations Director", "ATPLAN Admin Manager", "ATP Admin Manager", "ATPLAN Admin", "ATP Admin", "Boss" ],
     },
     {
       title: "DELIVERY",
