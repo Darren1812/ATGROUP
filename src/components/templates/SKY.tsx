@@ -227,7 +227,7 @@ export default function SKY() {
             threeTrays: "",
             fiveTrays: "",
             SKY_SPECS_JSON: "",
-            quantity: 1,
+            quantity: "1",
             hargasewaan: "",
         },
     ]);
@@ -313,7 +313,7 @@ export default function SKY() {
                 threeTrays: "",
                 fiveTrays: "",
                 SKY_SPECS_JSON: "",
-                quantity: 1,
+                quantity: "1",
                 hargasewaan: "",
             },
         ]);

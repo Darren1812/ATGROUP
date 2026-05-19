@@ -995,7 +995,6 @@ export default function LogisticsPage() {
                   "Location",
                   "Item",
                   "Estimate Time",
-                  "PIC",
                   "Phone Number",
                   "Created By",
                 ].map((h) => (
@@ -1043,24 +1042,6 @@ export default function LogisticsPage() {
                     }
                     className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800'
                   />
-                  <div className='flex gap-2'>
-                    <input
-                      placeholder='PIC'
-                      value={task.picDeliver}
-                      onChange={(e) =>
-                        updateRow(i, "picDeliver", e.target.value)
-                      }
-                      className='flex-1 px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400'
-                    />
-                    {newTasks.length > 1 && (
-                      <button
-                        onClick={() => removeRow(i)}
-                        className='p-2.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200'
-                      >
-                        <X size={15} />
-                      </button>
-                    )}
-                  </div>
                   <input
                     placeholder='Phone Number'
                     value={task.phoneNumber}

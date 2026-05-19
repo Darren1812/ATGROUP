@@ -60,7 +60,7 @@ export default function Dashboard() {
       lightColor: "bg-amber-50",
       iconColor:"text-amber-600",
       category:"CORE SYSTEM",
-      allowedDepartments: ["ATPAdmin", "Management", "Software Engineer"],
+      allowedDepartments: ["ATPAdmin", "Management", "Software Engineer", "Boss", "Operations Director"],
 
     },
     {
@@ -72,7 +72,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Sales (Melaka)", "Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Sales (Melaka)", "Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
 
     },
     {
@@ -84,7 +84,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
     },
     {
       title: "Archidex Database",
@@ -95,7 +95,7 @@ export default function Dashboard() {
       lightColor: "bg-rose-50",
       iconColor: "text-rose-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director", "Sales (JB)"],
     },
     {
       title: "Comparison Table",
@@ -106,7 +106,7 @@ export default function Dashboard() {
       lightColor: "bg-slate-50",
       iconColor: "text-slate-600",
       category: "COMPARISON",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director", "Sales (JB)"],
     },
     {
       title: "Performance Review Sheet",
@@ -161,7 +161,7 @@ export default function Dashboard() {
       lightColor: "bg-cyan-50",
       iconColor: "text-cyan-600",
       category: "Management",
-      allowedDepartments: [],
+      allowedDepartments: ["Software Engineer", "Boss", "Operations Director"],
     },
     {
       title: "CLAIM FORM",
@@ -183,7 +183,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales (JB)", "Marketing (JB)", "Operations Director", "ATPLAN Admin Manager", "ATP Admin Manager", "ATPLAN Admin", "ATP Admin", "ATPLAN Staff", "Boss" ],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales (JB)", "Marketing (JB)", "Operations Director", "ATPLAN Admin Manager", "ATP Admin Manager", "ATPLAN Admin", "ATP Admin", "ATPLAN Staff", "Boss", "Operations Director"],
     },
     {
       title: "DELIVERY",
@@ -194,7 +194,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader", "Logistics Team"],
+      allowedDepartments: ["Software Engineer", "Boss", "Operations Director", "Logistics Leader", "Logistics Team"],
     },
   ];
 
