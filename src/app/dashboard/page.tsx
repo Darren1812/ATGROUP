@@ -72,7 +72,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Sales (Melaka)", "Marketing (JB)", "Software Engineer", "Sales (JB)"],
 
     },
     {
