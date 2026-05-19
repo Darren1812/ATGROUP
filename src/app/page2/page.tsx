@@ -868,32 +868,34 @@ export default function LogisticsPage() {
 
   const handleExportBackup = async () => {
     setIsExporting(true);
-
     try {
-      const response = await fetch(`${API}/export-full-zip`, {
-        method: "GET",
-        // If your API requires a token, add headers here
-        // headers: { "Authorization": `Bearer ${token}` }
-      });
+      const params = new URLSearchParams();
+      if (searchQuery) params.set("search", searchQuery);
+      if (filterorderNumber) params.set("orderNumber", filterorderNumber);
+      if (filterCreatedAt) params.set("createdAt", filterCreatedAt);
+      if (filterFrom) params.set("from", filterFrom);
+      if (filterCompanyName) params.set("companyName", filterCompanyName);
+      if (filterPic) params.set("pic", filterPic);
+      if (filterStatus) params.set("status", filterStatus);
+      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+      if (filterDateTo) params.set("dateTo", filterDateTo);
+
+      const response = await fetch(
+        `${API}/export-full-zip?${params.toString()}`,
+        {
+          method: "GET",
+        },
+      );
 
       if (!response.ok) throw new Error("Failed to generate zip");
-
-      // Convert the response to a binary blob
       const blob = await response.blob();
-
-      // Create a temporary link to trigger the download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-
-      // Format: Logistics_Backup_2026-05-04.zip
       const date = new Date().toISOString().split("T")[0];
       link.setAttribute("download", `Logistics_Backup_${date}.zip`);
-
       document.body.appendChild(link);
       link.click();
-
-      // Cleanup memory and DOM
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
