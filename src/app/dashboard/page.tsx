@@ -72,7 +72,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
 
     },
     {
@@ -84,7 +84,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
     },
     {
       title: "Archidex Database",
@@ -95,7 +95,7 @@ export default function Dashboard() {
       lightColor: "bg-rose-50",
       iconColor: "text-rose-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
     },
     {
       title: "Comparison Table",
@@ -106,7 +106,7 @@ export default function Dashboard() {
       lightColor: "bg-slate-50",
       iconColor: "text-slate-600",
       category: "COMPARISON",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
     },
     {
       title: "Performance Review Sheet",
@@ -139,7 +139,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
     },
     {
       title: "TD HELPER v2.0",
@@ -150,7 +150,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: ["Marketing", "Software Engineer", "Sales"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
     },
     {
       title: "PROPOSAL DATA MANAGE",
@@ -183,7 +183,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales", "Marketing", "Operations Director"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales (JB)", "Marketing (JB)", "Operations Director"],
     },
     {
       title: "DELIVERY",
@@ -194,7 +194,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Logistics Team"],
     },
   ];
 
