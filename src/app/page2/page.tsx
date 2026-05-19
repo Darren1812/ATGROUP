@@ -718,12 +718,29 @@ export default function LogisticsPage() {
           />
         );
       case "pic":
+        const picOptions = ["Akmal", "Nahfiz", "Darwin", "Darren"];
+
         return (
-          <input
-            defaultValue={t.picDeliver}
-            onBlur={(e) => updatePic(t.id, e.target.value)}
-            className='text-[11px] px-2 py-1.5 w-[90px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700 '
-          />
+          <div className='relative w-[120px]'>
+            <input
+              list={`pic-list-${t.id}`}
+              defaultValue={t.picDeliver}
+              onBlur={(e) => updatePic(t.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur(); // 触发 onBlur → updatePic
+                }
+              }}
+              className='text-[11px] px-2 py-1.5 w-full border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
+              placeholder='Select PIC'
+            />
+
+            <datalist id={`pic-list-${t.id}`}>
+              {picOptions.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </div>
         );
       case "status":
         // 直接使用从 API 获取的 t.status
