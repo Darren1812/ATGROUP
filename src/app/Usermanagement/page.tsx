@@ -40,7 +40,7 @@ interface User {
   email?: string;
   position?: string;
   mobile?: string;
-  name_use?: string;
+  nameUse?: string;
   status: boolean;
 }
 
@@ -177,7 +177,7 @@ export default function OnlineUsersTable() {
     email: "",
     position: "",
     mobile: "",
-    name_use: "",
+    nameUse: "",
     approval: "",
     sign: "",
     bod: "",
@@ -217,7 +217,7 @@ export default function OnlineUsersTable() {
         email: "",
         position: "",
         mobile: "",
-        name_use: "",
+        nameUse: "",
         approval: "",
         sign: "",
         bod: "",
@@ -756,9 +756,9 @@ export default function OnlineUsersTable() {
                   <input
                     className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium'
                     placeholder='Johnny'
-                    value={newUser.name_use}
+                    value={newUser.nameUse}
                     onChange={(e) =>
-                      setNewUser({ ...newUser, name_use: e.target.value })
+                      setNewUser({ ...newUser, nameUse: e.target.value })
                     }
                   />
                 </div>
@@ -805,7 +805,7 @@ export default function OnlineUsersTable() {
                     type='text'
                     placeholder='Enter Department'
                     className='w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm font-medium'
-                    value={selectedUser?.department ?? ""}
+                    value={newUser.department}
                     onChange={(e) =>
                       setNewUser({
                         ...newUser,

@@ -183,7 +183,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales", "Marketing", "Operations Director"],
     },
     {
       title: "DELIVERY",
@@ -194,7 +194,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader"],
     },
   ];
 

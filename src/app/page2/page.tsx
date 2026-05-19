@@ -210,6 +210,7 @@ export default function LogisticsPage() {
     COLUMN_DEFS.map((c) => ({ ...c, visible: true })),
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const { user } = useAuth();
 
   // ── Drag sensors ──
   const sensors = useSensors(
@@ -331,9 +332,14 @@ export default function LogisticsPage() {
 
   // ── FETCH ──
   const fetchTasks = async (isRefresh = false) => {
+    if (!user) return;
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
-      const res = await fetch(API);
+      const department = user.department;
+
+      const res = await fetch(
+        `${API}/by-department?department=${encodeURIComponent(department)}`,
+      );
       const data = await res.json();
 
       // 🔥 Step 1: update backend if needed
@@ -366,8 +372,10 @@ export default function LogisticsPage() {
     isRefresh ? setRefreshing(false) : setLoading(false);
   };
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (user) {
+      fetchTasks();
+    }
+  }, [user]); // ← Re-runs whenever user changes (null → loaded)
 
   // ── CREATE ──
   const createTask = async () => {
@@ -376,7 +384,7 @@ export default function LogisticsPage() {
       const tasksWithUser = newTasks.map((task) => ({
         ...task,
         createdBy: user?.nameUse || "Unknown",
-        // Force the date to a UTC ISO string here!
+        department: user?.department || "",
         scheduledTime: task.scheduledTime || null,
       }));
 
@@ -437,25 +445,31 @@ export default function LogisticsPage() {
     fetchTasks(true);
   };
   // ── 修改后的 updatePic ──
-  const updatePic = async (id: number, value: string) => {
-    // 1. 先更新 PIC
+  const updatePic = async (id: number, value: string, scheduleAt?: string) => {
+    // 1. 更新 PIC
     await fetch(`${API}/pic/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(value),
     });
 
-    // 2. 逻辑判断：如果有了 PIC，状态就设为 "Arrange"，否则设为 "Waiting"
-    const newStatus = value ? "Arrange" : "Waiting";
+    // 2. 状态判断逻辑
+    let newStatus = "Waiting";
 
-    // 3. 调用您刚才定义的 UpdateStatus 接口
+    if (value && scheduleAt) {
+      newStatus = "Arranging";
+    } else if (value) {
+      newStatus = "Arrange";
+    }
+
+    // 3. 更新状态
     await fetch(`${API}/status/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newStatus), // 发送新的状态值
+      body: JSON.stringify(newStatus),
     });
 
-    // 4. 最后重新获取数据刷新列表
+    // 4. refresh
     fetchTasks(true);
   };
   // ── Unique PIC list for dropdown ──
@@ -831,7 +845,6 @@ export default function LogisticsPage() {
         return null;
     }
   };
-  const { user } = useAuth();
   const [name, setName] = useState(user?.nameUse || "");
   // 1. 定义状态
   const [isExporting, setIsExporting] = useState(false);
