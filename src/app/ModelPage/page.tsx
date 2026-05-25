@@ -23,7 +23,7 @@ const CopierHub = () => {
             title: "Invoice Generator",
             desc: "Generate Invoice refer to Excel Data",
             icon: <Settings size={24} className="text-amber-600" />,
-            path: "/generateinvoice",
+            path: "/InvoiceGenerator",
         },
         {
             title: "Raw Data Export",
