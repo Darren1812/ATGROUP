@@ -198,6 +198,7 @@ export default function LogisticsPage() {
     formData.append("file", file);
 
     try {
+      // 1. Upload the file
       const res = await fetch(`${API}/upload/${id}/complete`, {
         method: "POST",
         body: formData,
@@ -205,8 +206,18 @@ export default function LogisticsPage() {
 
       if (!res.ok) throw new Error("Upload failed");
 
-      // --- INSTANT UI UPDATE ---
-      // This updates the local 'tasks' state so the card moves to the "Complete" tab immediately
+      // 2. Call the patch endpoint to update the status in the database
+      const statusRes = await fetch(`${API}/status/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify("Complete"), // Sends "Complete" as a raw JSON string to match your [FromBody] string
+      });
+
+      if (!statusRes.ok) throw new Error("Failed to update status in database");
+
+      // 3. --- INSTANT UI UPDATE ---
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === id
@@ -215,14 +226,10 @@ export default function LogisticsPage() {
         ),
       );
 
-      alert("Upload successful!");
-
-      // REMOVE THIS: window.location.reload();
-      // You don't need the reload anymore because the state update above
-      // handles the visual change instantly.
+      alert("Upload and status update successful!");
     } catch (err) {
       console.error(err);
-      alert("Upload failed");
+      alert("An error occurred during upload or status update.");
     }
   };
   return (
