@@ -47,6 +47,7 @@ import {
   Archive,
   Building,
 } from "lucide-react";
+import React from "react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
 
@@ -988,7 +989,8 @@ export default function LogisticsPage() {
               </button>
             </div>
             <div className='p-6 space-y-3'>
-              <div className='hidden md:grid grid-cols-8 gap-3 px-1'>
+              {/* Header Row */}
+              <div className='hidden md:grid grid-cols-9 gap-3 px-1'>
                 {[
                   "From",
                   "Company",
@@ -997,6 +999,7 @@ export default function LogisticsPage() {
                   "Estimate Time",
                   "Phone Number",
                   "Created By",
+                  "Distance", // <-- New Header
                 ].map((h) => (
                   <p
                     key={h}
@@ -1006,61 +1009,95 @@ export default function LogisticsPage() {
                   </p>
                 ))}
               </div>
-              {newTasks.map((task, i) => (
-                <div
-                  key={i}
-                  className='grid grid-cols-1 md:grid-cols-8 gap-3 items-center group'
-                >
-                  {(["from", "companyName", "location", "item"] as const).map(
-                    (field) =>
-                      field === "item" ? (
-                        <textarea
-                          key={field}
-                          placeholder='Item'
-                          value={task[field]}
-                          onChange={(e) => updateRow(i, field, e.target.value)}
-                          rows={2}
-                          className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400 resize-none'
-                        />
-                      ) : (
-                        <input
-                          key={field}
-                          placeholder={
-                            field.charAt(0).toUpperCase() + field.slice(1)
-                          }
-                          value={task[field]}
-                          onChange={(e) => updateRow(i, field, e.target.value)}
-                          className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400'
-                        />
-                      ),
-                  )}
-                  <input
-                    type='datetime-local'
-                    value={task.scheduledTime}
-                    onChange={(e) =>
-                      updateRow(i, "scheduledTime", e.target.value)
-                    }
-                    className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800'
-                  />
-                  <input
-                    placeholder='Phone Number'
-                    value={task.phoneNumber}
-                    onChange={(e) =>
-                      updateRow(i, "phoneNumber", e.target.value)
-                    }
-                    className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none'
-                  />
-                  <input
-                    type='text'
-                    value={name}
-                    onChange={(e) => setName(e.target.value)} // You can actually remove this now!
-                    readOnly // <--- Add this
-                    className='border p-2 rounded bg-slate-100 cursor-not-allowed text-slate-500'
-                    placeholder='Enter name'
-                  />
-                </div>
-              ))}
+
+              {/* Task Rows */}
+              {newTasks.map((task, i) => {
+                // A small stateful effect container to fetch distance live per row
+                const [distance, setDistance] = React.useState<string>("---");
+
+                React.useEffect(() => {
+                  if (task.from && task.companyName) {
+                    const delayDebounce = setTimeout(async () => {
+                      try {
+                        const res = await fetch(
+                          `/api/distance?origin=${encodeURIComponent(task.from)}&destination=${encodeURIComponent(task.companyName)}`,
+                        );
+                        const data = await res.json();
+                        if (data.distance) setDistance(data.distance);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }, 1000); // 1-second debounce so it doesn't spam your API while typing
+
+                    return () => clearTimeout(delayDebounce);
+                  }
+                }, [task.from, task.companyName]);
+
+                return (
+                  <div
+                    key={i}
+                    className='grid grid-cols-1 md:grid-cols-9 gap-3 items-center group'
+                  >
+                    {(["from", "companyName", "location", "item"] as const).map(
+                      (field) =>
+                        field === "item" ? (
+                          <textarea
+                            key={field}
+                            placeholder='Item'
+                            value={task[field]}
+                            onChange={(e) =>
+                              updateRow(i, field, e.target.value)
+                            }
+                            rows={2}
+                            className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400 resize-none'
+                          />
+                        ) : (
+                          <input
+                            key={field}
+                            placeholder={
+                              field.charAt(0).toUpperCase() + field.slice(1)
+                            }
+                            value={task[field]}
+                            onChange={(e) =>
+                              updateRow(i, field, e.target.value)
+                            }
+                            className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800 placeholder:text-slate-400'
+                          />
+                        ),
+                    )}
+                    <input
+                      type='datetime-local'
+                      value={task.scheduledTime}
+                      onChange={(e) =>
+                        updateRow(i, "scheduledTime", e.target.value)
+                      }
+                      className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800'
+                    />
+                    <input
+                      placeholder='Phone Number'
+                      value={task.phoneNumber}
+                      onChange={(e) =>
+                        updateRow(i, "phoneNumber", e.target.value)
+                      }
+                      className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none'
+                    />
+                    <input
+                      type='text'
+                      value={name}
+                      readOnly
+                      className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 cursor-not-allowed text-slate-500 outline-none'
+                      placeholder='Enter name'
+                    />
+
+                    {/* Distance Display Column next to Created By */}
+                    <div className='w-full px-3 py-2.5 text-sm border border-dashed border-indigo-200 rounded-xl bg-indigo-50/40 text-indigo-700 font-bold text-center shadow-sm'>
+                      {distance}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
             <div className='px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between'>
               <button
                 onClick={addRow}
