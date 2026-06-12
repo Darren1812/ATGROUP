@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface EquipmentSpec {
@@ -31,7 +31,10 @@ function groupByCategory(specs: EquipmentSpec[]): Record<string, EquipmentSpec[]
   }, {} as Record<string, EquipmentSpec[]>);
 }
 
-export default function AddDevicePage() {
+// ─────────────────────────────────────────────────────────────
+// Inner component — uses useSearchParams, must be inside Suspense
+// ─────────────────────────────────────────────────────────────
+function AddDeviceInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const baseUrl      = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -39,40 +42,40 @@ export default function AddDevicePage() {
   const editModelName = searchParams.get('edit');
   const isEditMode    = !!editModelName;
 
-  // ── Step 1 ─────────────────────────────────────────────────
+  // ── Step 1 ──────────────────────────────────────────────
   const [modelName,     setModelName]     = useState('');
   const [brand,         setBrand]         = useState('Canon');
   const [category,      setCategory]      = useState('MFP');
+  const [type,          setType]          = useState('A4 Desktop Series');
   const [basicPrice,    setBasicPrice]    = useState(0);
   const [price60Months, setPrice60Months] = useState(0);
   const [price36Months, setPrice36Months] = useState(0);
 
-  // ── Step 2 ─────────────────────────────────────────────────
-  const [allEquipments,  setAllEquipments]  = useState<EquipmentSpec[]>([]);
-  const [searchQuery,    setSearchQuery]    = useState('');
-  const [selectedEqIds,  setSelectedEqIds]  = useState<number[]>([]);
+  // ── Step 2 ──────────────────────────────────────────────
+  const [allEquipments, setAllEquipments] = useState<EquipmentSpec[]>([]);
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [selectedEqIds, setSelectedEqIds] = useState<number[]>([]);
 
-  // ── Step 3 ─────────────────────────────────────────────────
+  // ── Step 3 ──────────────────────────────────────────────
   const [rules, setRules] = useState<ExclusionRuleInput[]>([]);
 
-  // ── Delete confirm ─────────────────────────────────────────
+  // ── UI ──────────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [type, setType] = useState('A4 Desktop Series'); // 默认初始值
-  // ── Fetch all equipment specs ──────────────────────────────
+
+  // ── Fetch all equipment specs ────────────────────────────
   useEffect(() => {
     fetch(`${baseUrl}/api/EquipmentSpec`)
       .then(res => res.json())
       .then(data => setAllEquipments(data))
       .catch(err => console.error('Error fetching specs:', err));
   }, [baseUrl]);
-    useEffect(() => {
-    if (brand === 'Canon') {
-        setType('A4 Desktop Series');
-    } else if (brand === 'KM') {
-        setType('Light Duty Series');
-    } 
-    }, [brand]);
-  // ── Edit mode: prefill ─────────────────────────────────────
+
+  // ── Brand change resets series type ─────────────────────
+  useEffect(() => {
+    setType(brand === 'Canon' ? 'A4 Desktop Series' : 'Light Duty Series');
+  }, [brand]);
+
+  // ── Edit mode: prefill ───────────────────────────────────
   useEffect(() => {
     if (isEditMode && editModelName) {
       fetch(`${baseUrl}/api/Copier/config-by-name?modelName=${encodeURIComponent(editModelName)}`)
@@ -81,6 +84,7 @@ export default function AddDevicePage() {
           setModelName(data.model.modelName || data.model.ModelName);
           setBrand(data.model.brand || 'Canon');
           setCategory(data.model.category || 'MFP');
+          setType(data.model.type || (data.model.brand === 'Canon' ? 'A4 Desktop Series' : 'Light Duty Series'));
           setBasicPrice(data.model.basicPrice || 0);
           setPrice36Months(data.model.price36Months || 0);
           setPrice60Months(data.model.price60Months || 0);
@@ -95,7 +99,7 @@ export default function AddDevicePage() {
     }
   }, [isEditMode, editModelName, baseUrl]);
 
-  // ── Helpers ────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────
   const filteredEquipments = allEquipments.filter(eq =>
     eq.specName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -110,10 +114,7 @@ export default function AddDevicePage() {
   };
 
   const addRuleRow = () => {
-    if (selectedEqIds.length < 2) {
-      alert('Please select at least 2 equipment options in Step 2 first.');
-      return;
-    }
+    if (selectedEqIds.length < 2) { alert('Please select at least 2 equipment options in Step 2 first.'); return; }
     setRules([...rules, { equipmentIdA: selectedEqIds[0], equipmentIdB: selectedEqIds[1] }]);
   };
 
@@ -138,18 +139,14 @@ export default function AddDevicePage() {
     e.preventDefault();
     if (!modelName.trim()) return alert('Model Name is required');
     for (const r of rules) {
-      if (r.equipmentIdA === r.equipmentIdB) {
-        alert('An equipment cannot be mutually exclusive with itself!');
-        return;
-      }
+      if (r.equipmentIdA === r.equipmentIdB) { alert('An equipment cannot be mutually exclusive with itself!'); return; }
     }
     const finalPayload = {
-      modelName, brand, category,
+      modelName, brand, category, type,
       basicPrice: Number(basicPrice),
       price60Months: Number(price60Months),
       price36Months: Number(price36Months),
       selectedEquipmentIds: selectedEqIds,
-      type: type,
       exclusionRules: rules,
     };
     const url    = isEditMode ? `${baseUrl}/api/Copier/update-by-name?modelName=${encodeURIComponent(editModelName!)}` : `${baseUrl}/api/Copier/create-complete`;
@@ -167,202 +164,145 @@ export default function AddDevicePage() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] font-sans">
 
-      {/* ══ Sub-header ══════════════════════════════════════════ */}
-        <div className="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between">
-        {/* 左侧：标题与状态图标 */}
+      {/* ══ Sub-header ════════════════════════════════════════ */}
+      <div className="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isEditMode ? 'bg-amber-50' : 'bg-blue-50'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isEditMode ? 'bg-amber-50' : 'bg-blue-50'}`}>
             <svg className={`w-4 h-4 ${isEditMode ? 'text-amber-500' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                {isEditMode
+              {isEditMode
                 ? <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 0l.172.172a2 2 0 010 2.828L12 16H9v-3z"/>
                 : <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
-                }
+              }
             </svg>
-            </div>
-            <div>
+          </div>
+          <div>
             <h1 className="text-sm font-bold text-slate-800 leading-tight">
-                {isEditMode ? `Edit: ${editModelName}` : 'Create Copier Configuration'}
+              {isEditMode ? `Edit: ${editModelName}` : 'Create Copier Configuration'}
             </h1>
             <p className="text-[11px] text-slate-400 leading-tight">
-                {isEditMode ? 'Update model specs, pricing, and conflict rules' : 'Set up a new copier model with specs and pricing'}
+              {isEditMode ? 'Update model specs, pricing, and conflict rules' : 'Set up a new copier model with specs and pricing'}
             </p>
-            </div>
+          </div>
         </div>
-
-        {/* 右侧：按钮组合 */}
         <div className="flex items-center gap-2">
-            
-            {/* 🆕 按钮 1: Model List 页面跳转按钮 */}
-            <button
-            type="button"
-            onClick={() => router.push('/pricelistgenerator/manage/adddevice/modellist')} 
-            className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors shadow-sm"
-            >
+          <button type="button" onClick={() => router.push('/pricelistgenerator/manage/adddevice/modellist')}
+            className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors shadow-sm">
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
             Model List
-            </button>
-
-            {/* 按钮 2: Delete (仅编辑模式可见) */}
-            {isEditMode && (
-            <button 
-                type="button" 
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-red-500 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
-            >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          </button>
+          {isEditMode && (
+            <button type="button" onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-red-500 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0 01-1-1V5a1 1 0 011-1h6a1 1 0 011 1v1a1 1 0 01-1 1H9z"/>
-                </svg>
-                Delete
+              </svg>
+              Delete
             </button>
-            )}
-
-            {/* 按钮 3: Back 按钮 */}
-            <button 
-            type="button"
-            onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100"
-            >
+          )}
+          <button type="button" onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
             </svg>
             Back
-            </button>
+          </button>
         </div>
-        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div className="px-8 py-5 max-w-5xl mx-auto space-y-4">
 
-          {/* ══ Step 1: Basic Info ══════════════════════════════════ */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {/* ══ Step 1: Basic Info ══════════════════════════════ */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                 <span className="text-[11px] font-bold text-white">1</span>
-                </div>
-                <div>
+              </div>
+              <div>
                 <p className="text-sm font-bold text-slate-800">Basic Information</p>
                 <p className="text-[11px] text-slate-400">Model identity, brand, series type and pricing structure</p>
-                </div>
+              </div>
             </div>
-
             <div className="px-6 py-5 space-y-4">
-                {/* Model name */}
-                <div>
+              <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    Model Name <span className="text-red-400">*</span>
+                  Model Name <span className="text-red-400">*</span>
                 </label>
                 <input type="text" required placeholder="e.g., Canon IR ADV C3520i"
-                    value={modelName} onChange={e => setModelName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"/>
-                </div>
-
-                {/* Brand + Category + Dynamic Type Series */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Brand */}
+                  value={modelName} onChange={e => setModelName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"/>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Brand</label>
-                    <select value={brand} onChange={e => setBrand(e.target.value)}
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Brand</label>
+                  <select value={brand} onChange={e => setBrand(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
                     <option value="Canon">Canon</option>
                     <option value="KM">KM (Konica Minolta)</option>
-                    </select>
+                  </select>
                 </div>
-
-                {/* Category */}
                 <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Category</label>
-                    <select value={category} onChange={e => setCategory(e.target.value)}
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Category</label>
+                  <select value={category} onChange={e => setCategory(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
                     <option value="MFP">MFP (Multi-function Printer)</option>
                     <option value="IFP">IFP (Interactive Flat Panel)</option>
                     <option value="LFP">LFP (Large Format Printer)</option>
-                    </select>
+                  </select>
                 </div>
-
-                {/* 🆕 专属动态系列下拉框 (Series Type) */}
                 <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Series Type</label>
-                    <select value={type} onChange={e => setType(e.target.value)}
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Series Type</label>
+                  <select value={type} onChange={e => setType(e.target.value)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
                     {brand === 'Canon' ? (
-                        <>
+                      <>
                         <option value="A4 Desktop Series">A4 Desktop Series</option>
                         <option value="A3 Desktop Series">A3 Desktop Series</option>
                         <option value="A3 Light Duty Series">A3 Light Duty Series</option>
-                        </>
+                      </>
                     ) : (
-                        <>
+                      <>
                         <option value="Light Duty Series">Light Duty Series</option>
                         <option value="Mid-Heavy Duty Series">Mid-Heavy Duty Series</option>
                         <option value="Light Production Series">Light Production Series</option>
-                        </>
+                      </>
                     )}
-                    </select>
+                  </select>
                 </div>
-                </div>
-
-                {/* Pricing row */}
-                <div className="grid grid-cols-3 gap-4">
+              </div>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                    Outright Price (RM)
-                    </label>
-                    <input type="number" step="0.01" min="0" value={basicPrice}
-                    onChange={e => setBasicPrice(parseFloat(e.target.value) || 0)}
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Outright Price (RM)</label>
+                  <input type="number" step="0.01" min="0" value={basicPrice} onChange={e => setBasicPrice(parseFloat(e.target.value) || 0)}
                     className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-blue-700 font-semibold bg-blue-50/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"/>
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1.5">
-                    36-Month Rental (RM/mo)
-                    </label>
-                    <input type="number" step="0.01" min="0" value={price36Months}
-                    onChange={e => setPrice36Months(parseFloat(e.target.value) || 0)}
+                  <label className="block text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1.5">36-Month Rental (RM/mo)</label>
+                  <input type="number" step="0.01" min="0" value={price36Months} onChange={e => setPrice36Months(parseFloat(e.target.value) || 0)}
                     className="w-full px-3.5 py-2.5 border border-amber-200 rounded-xl text-sm text-amber-600 font-semibold bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent transition"/>
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1.5">
-                    60-Month Rental (RM/mo)
-                    </label>
-                    <input type="number" step="0.01" min="0" value={price60Months}
-                    onChange={e => setPrice60Months(parseFloat(e.target.value) || 0)}
+                  <label className="block text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1.5">60-Month Rental (RM/mo)</label>
+                  <input type="number" step="0.01" min="0" value={price60Months} onChange={e => setPrice60Months(parseFloat(e.target.value) || 0)}
                     className="w-full px-3.5 py-2.5 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-semibold bg-emerald-50/40 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-transparent transition"/>
                 </div>
-                </div>
-
-                {/* Live pricing preview */}
-                {(basicPrice > 0 || price36Months > 0 || price60Months > 0) && (
+              </div>
+              {(basicPrice > 0 || price36Months > 0 || price60Months > 0) && (
                 <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-shrink-0">Preview</span>
-                    <div className="flex items-center gap-6 flex-wrap">
-                    {basicPrice > 0 && (
-                        <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        <span className="text-xs font-semibold text-blue-600 tabular-nums">RM {fmt(basicPrice)}</span>
-                        <span className="text-[10px] text-slate-400">outright</span>
-                        </div>
-                    )}
-                    {price36Months > 0 && (
-                        <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        <span className="text-xs font-semibold text-amber-500 tabular-nums">RM {fmt(price36Months)}/mo</span>
-                        <span className="text-[10px] text-slate-400">× 36</span>
-                        </div>
-                    )}
-                    {price60Months > 0 && (
-                        <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span className="text-xs font-semibold text-emerald-600 tabular-nums">RM {fmt(price60Months)}/mo</span>
-                        <span className="text-[10px] text-slate-400">× 60</span>
-                        </div>
-                    )}
-                    </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-shrink-0">Preview</span>
+                  <div className="flex items-center gap-6 flex-wrap">
+                    {basicPrice > 0 && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/><span className="text-xs font-semibold text-blue-600 tabular-nums">RM {fmt(basicPrice)}</span><span className="text-[10px] text-slate-400">outright</span></div>}
+                    {price36Months > 0 && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"/><span className="text-xs font-semibold text-amber-500 tabular-nums">RM {fmt(price36Months)}/mo</span><span className="text-[10px] text-slate-400">× 36</span></div>}
+                    {price60Months > 0 && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"/><span className="text-xs font-semibold text-emerald-600 tabular-nums">RM {fmt(price60Months)}/mo</span><span className="text-[10px] text-slate-400">× 60</span></div>}
+                  </div>
                 </div>
-                )}
+              )}
             </div>
-            </div>
+          </div>
 
-          {/* ══ Step 2: Equipment Mapping ═══════════════════════════ */}
+          {/* ══ Step 2: Equipment Mapping ══════════════════════ */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -376,34 +316,25 @@ export default function AddDevicePage() {
               </div>
               {selectedEqIds.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
-                    {selectedEqIds.length} selected
-                  </span>
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">{selectedEqIds.length} selected</span>
                   <button type="button" onClick={() => { setSelectedEqIds([]); setRules([]); }}
-                    className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors">
-                    Clear
-                  </button>
+                    className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Clear</button>
                 </div>
               )}
             </div>
-
             <div className="px-6 py-4 space-y-3">
-              {/* Search */}
               <div className="relative">
                 <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <input type="text" placeholder="Search specs by name…"
-                  value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                <input type="text" placeholder="Search specs by name…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-300 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"/>
               </div>
-
-              {/* Spec list grouped by category */}
               <div className="border border-slate-100 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
                 {Object.entries(groupByCategory(filteredEquipments)).map(([catName, specs]) => (
                   <div key={catName}>
                     <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 sticky top-0 z-10">
-                      <span className={`w-1.5 h-1.5 rounded-full ${CAT_STYLE[catName]?.dot ?? 'bg-slate-400'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${CAT_STYLE[catName]?.dot ?? 'bg-slate-400'}`}/>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{catName}</span>
                       <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded border ${CAT_STYLE[catName]?.badge ?? 'bg-slate-50 text-slate-400 border-slate-200'}`}>
                         {specs.filter(s => selectedEqIds.includes(s.id)).length}/{specs.length}
@@ -416,11 +347,7 @@ export default function AddDevicePage() {
                           className={`flex items-center gap-3 px-4 py-3 border-b border-slate-50 last:border-0 cursor-pointer transition-colors ${checked ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
                           <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300 hover:border-blue-400'}`}>
                             <input type="checkbox" checked={checked} onChange={() => handleEqToggle(eq.id)} className="sr-only"/>
-                            {checked && (
-                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                              </svg>
-                            )}
+                            {checked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm font-semibold truncate ${checked ? 'text-blue-700' : 'text-slate-800'}`}>{eq.specName}</p>
@@ -435,17 +362,13 @@ export default function AddDevicePage() {
                   <div className="py-10 text-center text-slate-400 text-sm">No specs match "{searchQuery}"</div>
                 )}
               </div>
-
-              {/* Selected chips preview */}
               {selectedEqIds.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {allEquipments.filter(eq => selectedEqIds.includes(eq.id)).map(eq => (
-                    <span key={eq.id}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
-                      <span className={`w-1.5 h-1.5 rounded-full ${CAT_STYLE[eq.category]?.dot ?? 'bg-slate-400'}`} />
+                    <span key={eq.id} className="inline-flex items-center gap-1 text-[11px] font-medium bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                      <span className={`w-1.5 h-1.5 rounded-full ${CAT_STYLE[eq.category]?.dot ?? 'bg-slate-400'}`}/>
                       {eq.specName}
-                      <button type="button" onClick={() => handleEqToggle(eq.id)}
-                        className="ml-0.5 text-slate-300 hover:text-red-400 transition-colors leading-none">✕</button>
+                      <button type="button" onClick={() => handleEqToggle(eq.id)} className="ml-0.5 text-slate-300 hover:text-red-400 transition-colors leading-none">✕</button>
                     </span>
                   ))}
                 </div>
@@ -453,7 +376,7 @@ export default function AddDevicePage() {
             </div>
           </div>
 
-          {/* ══ Step 3: Exclusion Rules ═════════════════════════════ */}
+          {/* ══ Step 3: Exclusion Rules ════════════════════════ */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -473,7 +396,6 @@ export default function AddDevicePage() {
                 Add Rule
               </button>
             </div>
-
             <div className="px-6 py-4">
               {rules.length === 0 ? (
                 <div className="py-10 text-center">
@@ -489,15 +411,10 @@ export default function AddDevicePage() {
                 <div className="space-y-2.5">
                   {rules.map((rule, idx) => (
                     <div key={idx} className="flex items-center gap-3 bg-red-50/60 border border-red-100 rounded-xl px-4 py-3">
-                      <span className="text-[10px] font-bold text-red-400 bg-white border border-red-200 px-2 py-1 rounded-lg flex-shrink-0">
-                        #{idx + 1}
-                      </span>
-                      <select value={rule.equipmentIdA}
-                        onChange={e => updateRuleRow(idx, 'equipmentIdA', Number(e.target.value))}
+                      <span className="text-[10px] font-bold text-red-400 bg-white border border-red-200 px-2 py-1 rounded-lg flex-shrink-0">#{idx + 1}</span>
+                      <select value={rule.equipmentIdA} onChange={e => updateRuleRow(idx, 'equipmentIdA', Number(e.target.value))}
                         className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                        {selectedEquipmentsForRules.map(e => (
-                          <option key={e.id} value={e.id}>{e.specName}</option>
-                        ))}
+                        {selectedEquipmentsForRules.map(e => <option key={e.id} value={e.id}>{e.specName}</option>)}
                       </select>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -505,12 +422,9 @@ export default function AddDevicePage() {
                         </svg>
                         <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">conflicts</span>
                       </div>
-                      <select value={rule.equipmentIdB}
-                        onChange={e => updateRuleRow(idx, 'equipmentIdB', Number(e.target.value))}
+                      <select value={rule.equipmentIdB} onChange={e => updateRuleRow(idx, 'equipmentIdB', Number(e.target.value))}
                         className="flex-1 min-w-0 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-300 transition">
-                        {selectedEquipmentsForRules.map(e => (
-                          <option key={e.id} value={e.id}>{e.specName}</option>
-                        ))}
+                        {selectedEquipmentsForRules.map(e => <option key={e.id} value={e.id}>{e.specName}</option>)}
                       </select>
                       <button type="button" onClick={() => removeRuleRow(idx)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-100 transition-colors flex-shrink-0">
@@ -525,18 +439,16 @@ export default function AddDevicePage() {
             </div>
           </div>
 
-          {/* ══ Submit bar ══════════════════════════════════════════ */}
+          {/* ══ Submit bar ═════════════════════════════════════ */}
           <div className="bg-white rounded-xl border border-slate-200 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4 text-xs text-slate-400">
               <span>{selectedEqIds.length} spec{selectedEqIds.length !== 1 ? 's' : ''} mapped</span>
-              <span className="w-px h-3 bg-slate-200" />
+              <span className="w-px h-3 bg-slate-200"/>
               <span>{rules.length} conflict rule{rules.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => router.back()}
-                className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                Cancel
-              </button>
+                className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
               <button type="submit"
                 className={`flex items-center gap-2 px-6 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-colors ${isEditMode ? 'bg-amber-500 hover:bg-amber-400' : 'bg-blue-600 hover:bg-blue-500'}`}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -552,7 +464,7 @@ export default function AddDevicePage() {
         </div>
       </form>
 
-      {/* ══ Delete Confirm Modal ════════════════════════════════ */}
+      {/* ══ Delete Confirm Modal ═══════════════════════════════ */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-slate-100 overflow-hidden">
@@ -571,17 +483,34 @@ export default function AddDevicePage() {
             </div>
             <div className="px-6 pb-5 flex gap-2">
               <button onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                Cancel
-              </button>
+                className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
               <button onClick={handleDelete}
-                className="flex-1 px-4 py-2 text-sm font-semibold bg-red-500 hover:bg-red-400 text-white rounded-xl shadow-sm transition-colors">
-                Delete
-              </button>
+                className="flex-1 px-4 py-2 text-sm font-semibold bg-red-500 hover:bg-red-400 text-white rounded-xl shadow-sm transition-colors">Delete</button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Page export — wraps the inner component in Suspense
+// This is required by Next.js App Router when useSearchParams()
+// is used anywhere in the component tree.
+// ─────────────────────────────────────────────────────────────
+export default function AddDevicePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center gap-3 text-slate-400">
+        <svg className="w-6 h-6 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        <span className="text-sm font-medium">Loading…</span>
+      </div>
+    }>
+      <AddDeviceInner />
+    </Suspense>
   );
 }
