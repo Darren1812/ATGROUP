@@ -15,7 +15,12 @@ interface EquipmentSpec {
 const CATEGORY_OPTIONS = [
   { value: "Finisher",     label: "Finisher",      color: "bg-violet-100 text-violet-700", activeColor: "bg-violet-600 text-white border-violet-600" },
   { value: "Paper Feeder", label: "Paper Feeder",   color: "bg-sky-100 text-sky-700",       activeColor: "bg-sky-600 text-white border-sky-600" },
-  { value: "Card Reader",  label: "Card Reader",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+  { value: "Fax Kit",  label: "Fax Kit",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+  { value: "Punch Kit",  label: "Punch Kit",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+  { value: "Staple Kit",  label: "Staple Kit",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+  { value: "Tray",  label: "Tray",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+  { value: "Add On Kit",  label: "Add on Kit",    color: "bg-amber-100 text-amber-700",   activeColor: "bg-amber-500 text-white border-amber-500" },
+
   { value: "Software",     label: "Software",       color: "bg-emerald-100 text-emerald-700", activeColor: "bg-emerald-600 text-white border-emerald-600" },
   { value: "Others",       label: "Others",         color: "bg-gray-100 text-gray-600",     activeColor: "bg-gray-500 text-white border-gray-500" },
 ];
