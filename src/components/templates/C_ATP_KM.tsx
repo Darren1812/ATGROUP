@@ -14,7 +14,7 @@ import {
   modelSpeedMap,
   STAFF_NAMES,
   ATP_ADDRESS,
-  ALL_MODEL_LIST,
+  KM_MODEL_LIST,
   DEFAULT_FUNCTIONS,
 } from "../../constants/printerData";
 import ReactSelect from "react-select";
@@ -1216,7 +1216,7 @@ export default function C_ATP() {
                               handleModelChange(selected, index);
                               fetchModelDetails(selected, index);
                             }}
-                            options={ALL_MODEL_LIST.map((model) => ({
+                            options={KM_MODEL_LIST.map((model) => ({
                               label: model.name,
                               value: model.fullName,
                             }))}
