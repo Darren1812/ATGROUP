@@ -196,6 +196,17 @@ export default function Dashboard() {
       category: "CORE SYSTEM",
       allowedDepartments: ["Software Engineer", "Boss", "Operations Director", "Logistics Leader", "Logistics Team"],
     },
+    {
+      title:"PRICE LIST",
+      description:"",
+      route:"/pricelistgenerator",
+      icon: Paperclip,
+      color:"from-amber-500 to-orange-600",
+      lightColor: "bg-amber-50",
+      iconColor:"text-amber-600",
+      category:"CORE SYSTEM",
+      allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)"],
+    },
   ];
 
   const filteredCards = cards.filter(card => {
