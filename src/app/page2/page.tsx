@@ -1535,17 +1535,23 @@ export default function LogisticsPage() {
                 </label>
                 <div className='relative'>
                   <input
-                    type='text'
+                    type='date' // 🌟 核心改动：改成日期选择类型
                     value={filterCreatedAt}
-                    onChange={(e) => setFilterCreatedAt(e.target.value)}
-                    placeholder='Search Created Date...'
-                    className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${filterCreatedAt ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
+                    onChange={(e) => setFilterCreatedAt(e.target.value)} // 🌟 拿到的会是纯净的 "YYYY-MM-DD" 文本
+                    className={`w-full px-3 py-2 text-sm border rounded-xl outline-none transition-all cursor-pointer
+                    ${
+                      filterCreatedAt
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
+                        : "border-slate-200 bg-slate-50 text-slate-500 focus:bg-white focus:border-indigo-400"
+                    }`}
                   />
+
+                  {/* 🌟 这里的清除按钮做了一点体验优化：当选了日期时，给右边留出空位，不遮挡原生的日历图标 */}
                   {filterCreatedAt && (
                     <button
                       onClick={() => setFilterCreatedAt("")}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
+                      className='absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors'
+                      title='Clear date'
                     >
                       <X size={13} />
                     </button>
