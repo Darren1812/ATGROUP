@@ -46,9 +46,26 @@ import {
   Phone,
   Archive,
   Building,
+  Sparkles,
 } from "lucide-react";
 
+interface OcrItem {
+  description: string;
+}
+
+interface PendingTaskDraft {
+  from: string;
+  companyName: string;
+  location: string;
+  phoneNumber: string;
+  department: string;
+  picDeliver: string;
+  scheduledTime: string | null;
+  items: OcrItem[];
+}
+
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
+const API2 = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/OCRAI`;
 
 const STATUS_CONFIG: Record<
   string,
@@ -74,9 +91,6 @@ const STATUS_CONFIG: Record<
   },
 };
 
-/* =========================
-   COLUMNS CONFIG
-========================= */
 const COLUMN_DEFS = [
   { key: "orderNumber", label: "ID", icon: null, width: 100 },
   { key: "createdAt", label: "At", icon: Clock, width: 100 },
@@ -94,9 +108,6 @@ const COLUMN_DEFS = [
   { key: "action", label: "Action", icon: Settings, width: 100 },
 ];
 
-/* =========================
-   DRAG HEADER
-========================= */
 function SortableHeader({ col }: any) {
   const {
     attributes,
@@ -137,7 +148,6 @@ function SortableHeader({ col }: any) {
   );
 }
 
-// ── Highlight matching text in search ──
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query || !text) return <>{text}</>;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -160,7 +170,6 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-// ── Small removable chip shown below filter bar ──
 function FilterChip({
   label,
   onRemove,
@@ -205,12 +214,16 @@ export default function LogisticsPage() {
   const [filterFrom, setFilterFrom] = useState("");
   const [filterorderNumber, setFilterorderNumber] = useState("");
   const [filterCreatedAt, setFilterCreatedAt] = useState("");
+
   // ── Column Management ──
   const [columns, setColumns] = useState(
     COLUMN_DEFS.map((c) => ({ ...c, visible: true })),
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const { user } = useAuth();
+
+  // ── OCR / Pending Tasks ──
+  const [pendingTasks, setPendingTasks] = useState<PendingTaskDraft[]>([]);
 
   // ── Drag sensors ──
   const sensors = useSensors(
@@ -272,7 +285,6 @@ export default function LogisticsPage() {
         });
 
         if (res.ok) {
-          // ✅ Update UI state
           setDocStatus((prev) => ({
             ...prev,
             [id]: {
@@ -285,7 +297,6 @@ export default function LogisticsPage() {
             },
           }));
 
-          // 🔥 IMPORTANT: update backend status when COMPLETE uploaded
           if (type === "complete") {
             await fetch(`${API}/status/${id}`, {
               method: "PATCH",
@@ -302,13 +313,12 @@ export default function LogisticsPage() {
       }
 
       setUploadingDoc((prev) => ({ ...prev, [key]: false }));
-
-      // 🔄 Refresh data so UI + DB stay in sync
       fetchTasks(true);
     };
 
     input.click();
   };
+
   const viewDocument = (
     id: number,
     type: "installation" | "do" | "complete",
@@ -342,7 +352,6 @@ export default function LogisticsPage() {
       );
       const data = await res.json();
 
-      // 🔥 Step 1: update backend if needed
       await Promise.all(
         data.map(async (t: any) => {
           if (t.hasComplete && t.status !== "Complete") {
@@ -355,7 +364,6 @@ export default function LogisticsPage() {
         }),
       );
 
-      // 🔥 Step 2: normalize UI
       const updated = data.map((t: any) => ({
         ...t,
         status: t.hasComplete
@@ -371,11 +379,12 @@ export default function LogisticsPage() {
     }
     isRefresh ? setRefreshing(false) : setLoading(false);
   };
+
   useEffect(() => {
     if (user) {
       fetchTasks();
     }
-  }, [user]); // ← Re-runs whenever user changes (null → loaded)
+  }, [user]);
 
   // ── CREATE ──
   const createTask = async () => {
@@ -427,15 +436,14 @@ export default function LogisticsPage() {
 
   // ── PATCH ──
   const updateEstimate = async (id: any, value: string) => {
-    // "2026-04-30T10:30" -> add 'Z' to tell JS: "This is ALREADY UTC"
     const utcString = value + ":00.000Z";
-
     await fetch(`${API}/estimate/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scheduledTime: utcString }),
     });
   };
+
   const updateSchedule = async (id: number, value: string) => {
     await fetch(`${API}/schedule/${id}`, {
       method: "PATCH",
@@ -444,34 +452,30 @@ export default function LogisticsPage() {
     });
     fetchTasks(true);
   };
-  // ── 修改后的 updatePic ──
+
   const updatePic = async (id: number, value: string, scheduleAt?: string) => {
-    // 1. 更新 PIC
     await fetch(`${API}/pic/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(value),
     });
 
-    // 2. 状态判断逻辑
     let newStatus = "Waiting";
-
     if (value && scheduleAt) {
       newStatus = "Arranging";
     } else if (value) {
       newStatus = "Arrange";
     }
 
-    // 3. 更新状态
     await fetch(`${API}/status/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newStatus),
     });
 
-    // 4. refresh
     fetchTasks(true);
   };
+
   // ── Unique PIC list for dropdown ──
   const picOptions = useMemo(() => {
     const s = new Set(tasks.map((t) => t.picDeliver).filter(Boolean));
@@ -521,27 +525,20 @@ export default function LogisticsPage() {
       }
       if (filterCompanyName) {
         const company = t.companyName?.toLowerCase() || "";
-        if (!company.includes(filterCompanyName.toLowerCase())) {
-          return false;
-        }
+        if (!company.includes(filterCompanyName.toLowerCase())) return false;
       }
       if (filterFrom) {
         const from = t.from?.toLowerCase() || "";
-        if (!from.includes(filterFrom.toLowerCase())) {
-          return false;
-        }
+        if (!from.includes(filterFrom.toLowerCase())) return false;
       }
       if (filterorderNumber) {
         const orderNumber = t.orderNumber?.toLowerCase() || "";
-        if (!orderNumber.includes(filterorderNumber.toLowerCase())) {
+        if (!orderNumber.includes(filterorderNumber.toLowerCase()))
           return false;
-        }
       }
       if (filterCreatedAt) {
         const createdAt = t.createdAt?.toLowerCase() || "";
-        if (!createdAt.includes(filterCreatedAt.toLowerCase())) {
-          return false;
-        }
+        if (!createdAt.includes(filterCreatedAt.toLowerCase())) return false;
       }
 
       return true;
@@ -569,6 +566,7 @@ export default function LogisticsPage() {
     filterCreatedAt,
     filterorderNumber,
   ].filter(Boolean).length;
+
   const clearAllFilters = () => {
     setFilterCreatedAt("");
     setFilterorderNumber("");
@@ -581,34 +579,223 @@ export default function LogisticsPage() {
     setFilterDateTo("");
   };
 
+  // ── OCR Upload ──
+  const handleOcrUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API2}/parse-document`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("OCR processing failed");
+
+      const ocrData = await response.json();
+
+      const newTaskDraft: PendingTaskDraft = {
+        from: ocrData.from_shop || "",
+        companyName: ocrData.to_company || "",
+        location: ocrData.to_location || "",
+        phoneNumber: ocrData.phone_number || "",
+        department: user?.department || "Marketing",
+        picDeliver: "",
+        scheduledTime: null,
+        items: (ocrData.items || []).map((i: any) => ({
+          description: i.description || "",
+        })),
+      };
+
+      setPendingTasks((prev) => [...prev, newTaskDraft]);
+    } catch (error) {
+      console.error("OCR Error:", error);
+      alert("OCR parsing failed, please try again.");
+    }
+  };
+
+  // ── Draft control functions ──
+  const updateDraftField = <K extends keyof PendingTaskDraft>(
+    taskIdx: number,
+    field: K,
+    value: PendingTaskDraft[K], // 🌟 这样会自动匹配 PendingTaskDraft 结构里每个字段自己的类型
+  ) => {
+    setPendingTasks((prev) =>
+      prev.map((draft, idx) =>
+        idx === taskIdx ? { ...draft, [field]: value } : draft,
+      ),
+    );
+  };
+
+  const updateDraftItem = (taskIdx: number, itemIdx: number, value: string) => {
+    setPendingTasks((prev) =>
+      prev.map((draft, idx) => {
+        if (idx !== taskIdx) return draft;
+        const updatedItems = draft.items.map((item, i) =>
+          i === itemIdx ? { description: value } : item,
+        );
+        return { ...draft, items: updatedItems };
+      }),
+    );
+  };
+
+  const removeDraftItem = (taskIdx: number, itemIdx: number) => {
+    setPendingTasks((prev) =>
+      prev.map((draft, idx) => {
+        if (idx !== taskIdx) return draft;
+        return { ...draft, items: draft.items.filter((_, i) => i !== itemIdx) };
+      }),
+    );
+  };
+
+  const addDraftItem = (taskIdx: number) => {
+    setPendingTasks((prev) =>
+      prev.map((draft, idx) => {
+        if (idx !== taskIdx) return draft;
+        return { ...draft, items: [...draft.items, { description: "" }] };
+      }),
+    );
+  };
+
+  // ── Submit all pending OCR tasks ──
+  const handleConfirmSubmitAll = async () => {
+    try {
+      const payload = pendingTasks.map((draft) => {
+        let formattedTime = null;
+
+        if (draft.scheduledTime) {
+          // 1. 先把可能存在的 'Z' 尾巴去掉
+          let cleanTime = draft.scheduledTime.replace("Z", "");
+
+          // 2. 🌟 关键防御：如果发现时间被转换成了非你所选的少 8 小时的 UTC 格式
+          //    我们通过 JavaScript 的 Date 对象，强行把它还原成“所见即所得”的本地真实输入文本
+          if (draft.scheduledTime.includes("Z")) {
+            const utcDate = new Date(draft.scheduledTime);
+            // 重新拼装成绝对不带时区偏移的本地 "YYYY-MM-DDTHH:mm:ss" 字符串
+            const year = utcDate.getFullYear();
+            const month = String(utcDate.getMonth() + 1).padStart(2, "0");
+            const day = String(utcDate.getDate()).padStart(2, "0");
+            const hours = String(utcDate.getHours()).padStart(2, "0");
+            const minutes = String(utcDate.getMinutes()).padStart(2, "0");
+            const seconds = String(utcDate.getSeconds()).padStart(2, "0");
+
+            formattedTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+          } else {
+            // 如果本来就是纯本地字符串，确保格式为 YYYY-MM-DDTHH:mm:ss
+            formattedTime = cleanTime.includes("T")
+              ? cleanTime.split(":").length === 2
+                ? `${cleanTime}:00`
+                : cleanTime
+              : `${cleanTime}:00`;
+          }
+        }
+
+        return {
+          department: user?.department || "Software Engineer", //
+          createdBy: user?.nameUse || "Darren", //
+          from: draft.from,
+          companyName: draft.companyName,
+          location: draft.location,
+          phoneNumber: draft.phoneNumber,
+          picDeliver: draft.picDeliver || "",
+          status: "Waiting",
+
+          // 🌟 这次发送出去的绝对是纯净的 "2026-06-19T16:17:00"，没任何人能背地里篡改它
+          scheduledTime: formattedTime,
+
+          items: draft.items.map((i) => ({ description: i.description })),
+        };
+      });
+
+      // 后续的 fetch 提交代码保持不变
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics/create-from-ocr`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (res.ok) {
+        setPendingTasks([]);
+        fetchTasks(true);
+        alert("Tasks created successfully!");
+      } else {
+        alert("Save failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An unexpected error occurred during submission.");
+    }
+  };
+  // ── Export ──
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.set("search", searchQuery);
+      if (filterorderNumber) params.set("orderNumber", filterorderNumber);
+      if (filterCreatedAt) params.set("createdAt", filterCreatedAt);
+      if (filterFrom) params.set("from", filterFrom);
+      if (filterCompanyName) params.set("companyName", filterCompanyName);
+      if (filterPic) params.set("pic", filterPic);
+      if (filterStatus) params.set("status", filterStatus);
+      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+      if (filterDateTo) params.set("dateTo", filterDateTo);
+
+      const response = await fetch(
+        `${API}/export-full-zip?${params.toString()}`,
+        { method: "GET" },
+      );
+
+      if (!response.ok) throw new Error("Failed to generate zip");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const date = new Date().toISOString().split("T")[0];
+      link.setAttribute("download", `Logistics_Backup_${date}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Export failed. Please check your connection.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const [name, setName] = useState(user?.nameUse || "");
+
   const renderCellContent = (t: any, colKey: string) => {
-    const computedStatus =
-      t.scheduledAt && t.picDeliver ? "Arrange" : "Waiting";
-    const cfg = STATUS_CONFIG[computedStatus] ?? STATUS_CONFIG["Waiting"];
     const isInstallUploaded = docStatus[t.id]?.install || t.hasInstallationForm;
     const isDoUploaded = docStatus[t.id]?.do || t.hasDo;
     const isCompleteUploaded = docStatus[t.id]?.complete || t.hasComplete;
     const mapUrl = (value: string) =>
       `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}`;
+
     interface LinkWrapperProps {
       children: React.ReactNode;
-      className?: string; // className 通常是可选的，所以加上 ?
-      href?: string; // 如果你要传 href，建议也加上
+      className?: string;
+      href?: string;
     }
+
     const formatForInput = (utcDateString: string | number | Date) => {
       if (!utcDateString) return "";
       const date = new Date(utcDateString);
-
-      // 获取本地时间的 YYYY-MM-DDThh:mm 格式
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       const hours = String(date.getHours()).padStart(2, "0");
       const minutes = String(date.getMinutes()).padStart(2, "0");
-
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
-    // 2. 使用 React.FC 定义组件，TypeScript 会自动推断类型
+
     const LinkWrapper: React.FC<LinkWrapperProps> = ({
       children,
       className,
@@ -618,7 +805,6 @@ export default function LogisticsPage() {
         href={href}
         target='_blank'
         rel='noopener noreferrer'
-        // Change "rounded-full" to "rounded-md"
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 border ${className || ""}`}
       >
         {children}
@@ -627,10 +813,10 @@ export default function LogisticsPage() {
 
     const getTodayMinString = () => {
       const now = new Date();
-      // Offsets the time to local timezone to get the correct YYYY-MM-DDTHH:mm format
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
     };
+
     switch (colKey) {
       case "orderNumber":
         return (
@@ -638,11 +824,9 @@ export default function LogisticsPage() {
             <Highlight text={t.orderNumber} query={searchQuery} />
           </span>
         );
-
       case "createdAt":
         return (
           <span className='text-[11px] w-[160px] text-gray-400 leading-snug'>
-            {/* 直接传入处理后的字符串，而不是原始的 t.createdAt */}
             <Highlight text={t.createdAt} query={searchQuery} />
           </span>
         );
@@ -661,7 +845,6 @@ export default function LogisticsPage() {
             <Highlight text={t.from} query={searchQuery} />
           </LinkWrapper>
         );
-      // In your switch case:
       case "companyName":
         return (
           <LinkWrapper
@@ -686,10 +869,9 @@ export default function LogisticsPage() {
             <Highlight text={t.phoneNumber} query={searchQuery} />
           </span>
         );
-
       case "item":
         return (
-          <span className='inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap text-[11px] px-2 py-1.5 w-[200px] '>
+          <span className='inline-flex flex-col px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 leading-snug whitespace-pre-wrap text-[11px] px-2 py-1.5 w-[200px]'>
             {t.item?.split("\n").map((line: string, i: number) => (
               <span key={i}>
                 <Highlight text={line} query={searchQuery} />
@@ -701,7 +883,7 @@ export default function LogisticsPage() {
         return (
           <input
             type='datetime-local'
-            min={getTodayMinString()} // Prevents past dates
+            min={getTodayMinString()}
             defaultValue={formatForInput(t.time)}
             onBlur={(e) => updateEstimate(t.id, e.target.value)}
             className='text-[11px] px-2 py-1.5 w-[160px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
@@ -711,15 +893,14 @@ export default function LogisticsPage() {
         return (
           <input
             type='datetime-local'
-            min={getTodayMinString()} // Prevents past dates
+            min={getTodayMinString()}
             defaultValue={formatDate(t.scheduledAt)}
             onBlur={(e) => updateSchedule(t.id, e.target.value)}
             className='text-[11px] px-2 py-1.5 w-[165px] border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
           />
         );
       case "pic":
-        const picOptions = ["Akmal", "Nahfiz", "Darwin", "Darren"];
-
+        const picListOptions = ["Akmal", "Nahfiz", "Darwin", "Darren"];
         return (
           <div className='relative w-[120px]'>
             <input
@@ -727,23 +908,19 @@ export default function LogisticsPage() {
               defaultValue={t.picDeliver}
               onBlur={(e) => updatePic(t.id, e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur(); // 触发 onBlur → updatePic
-                }
+                if (e.key === "Enter") e.currentTarget.blur();
               }}
               className='text-[11px] px-2 py-1.5 w-full border border-slate-200 rounded-lg bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-700'
               placeholder='Select PIC'
             />
-
             <datalist id={`pic-list-${t.id}`}>
-              {picOptions.map((name) => (
+              {picListOptions.map((name) => (
                 <option key={name} value={name} />
               ))}
             </datalist>
           </div>
         );
       case "status":
-        // 直接使用从 API 获取的 t.status
         const cfg = STATUS_CONFIG[t.status] ?? STATUS_CONFIG["Waiting"];
         return (
           <div
@@ -808,7 +985,6 @@ export default function LogisticsPage() {
                 <Eye size={13} />
               </button>
             </div>
-            {/* NEW: COMPLETE / DELIVERY PROOF */}
             <div className='flex items-center gap-1.5'>
               <button
                 onClick={() => triggerUpload(t.id, "complete")}
@@ -862,50 +1038,7 @@ export default function LogisticsPage() {
         return null;
     }
   };
-  const [name, setName] = useState(user?.nameUse || "");
-  // 1. 定义状态
-  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportBackup = async () => {
-    setIsExporting(true);
-    try {
-      const params = new URLSearchParams();
-      if (searchQuery) params.set("search", searchQuery);
-      if (filterorderNumber) params.set("orderNumber", filterorderNumber);
-      if (filterCreatedAt) params.set("createdAt", filterCreatedAt);
-      if (filterFrom) params.set("from", filterFrom);
-      if (filterCompanyName) params.set("companyName", filterCompanyName);
-      if (filterPic) params.set("pic", filterPic);
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
-      if (filterDateTo) params.set("dateTo", filterDateTo);
-
-      const response = await fetch(
-        `${API}/export-full-zip?${params.toString()}`,
-        {
-          method: "GET",
-        },
-      );
-
-      if (!response.ok) throw new Error("Failed to generate zip");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const date = new Date().toISOString().split("T")[0];
-      link.setAttribute("download", `Logistics_Backup_${date}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export error:", error);
-      alert("Export failed. Please check your connection.");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-  // 2. JSX 绑定
   return (
     <div className='min-h-screen bg-slate-50'>
       {/* PAGE HEADER */}
@@ -936,6 +1069,30 @@ export default function LogisticsPage() {
                   className={refreshing ? "animate-spin" : ""}
                 />
               </button>
+
+              {/* Hidden file input for OCR upload */}
+              <input
+                type='file'
+                id='ocr-upload-input'
+                accept='application/pdf,image/*'
+                className='hidden'
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleOcrUpload(file);
+                  // Reset input so same file can be re-uploaded
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() =>
+                  document.getElementById("ocr-upload-input")?.click()
+                }
+                className='flex items-center gap-2 px-4 py-2 bg-violet-600 text-white font-bold rounded-lg hover:bg-violet-700 transition-colors shadow-sm text-xs'
+              >
+                <Sparkles size={14} className='animate-pulse' />
+                AI Parse Document
+              </button>
+
               <button
                 onClick={() => setShowForm((v) => !v)}
                 className='flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-md shadow-indigo-200'
@@ -943,28 +1100,226 @@ export default function LogisticsPage() {
                 <Plus size={16} />
                 New Task
               </button>
+
               <button
-                onClick={handleExportBackup} // No need to pass (v) => !v
-                disabled={isExporting} // Disable while downloading
+                onClick={handleExportBackup}
+                disabled={isExporting}
                 className={`flex items-center gap-2 px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-md 
-                ${
-                  isExporting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"
-                }`}
+                ${isExporting ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"}`}
               >
                 <Archive
                   size={16}
                   className={isExporting ? "animate-spin" : ""}
                 />
                 {isExporting ? "Packaging..." : "Generate Record"}
-              </button>{" "}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <div className='w-full px-8 py-8 space-y-6'>
+        {/* ── AI DRAFT PREVIEW AREA ── */}
+        {pendingTasks.length > 0 && (
+          <div className='mb-6 p-4 border border-violet-200 bg-violet-50/40 rounded-xl'>
+            {/* 顶部标题栏保持不变 */}
+            <div className='flex items-center justify-between mb-4'>
+              <div className='flex items-center gap-2'>
+                <div className='p-1.5 bg-violet-100 text-violet-700 rounded-md'>
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <h3 className='font-bold text-sm text-slate-800'>
+                    AI Parsed Drafts — Pending Confirmation
+                  </h3>
+                  <p className='text-[11px] text-slate-500'>
+                    Review details below, then save to the system. Multiple
+                    items will be auto-split into separate tasks sharing the
+                    same order number.
+                  </p>
+                </div>
+              </div>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => setPendingTasks([])}
+                  className='px-3 py-1.5 text-xs font-semibold text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors'
+                >
+                  Clear Drafts
+                </button>
+                <button
+                  onClick={handleConfirmSubmitAll}
+                  className='flex items-center gap-1.5 px-4 py-1.5 text-xs font-black text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition-all shadow-sm'
+                >
+                  Confirm & Save to System <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Draft cards */}
+            <div className='grid grid-cols-1 gap-4'>
+              {pendingTasks.map((draft, taskIndex) => (
+                <div
+                  key={taskIndex}
+                  className='bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative'
+                >
+                  <button
+                    onClick={() =>
+                      setPendingTasks((prev) =>
+                        prev.filter((_, idx) => idx !== taskIndex),
+                      )
+                    }
+                    className='absolute top-3 right-3 text-slate-400 hover:text-slate-600'
+                  >
+                    <X size={14} />
+                  </button>
+
+                  {/* 发货、收货、电话 */}
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mb-3'>
+                    <div>
+                      <label className='block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1'>
+                        From (Sender)
+                      </label>
+                      <input
+                        type='text'
+                        value={draft.from}
+                        onChange={(e) =>
+                          updateDraftField(taskIndex, "from", e.target.value)
+                        }
+                        className='w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-medium focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1'>
+                        Company (Recipient)
+                      </label>
+                      <input
+                        type='text'
+                        value={draft.companyName}
+                        onChange={(e) =>
+                          updateDraftField(
+                            taskIndex,
+                            "companyName",
+                            e.target.value,
+                          )
+                        }
+                        className='w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-medium focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1'>
+                        Phone
+                      </label>
+                      <input
+                        type='text'
+                        value={draft.phoneNumber}
+                        onChange={(e) =>
+                          updateDraftField(
+                            taskIndex,
+                            "phoneNumber",
+                            e.target.value,
+                          )
+                        }
+                        className='w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-medium focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none'
+                      />
+                    </div>
+                  </div>
+
+                  {/* 地址与统一预计交货时间 */}
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mb-3 items-end'>
+                    <div className='md:col-span-2'>
+                      <label className='block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1'>
+                        Location (Delivery Address)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={draft.location}
+                        onChange={(e) =>
+                          updateDraftField(
+                            taskIndex,
+                            "location",
+                            e.target.value,
+                          )
+                        }
+                        className='w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-medium leading-relaxed focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none resize-none'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 text-violet-600'>
+                        Estimate Delivery Time (Shared)
+                      </label>
+                      <input
+                        type='datetime-local'
+                        // 🌟 确保值直接输出 YYYY-MM-DDTHH:mm 格式，不进行任何时区转换
+                        value={
+                          draft.scheduledTime
+                            ? draft.scheduledTime.substring(0, 16)
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value; // 例如得到 "2026-06-15T15:00"
+                          updateDraftField(
+                            taskIndex,
+                            "scheduledTime",
+                            val ? `${val}:00` : null, // 补齐秒数，原封不动地以纯字符串存进去
+                          );
+                        }}
+                        className='w-full px-2.5 py-1.5 border border-violet-200 bg-violet-50/20 rounded-lg text-[11px] font-semibold text-slate-700 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none'
+                      />
+                    </div>
+                  </div>
+
+                  {/* Item 行拆分部分保持不变 */}
+                  <div className='border-t border-slate-100 pt-3'>
+                    <span className='inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-violet-50 border border-violet-100 text-violet-700 text-[10px] font-black uppercase tracking-wider mb-2'>
+                      <Package size={11} />
+                      Items — this document will auto-split into{" "}
+                      {draft.items.length} task
+                      {draft.items.length !== 1 ? "s" : ""} sharing the same
+                      order number
+                    </span>
+                    <div className='space-y-1.5'>
+                      {draft.items.map((item, itemIdx) => (
+                        <div
+                          key={itemIdx}
+                          className='flex items-center gap-2 pl-2'
+                        >
+                          <span className='text-[10px] font-bold text-slate-400 w-4'>
+                            #{itemIdx + 1}
+                          </span>
+                          <input
+                            type='text'
+                            value={item.description}
+                            onChange={(e) =>
+                              updateDraftItem(
+                                taskIndex,
+                                itemIdx,
+                                e.target.value,
+                              )
+                            }
+                            className='flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-[11px] font-medium text-slate-700 focus:border-violet-400 focus:ring-1 focus:ring-violet-100 outline-none'
+                          />
+                          <button
+                            onClick={() => removeDraftItem(taskIndex, itemIdx)}
+                            className='p-1 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors'
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => addDraftItem(taskIndex)}
+                        className='flex items-center gap-1 pl-2 text-[11px] text-violet-600 font-bold hover:text-violet-800 transition-colors'
+                      >
+                        <Plus size={12} /> Add item row
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* CREATE FORM */}
         {showForm && (
           <div className='bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden'>
@@ -1053,8 +1408,7 @@ export default function LogisticsPage() {
                   <input
                     type='text'
                     value={name}
-                    onChange={(e) => setName(e.target.value)} // You can actually remove this now!
-                    readOnly // <--- Add this
+                    readOnly
                     className='border p-2 rounded bg-slate-100 cursor-not-allowed text-slate-500'
                     placeholder='Enter name'
                   />
@@ -1097,9 +1451,7 @@ export default function LogisticsPage() {
 
         {/* SEARCH + FILTER BAR */}
         <div className='bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden'>
-          {/* Row 1: search input + column toggle + filter toggle + clear */}
           <div className='px-5 py-3.5 flex items-center gap-3'>
-            {/* Search */}
             <div className='relative flex-1 min-w-0'>
               <Search
                 size={15}
@@ -1120,7 +1472,6 @@ export default function LogisticsPage() {
                 </button>
               )}
             </div>
-            {/* Filter toggle */}
             <button
               onClick={() => setShowFilters((v) => !v)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 whitespace-nowrap
@@ -1133,10 +1484,7 @@ export default function LogisticsPage() {
               <SlidersHorizontal size={15} />
               Filters
               {activeFilterCount > 0 && (
-                <span
-                  className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black
-                  ${showFilters ? "bg-white text-indigo-600" : "bg-white text-indigo-600"}`}
-                >
+                <span className='flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black bg-white text-indigo-600'>
                   {activeFilterCount}
                 </span>
               )}
@@ -1146,7 +1494,6 @@ export default function LogisticsPage() {
               />
             </button>
 
-            {/* Clear all */}
             {(activeFilterCount > 0 || searchQuery) && (
               <button
                 onClick={clearAllFilters}
@@ -1157,10 +1504,8 @@ export default function LogisticsPage() {
             )}
           </div>
 
-          {/* Row 2: filter dropdowns (collapsible) */}
           {showFilters && (
             <div className='px-5 pb-5 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {/* OrderNumber */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Building size={10} /> Order Number
@@ -1172,11 +1517,7 @@ export default function LogisticsPage() {
                     onChange={(e) => setFilterorderNumber(e.target.value)}
                     placeholder='Search Order Number...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${
-                        filterorderNumber
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterorderNumber ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   />
                   {filterorderNumber && (
                     <button
@@ -1188,7 +1529,6 @@ export default function LogisticsPage() {
                   )}
                 </div>
               </div>
-              {/* CreatedAt */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Building size={10} /> Created At
@@ -1200,11 +1540,7 @@ export default function LogisticsPage() {
                     onChange={(e) => setFilterCreatedAt(e.target.value)}
                     placeholder='Search Created Date...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${
-                        filterCreatedAt
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterCreatedAt ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   />
                   {filterCreatedAt && (
                     <button
@@ -1216,7 +1552,6 @@ export default function LogisticsPage() {
                   )}
                 </div>
               </div>
-              {/* From */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Building size={10} /> From
@@ -1228,11 +1563,7 @@ export default function LogisticsPage() {
                     onChange={(e) => setFilterFrom(e.target.value)}
                     placeholder='Search From...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${
-                        filterCompanyName
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterFrom ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   />
                   {filterFrom && (
                     <button
@@ -1244,7 +1575,6 @@ export default function LogisticsPage() {
                   )}
                 </div>
               </div>
-              {/* Company Name */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Building size={10} /> Company Name
@@ -1256,11 +1586,7 @@ export default function LogisticsPage() {
                     onChange={(e) => setFilterCompanyName(e.target.value)}
                     placeholder='Search company...'
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                      ${
-                        filterCompanyName
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterCompanyName ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   />
                   {filterCompanyName && (
                     <button
@@ -1276,17 +1602,12 @@ export default function LogisticsPage() {
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <User size={10} /> PIC
                 </label>
-
                 <div className='relative'>
                   <select
                     value={filterPic}
                     onChange={(e) => setFilterPic(e.target.value)}
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl appearance-none cursor-pointer pr-8 outline-none transition-all
-                      ${
-                        filterPic
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterPic ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   >
                     <option value=''>All PIC</option>
                     {picOptions.map((p) => (
@@ -1301,8 +1622,6 @@ export default function LogisticsPage() {
                   />
                 </div>
               </div>
-
-              {/* Status */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Filter size={10} /> Status
@@ -1312,11 +1631,7 @@ export default function LogisticsPage() {
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className={`w-full px-3 py-2.5 text-sm border rounded-xl appearance-none cursor-pointer pr-8 outline-none transition-all
-                      ${
-                        filterStatus
-                          ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                      }`}
+                      ${filterStatus ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                   >
                     <option value=''>All Status</option>
                     <option value='Waiting'>Waiting</option>
@@ -1329,8 +1644,6 @@ export default function LogisticsPage() {
                   />
                 </div>
               </div>
-
-              {/* Schedule From */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Clock size={10} /> Schedule From
@@ -1340,15 +1653,9 @@ export default function LogisticsPage() {
                   value={filterDateFrom}
                   onChange={(e) => setFilterDateFrom(e.target.value)}
                   className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                    ${
-                      filterDateFrom
-                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                        : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                    }`}
+                    ${filterDateFrom ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                 />
               </div>
-
-              {/* Schedule To */}
               <div className='flex flex-col gap-1.5'>
                 <label className='text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5'>
                   <Clock size={10} /> Schedule To
@@ -1358,17 +1665,12 @@ export default function LogisticsPage() {
                   value={filterDateTo}
                   onChange={(e) => setFilterDateTo(e.target.value)}
                   className={`w-full px-3 py-2.5 text-sm border rounded-xl outline-none transition-all
-                    ${
-                      filterDateTo
-                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold"
-                        : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"
-                    }`}
+                    ${filterDateTo ? "border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold" : "border-slate-200 bg-slate-50 text-slate-600 focus:bg-white focus:border-indigo-400"}`}
                 />
               </div>
             </div>
           )}
 
-          {/* Active filter chips */}
           {activeFilterCount > 0 && (
             <div
               className={`px-5 pb-3.5 flex flex-wrap gap-2 ${showFilters ? "" : "border-t border-slate-100 pt-3"}`}
@@ -1400,10 +1702,10 @@ export default function LogisticsPage() {
             </div>
           )}
         </div>
+
         {/* Column visibility toggle */}
         <div className='flex justify-between items-center'>
           <div></div>
-
           <div className='relative'>
             <button
               onClick={() => setShowColumnMenu((v) => !v)}
@@ -1413,16 +1715,12 @@ export default function LogisticsPage() {
               Columns
             </button>
 
-            {/* Column menu dropdown */}
             {showColumnMenu && (
               <>
-                {/* Backdrop overlay */}
                 <div
                   className='fixed inset-0 z-40'
                   onClick={() => setShowColumnMenu(false)}
                 />
-
-                {/* Dropdown menu */}
                 <div className='absolute top-full right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden'>
                   <div className='px-4 py-3 border-b border-slate-100 flex items-center justify-between'>
                     <span className='text-xs font-black text-slate-600 uppercase tracking-wider'>
@@ -1473,6 +1771,7 @@ export default function LogisticsPage() {
             )}
           </div>
         </div>
+
         {/* TABLE */}
         <div className='bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden'>
           <div className='px-6 py-4 border-b border-slate-100 flex items-center justify-between'>
@@ -1557,7 +1856,6 @@ export default function LogisticsPage() {
                       </SortableContext>
                     </tr>
                   </thead>
-
                   <tbody className='divide-y divide-slate-100'>
                     {filteredTasks.map((t) => (
                       <tr

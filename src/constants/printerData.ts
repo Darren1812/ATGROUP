@@ -313,6 +313,7 @@ export const modelSpeedMap: Record<string, string> = {
 };
 
 export const STAFF_NAMES = [
+  "Jay Tan Jing Zhe",
   "Darren Wong",
   "Boon Yee Kuan",
   "Aezattul Hannah Binti Abas",
