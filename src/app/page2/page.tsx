@@ -816,7 +816,28 @@ export default function LogisticsPage() {
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().slice(0, 16);
     };
+    const formatDisplayValue = (value: string): string => {
+      if (!value) return "";
 
+      // If it's a long Google Maps URL, extract query parameters or truncate it
+      if (value.startsWith("http://") || value.startsWith("https://")) {
+        try {
+          const url = new URL(value);
+          // Try to find a search query parameter (e.g., ?query= or ?q=)
+          const queryParam =
+            url.searchParams.get("query") || url.searchParams.get("q");
+          if (queryParam) {
+            return decodeURIComponent(queryParam);
+          }
+          // Fallback: If it's a URL but has no obvious query, show the domain + snippet
+          return `${url.hostname}...`;
+        } catch (e) {
+          // Fallback if URL parsing fails
+          return value.length > 30 ? `${value.slice(0, 30)}...` : value;
+        }
+      }
+      return value;
+    };
     switch (colKey) {
       case "orderNumber":
         return (
@@ -840,27 +861,36 @@ export default function LogisticsPage() {
         return (
           <LinkWrapper
             href={mapUrl(t.from)}
-            className='bg-emerald-50 text emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200'
+            // Changed to whitespace-normal and break-words to force text wrapping
+            className='inline-block w-[250px] whitespace-normal break-words bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 rounded-lg'
           >
-            <Highlight text={t.from} query={searchQuery} />
+            <Highlight text={formatDisplayValue(t.from)} query={searchQuery} />
           </LinkWrapper>
         );
       case "companyName":
         return (
           <LinkWrapper
             href={mapUrl(t.companyName)}
-            className='bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200'
+            // Changed to whitespace-normal and break-words
+            className='inline-block w-[180px] whitespace-normal break-words bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 rounded-lg'
           >
-            <Highlight text={t.companyName} query={searchQuery} />
+            <Highlight
+              text={formatDisplayValue(t.companyName)}
+              query={searchQuery}
+            />
           </LinkWrapper>
         );
       case "location":
         return (
           <LinkWrapper
             href={mapUrl(t.location)}
-            className='bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 w-[100px]'
+            // Removed line-clamp entirely so it flows infinitely downward onto new lines
+            className='inline-block w-[220px] whitespace-normal break-words bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-[11px] px-2 py-1.5 rounded-lg'
           >
-            <Highlight text={t.location} query={searchQuery} />
+            <Highlight
+              text={formatDisplayValue(t.location)}
+              query={searchQuery}
+            />
           </LinkWrapper>
         );
       case "phoneNumber":
