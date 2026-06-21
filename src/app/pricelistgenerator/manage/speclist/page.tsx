@@ -16,14 +16,14 @@ const CATEGORY_OPTIONS = [
   {
     value: "Finisher",
     label: "Finisher",
-    color: "bg-violet-100 text-violet-700",
-    activeColor: "bg-violet-600 text-white border-violet-600",
+    color: "bg-emerald-100 text-emerald-700",
+    activeColor: "bg-emerald-600 text-white border-emerald-600",
   },
   {
     value: "Paper Feeder",
     label: "Paper Feeder",
-    color: "bg-sky-100 text-sky-700",
-    activeColor: "bg-sky-600 text-white border-sky-600",
+    color: "bg-blue-100 text-blue-700",
+    activeColor: "bg-blue-600 text-white border-blue-600",
   },
   {
     value: "Fax Kit",
@@ -34,33 +34,26 @@ const CATEGORY_OPTIONS = [
   {
     value: "Punch Kit",
     label: "Punch Kit",
-    color: "bg-amber-100 text-amber-700",
-    activeColor: "bg-amber-500 text-white border-amber-500",
+    color: "bg-pink-100 text-pink-700",
+    activeColor: "bg-pink-500 text-white border-pink-500",
   },
   {
     value: "Staple Kit",
     label: "Staple Kit",
-    color: "bg-amber-100 text-amber-700",
-    activeColor: "bg-amber-500 text-white border-amber-500",
+    color: "bg-red-100 text-red-700",
+    activeColor: "bg-red-500 text-white border-red-500",
   },
   {
     value: "Tray",
     label: "Tray",
-    color: "bg-amber-100 text-amber-700",
-    activeColor: "bg-amber-500 text-white border-amber-500",
+    color: "bg-yellow-100 text-yellow-700",
+    activeColor: "bg-yellow-500 text-white border-yellow-500",
   },
   {
     value: "Add On Kit",
     label: "Add on Kit",
-    color: "bg-amber-100 text-amber-700",
-    activeColor: "bg-amber-500 text-white border-amber-500",
-  },
-
-  {
-    value: "Software",
-    label: "Software",
-    color: "bg-emerald-100 text-emerald-700",
-    activeColor: "bg-emerald-600 text-white border-emerald-600",
+    color: "bg-purple-100 text-purple-700",
+    activeColor: "bg-purple-500 text-white border-purple-500",
   },
   {
     value: "Others",
