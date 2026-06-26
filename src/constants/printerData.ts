@@ -310,6 +310,20 @@ export const modelSpeedMap: Record<string, string> = {
   "C3520i": "20ppm",
   "C3525i": "25ppm",
   "C3530i": "30ppm",
+  "301i": "30ppm",
+  "361i": "36ppm",
+  "451i": "45ppm",
+  "551i": "55ppm",
+  "651i": "65ppm",
+  "751i": "75ppm",
+  "950i": "95ppm",
+  "C251i": "25ppm",
+  "C301i": "30ppm",
+  "C361i": "36ppm",
+  "C451i": "45ppm",
+  "C551i": "55ppm",
+  "C651i": "65ppm",
+  "C751i": "75ppm",
 };
 
 export const STAFF_NAMES = [
