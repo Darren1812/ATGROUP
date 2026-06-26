@@ -327,6 +327,7 @@ export const STAFF_NAMES = [
   "Alya Amran",
   "Khloe Wong",
   "Lily Lim",
+  "Michael"
 ];
 
 export const ARENASTAFF_NAMES = [
