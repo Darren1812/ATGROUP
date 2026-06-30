@@ -2283,6 +2283,7 @@ export default function ASN_29series() {
                                     <option value="30ppm">30ppm</option>
                                     <option value="33ppm">33ppm</option>
                                     <option value="35ppm">35ppm</option>
+                                    <option value="36ppm">36ppm</option>
                                     <option value="40ppm">40ppm</option>
                                     <option value="43ppm">43ppm</option>
                                     <option value="45ppm">45ppm</option>
@@ -2291,6 +2292,7 @@ export default function ASN_29series() {
                                     <option value="60ppm">60ppm</option>
                                     <option value="65ppm">65ppm</option>
                                     <option value="70ppm">70ppm</option>
+                                    <option value="75ppm">75ppm</option>
                                     <option value="80ppm">80ppm</option>
                                     <option value="86ppm">86ppm</option>
                                     <option value="95ppm">95ppm</option>

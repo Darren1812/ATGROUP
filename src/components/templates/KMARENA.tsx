@@ -2511,25 +2511,27 @@ export default function ARENA() {
                                     className='w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white'
                                   >
                                     <option value=''>Select speed</option>
-                                    <option value='22ppm'>22ppm</option>
-                                    <option value='24ppm'>24ppm</option>
-                                    <option value='25ppm'>25ppm</option>
-                                    <option value='26ppm'>26ppm</option>
-                                    <option value='30ppm'>30ppm</option>
-                                    <option value='33ppm'>33ppm</option>
-                                    <option value='35ppm'>35ppm</option>
-                                    <option value='40ppm'>40ppm</option>
-                                    <option value='43ppm'>43ppm</option>
-                                    <option value='45ppm'>45ppm</option>
-                                    <option value='50ppm'>50ppm</option>
-                                    <option value='55ppm'>55ppm</option>
-                                    <option value='60ppm'>60ppm</option>
-                                    <option value='65ppm'>65ppm</option>
-                                    <option value='70ppm'>70ppm</option>
-                                    <option value='80ppm'>80ppm</option>
-                                    <option value='86ppm'>86ppm</option>
-                                    <option value='95ppm'>95ppm</option>
-                                    <option value='105ppm'>105ppm</option>
+                                    <option value="22ppm">22ppm</option>
+                                    <option value="24ppm">24ppm</option>
+                                    <option value="25ppm">25ppm</option>
+                                    <option value="26ppm">26ppm</option>
+                                    <option value="30ppm">30ppm</option>
+                                    <option value="33ppm">33ppm</option>
+                                    <option value="35ppm">35ppm</option>
+                                    <option value="36ppm">36ppm</option>
+                                    <option value="40ppm">40ppm</option>
+                                    <option value="43ppm">43ppm</option>
+                                    <option value="45ppm">45ppm</option>
+                                    <option value="50ppm">50ppm</option>
+                                    <option value="55ppm">55ppm</option>
+                                    <option value="60ppm">60ppm</option>
+                                    <option value="65ppm">65ppm</option>
+                                    <option value="70ppm">70ppm</option>
+                                    <option value="75ppm">75ppm</option>
+                                    <option value="80ppm">80ppm</option>
+                                    <option value="86ppm">86ppm</option>
+                                    <option value="95ppm">95ppm</option>
+                                    <option value="105ppm">105ppm</option>
                                   </select>
                                 </div>
 
