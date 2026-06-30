@@ -105,6 +105,7 @@ const COLUMN_DEFS = [
   { key: "pic", label: "PIC", icon: User, width: 120 },
   { key: "status", label: "Status", icon: CircleDot, width: 150 },
   { key: "documents", label: "Documents", icon: FileText, width: 140 },
+  { key: "remark", label: "Remark", icon: FileText, width: 200 },
   { key: "action", label: "Action", icon: Settings, width: 100 },
 ];
 
@@ -221,6 +222,8 @@ export default function LogisticsPage() {
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const { user } = useAuth();
+  const [remarkDrafts, setRemarkDrafts] = useState<Record<number, string>>({});
+  const [savingRemark, setSavingRemark] = useState<number | null>(null);
 
   // ── OCR / Pending Tasks ──
   const [pendingTasks, setPendingTasks] = useState<PendingTaskDraft[]>([]);
@@ -1041,6 +1044,16 @@ export default function LogisticsPage() {
               </button>
             </div>
           </div>
+        );
+      case "remark":
+        return (
+          <span className='inline-block w-[160px] whitespace-pre-wrap break-words text-[11px] text-slate-600 leading-snug'>
+            {t.remark ? (
+              <Highlight text={t.remark} query={searchQuery} />
+            ) : (
+              <span className='text-slate-300 italic'>—</span>
+            )}
+          </span>
         );
       case "action":
         return (

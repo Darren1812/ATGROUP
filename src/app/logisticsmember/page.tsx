@@ -3,24 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Loader2,
-  Package,
-  Calendar,
-  User,
-  MapPin,
-  Building2,
-  FileText,
-  Search,
-  Truck,
-  ArrowRight,
-  Clock,
-  Phone,
-  CheckCircle2,
-  AlertCircle,
-  Upload,
-  ListTodo,
-  CheckCheck,
-  Hourglass,
+  Loader2,Package,MapPin,Building2,FileText,Search,Truck,ArrowRight,Clock,Phone,Upload,ListTodo,CheckCheck,Hourglass,
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
@@ -76,7 +59,8 @@ export default function LogisticsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("Arrange"); // Default to "Arranging"
-
+  const [remarks, setRemarks] = useState<Record<number, string>>({});
+  const [savingRemark, setSavingRemark] = useState<number | null>(null);
   // Function to view PDF
   const handleViewDocument = async (
     id: number,
@@ -109,6 +93,12 @@ export default function LogisticsPage() {
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         setTasks(data);
+        const initialRemarks: Record<number, string> = {};
+        data.forEach((t: any) => {
+          initialRemarks[t.id] = t.remark || "";
+        });
+        setRemarks(initialRemarks);
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -230,6 +220,40 @@ export default function LogisticsPage() {
     } catch (err) {
       console.error(err);
       alert("An error occurred during upload or status update.");
+    }
+  };
+  const handleSaveRemark = async (id: number) => {
+    setSavingRemark(id);
+    try {
+      const res = await fetch(`${API}/remark/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(remarks[id] ?? ""),
+      });
+      if (!res.ok) throw new Error("Failed to save remark");
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === id ? { ...task, remark: remarks[id] } : task,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Could not save remark. Please try again.");
+    } finally {
+      setSavingRemark(null);
+    }
+  };
+
+  // Mobile-friendly: Enter saves, Shift+Enter makes a new line
+  const handleRemarkKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    id: number,
+  ) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      (e.target as HTMLTextAreaElement).blur(); // closes mobile keyboard
+      handleSaveRemark(id);
     }
   };
   return (
@@ -616,6 +640,33 @@ export default function LogisticsPage() {
                       >
                         <Upload size={16} /> UPLOAD / REPLACE
                       </button>
+                      <div className='relative mt-1'>
+                        <textarea
+                          value={remarks[t.id] ?? ""}
+                          onChange={(e) =>
+                            setRemarks((prev) => ({ ...prev, [t.id]: e.target.value }))
+                          }
+                          onKeyDown={(e) => handleRemarkKeyDown(e, t.id)}
+                          onBlur={() => {
+                            // Save on blur too, in case mobile user taps away instead of pressing Enter
+                            if ((remarks[t.id] ?? "") !== (t.remark ?? "")) {
+                              handleSaveRemark(t.id);
+                            }
+                          }}
+                          placeholder='Add a remark... (Enter to save)'
+                          rows={2}
+                          enterKeyHint='done'
+                          className='w-full resize-none text-xs font-medium text-slate-700 bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2.5 pr-9 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400'
+                        />
+                        <div className='absolute right-2.5 top-2.5'>
+                          {savingRemark === t.id ? (
+                            <Loader2 size={14} className='animate-spin text-indigo-500' />
+                          ) : (
+                            <FileText size={14} className='text-slate-300' />
+                          )}
+                        </div>
+                      </div>
+
                     </div>
                   </div>
 
