@@ -87,6 +87,17 @@ export default function Dashboard() {
       allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
     },
     {
+      title: "TENDER MASTER DATABASE",
+      description: "Track, manage, and showcase company project history and corporate milestones.",
+      route: "/masterdatabase",
+      icon: Database,
+      color: "from-blue-500 to-indigo-600",
+      lightColor: "bg-blue-50",
+      iconColor: "text-blue-600",
+      category: "CORE SYSTEM",
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
+    },
+    {
       title: "Archidex Database",
       description: "Access the centralized master database for all company registration records.",
       route: "/Archidex",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import LFPGenerator from './maincomponent/LFPGenerator'; // ← adjust path if needed
 
 interface CopierModel {
@@ -132,7 +132,13 @@ export default function PriceListGeneratorPage() {
   const selectedCount = selectedSpecIds.length;
   const fmt = (n: number) => n.toLocaleString('en-MY', { minimumFractionDigits: 2 });
   const [specsOpen, setSpecsOpen] = useState(false);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const filteredData = useMemo(() => {
+  if (!searchTerm.trim()) return fetchedData;
+  return fetchedData.filter(pack => 
+    pack.model.modelName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}, [fetchedData, searchTerm]);
   return (
     <div className="min-h-screen bg-[#F1F5F9] font-sans">
 
@@ -420,27 +426,83 @@ export default function PriceListGeneratorPage() {
                             <svg className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${modelDropOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
                           </button>
                           {modelDropOpen && (
-                            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden">
-                              <div className="py-1 max-h-64 overflow-y-auto">
-                                {fetchedData.map((pack, idx) => (
-                                  <button key={pack.model.id} onClick={() => { setActiveModelIdx(idx); setSelectedSpecIds([]); setModelDropOpen(false); }}
-                                    className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors ${activeModelIdx === idx ? 'bg-blue-50' : ''}`}>
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      {activeModelIdx === idx
-                                        ? <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg></div>
-                                        : <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex-shrink-0"/>
-                                      }
-                                      <span className={`text-sm font-semibold truncate ${activeModelIdx === idx ? 'text-blue-700' : 'text-slate-700'}`}>{pack.model.modelName}</span>
-                                    </div>
-                                    <span className="text-xs tabular-nums text-slate-400 flex-shrink-0 ml-4">RM {fmt(pack.model.basicPrice)}</span>
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-30 overflow-hidden flex flex-col">
+                            
+                            {/* 🔍 Search Bar 区域 */}
+                            <div className="p-2 border-b border-slate-100 bg-slate-50/50 sticky top-0">
+                              <div className="relative flex items-center">
+                                <svg className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                  type="text"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  placeholder="Search model name..."
+                                  className="w-full text-xs bg-white border border-slate-200 rounded-lg pl-8 pr-7 py-2 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:outline-none placeholder-slate-400"
+                                  autoFocus
+                                />
+                                {searchTerm && (
+                                  <button 
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                   </button>
-                                ))}
-                              </div>
-                              <div className="border-t border-slate-100 px-4 py-2 bg-slate-50/70">
-                                <p className="text-[10px] text-slate-400">{fetchedData.length} models for {selectedBrand} · {selectedCategory}</p>
+                                )}
                               </div>
                             </div>
-                          )}
+
+                            {/* Model 列表区域 */}
+                            <div className="py-1 max-h-64 overflow-y-auto">
+                              {filteredData.length === 0 ? (
+                                <div className="py-6 text-center text-xs text-slate-400">
+                                  No matching models found
+                                </div>
+                              ) : (
+                                filteredData.map((pack) => {
+                                  // 因为过滤了数组，所以找回原本在 fetchedData 的实际 index 传给 backend 逻辑
+                                  const originalIdx = fetchedData.findIndex(p => p.model.id === pack.model.id);
+                                  const isSelected = activeModelIdx === originalIdx;
+
+                                  return (
+                                    <button 
+                                      key={pack.model.id} 
+                                      onClick={() => { 
+                                        setActiveModelIdx(originalIdx); 
+                                        setSelectedSpecIds([]); 
+                                        setModelDropOpen(false); 
+                                        setSearchTerm(''); // 选中后清空搜索词
+                                      }}
+                                      className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                                    >
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        {isSelected
+                                          ? <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                                          : <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex-shrink-0"/>
+                                        }
+                                        <span className={`text-sm font-semibold truncate ${isSelected ? 'text-blue-700' : 'text-slate-700'}`}>{pack.model.modelName}</span>
+                                      </div>
+                                      <span className="text-xs tabular-nums text-slate-400 flex-shrink-0 ml-4">RM {fmt(pack.model.basicPrice)}</span>
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="border-t border-slate-100 px-4 py-2 bg-slate-50/70">
+                              <p className="text-[10px] text-slate-400">
+                                {filteredData.length === fetchedData.length 
+                                  ? `${fetchedData.length} models available` 
+                                  : `Found ${filteredData.length} of ${fetchedData.length} models`
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         </div>
                       </div>
                     </div>
