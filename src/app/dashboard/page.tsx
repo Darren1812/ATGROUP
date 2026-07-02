@@ -433,7 +433,8 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </div>          {/* Empty State */}
+          </div>          
+          {/* Empty State */}
           {filteredCards.length === 0 && (
             <div className="py-24 text-center">
               <div className="bg-white inline-flex p-6 rounded-full shadow-inner mb-4">
