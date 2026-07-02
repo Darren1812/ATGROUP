@@ -216,7 +216,7 @@ export default function Dashboard() {
       lightColor: "bg-amber-50",
       iconColor:"text-amber-600",
       category:"CORE SYSTEM",
-      allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)"],
+      allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)", "Sales (Melaka)"],
     },
   ];
 
