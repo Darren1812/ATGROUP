@@ -735,27 +735,6 @@ export default function Page() {
   }, [baseCompany, jurisdiction]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const [duplicateError, setDuplicateError] = useState<string | null>(null);
-  const handleServiceNameChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-
-    // Assuming 'allContracts' is the array of data you fetched from your API
-    const isDuplicate = contracts.some(
-      (contract) =>
-        contract.serviceName.toLowerCase().trim() ===
-        newValue.toLowerCase().trim(),
-    );
-
-    if (isDuplicate) {
-      setDuplicateError(
-        "Nama Perkhidmatan ini sudah wujud. Sila gunakan nama yang unik.",
-      );
-    } else {
-      setDuplicateError(null);
-    }
-
-    handleChange(e); // Continue with your original update logic
-  };
   return (
     <main className='p-4 md:p-8 bg-gray-100 min-h-screen'>
       <div className='flex flex-col h-screen'>
@@ -1030,24 +1009,23 @@ export default function Page() {
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
               <InputField
-                name='serviceName'
-                value={formData.serviceName}
-                onChange={handleServiceNameChange} // Use the new handler
-                placeholder='Enter Nama Perkhidmatan...'
-                label='NAMA PERKHIDMATAN'
-                icon={<Briefcase size={20} />}
-                // If your InputField component supports an 'error' prop, use it:
-                className={duplicateError ? "border-red-500" : ""}
-              />
-              {/* Display the Warning Message */}
-              {duplicateError && (
-                <span className='text-red-500 text-xs font-semibold animate-pulse'>
-                  ⚠️ {duplicateError}
-                </span>
-              )}{" "}
-              <InputField
-                name='contractValue'
-                value={formData.contractValue}
+  name='serviceName'
+  value={formData.serviceName}
+  // ✅ 1. 换回通用的 handleChange 逻辑
+  onChange={
+    handleChange as (e: ChangeEvent<HTMLInputElement>) => void
+  } 
+  placeholder='Enter Nama Perkhidmatan...'
+  label='NAMA PERKHIDMATAN'
+  icon={<Briefcase size={20} />}
+  // ✅ 2. 删掉了 className={duplicateError ? "border-red-500" : ""}
+/>
+
+{/* ✅ 3. 删掉了原本在这里的 {duplicateError && (...)} 警告提示 */}
+
+<InputField
+  name='contractValue'
+  value={formData.contractValue}
                 onChange={
                   handleChange as (e: ChangeEvent<HTMLInputElement>) => void
                 }
