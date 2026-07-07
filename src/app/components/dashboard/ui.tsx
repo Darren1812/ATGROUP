@@ -5,6 +5,13 @@ import { ChevronRight, X } from "lucide-react";
 import type { TenderRow } from "@/app/types/tender";
 import { fmtMYR, statusColor } from "@/app/lib/tenders/utils";
 
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  };
+
+
 /**
  * Generic, dumb UI building blocks shared by every dashboard tab.
  * These know nothing about tenders except how to render a TenderRow list —
@@ -134,7 +141,10 @@ export function TenderTable({ rows }: { rows: TenderRow[] }) {
             <th className="px-3 py-2 font-semibold">Marketing</th>
             <th className="px-3 py-2 font-semibold">Sales</th>
             <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-3 py-2 text-right font-semibold">Awarded Amount</th>
+            <th className="px-6 py-2 font-semibold">End Date</th>
+            <th className="px-3 py-2 font-semibold">Expected Open</th>
+            <th className="px-6 py-2 font-semibold">Open Date</th>
+            <th className="px-6 py-2 text-right font-semibold">Awarded Amount</th>
             <th className="px-3 py-2 font-semibold">Awarded Brand</th>
           </tr>
         </thead>
@@ -147,6 +157,10 @@ export function TenderTable({ rows }: { rows: TenderRow[] }) {
               <td className="px-3 py-2 text-[#3E4E4B]">{r.marketing ?? "—"}</td>
               <td className="px-3 py-2 text-[#3E4E4B]">{r.sales ?? "—"}</td>
               <td className="px-3 py-2"><StatusPill status={r.resultStatus} /></td>
+              {/* 这里使用了 formatDate 进行了包装 */}
+              <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.contractEndDate)}</td>
+              <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.expectedTenderOpenDate)}</td>
+              <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.tenderOpenDate)}</td>
               <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{fmtMYR(r.awardedAmount)}</td>
               <td className="px-3 py-2 text-[#3E4E4B]">{r.awardedBrand ?? "—"}</td>
             </tr>
