@@ -54,48 +54,146 @@ export function WinRatePulse({ rows }: { rows: TenderRow[] }) {
 
 /* ================================ 1. Forecast ================================ */
 export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
-  const [period, setPeriod] = useState<"quarter" | "half">("quarter");
+  const [period, setPeriod] = useState<"month" | "quarter" | "half">("quarter");
   const upcoming = base.filter((r) => r.expectedTenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
 
-  const keyOf = (r: TenderRow): string => period === "quarter"
-    ? `${r.expectedTenderOpenDate ? new Date(r.expectedTenderOpenDate).getFullYear() : ""} Q${quarterOf(r.expectedTenderOpenDate)}`
-    : `${r.expectedTenderOpenDate ? new Date(r.expectedTenderOpenDate).getFullYear() : ""} ${halfOf(r.expectedTenderOpenDate)}`;
+  const keyOf = (r: TenderRow): string => {
+    if (period === "month") return monthOf(r.expectedTenderOpenDate) ?? "—";
+    const y = r.expectedTenderOpenDate ? new Date(r.expectedTenderOpenDate).getFullYear() : "";
+    return period === "quarter"
+      ? `${y} Q${quarterOf(r.expectedTenderOpenDate)}`
+      : `${y} ${halfOf(r.expectedTenderOpenDate)}`;
+  };
 
   const buckets = useMemo(() => {
     const keys = Array.from(new Set(upcoming.map(keyOf))).sort((a, b) => a.localeCompare(b));
-    return keys.map((key) => ({ key, count: upcoming.filter((r) => keyOf(r) === key).length }));
+    return keys.map((key) => {
+      const g = upcoming.filter((r) => keyOf(r) === key);
+      return {
+        key,
+        count: g.length,
+        value: g.reduce((s, r) => s + (r.budget ?? 0), 0),
+      };
+    });
   }, [upcoming, period]);
+
+  const totalUpcoming = upcoming.length;
+  const totalPipelineValue = upcoming.reduce((s, r) => s + (r.budget ?? 0), 0);
+  const avgBudget = totalUpcoming ? totalPipelineValue / totalUpcoming : 0;
+
+  // 按 State 分布，看未来商机集中在哪
+  const states = uniqStr(upcoming.map((r) => r.state));
+  const stateData = states
+    .map((s) => ({ state: s, count: upcoming.filter((r) => r.state === s).length }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <Kpi label="Upcoming Opportunities" value={upcoming.length} sub={`Expected to open after ${TODAY.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`} accent={ACCENT} />
-        <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No forecast data"} />
-        <Kpi label="Total Estimated Budget" value={fmtMYR(upcoming.reduce((s, r) => s + (r.budget ?? 0), 0))} sub="Sum of listed budgets" />
+      <div className="grid grid-cols-4 gap-4">
+        <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No forecast data"} accent={ACCENT} />
+        <Kpi label="Total Upcoming" value={totalUpcoming} sub="tenders forecasted" />
+        <Kpi label="Pipeline Value" value={fmtMYR(totalPipelineValue)} sub="total budgeted" accent={ACCENT} />
+        <Kpi label="Avg. Budget / Tender" value={fmtMYR(avgBudget)} />
       </div>
 
-      <Panel title="Upcoming tenders by period" action={<Segmented value={period} onChange={setPeriod} options={[{ value: "quarter", label: "Quarter" }, { value: "half", label: "Half-Year" }]} />}>
+      <Panel
+        title="Upcoming tenders by period"
+        action={
+          <Segmented
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { value: "month", label: "Month" },
+              { value: "quarter", label: "Quarter" },
+              { value: "half", label: "Half-Year" },
+            ]}
+          />
+        }
+      >
         {buckets.length === 0 ? (
-          <div className="rounded-md border border-dashed border-[#DEE3E2] py-10 text-center text-[13px] text-[#8B9895]">No upcoming tenders match the current filters.</div>
+          <div className="rounded-md border border-dashed border-[#DEE3E2] py-10 text-center text-[13px] text-[#8B9895]">
+            No upcoming tenders match the current filters.
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={buckets}>
+              <CartesianGrid vertical={false} stroke="#EEF1F0" />
+              <XAxis dataKey="key" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} />
+              <YAxis tick={BAR_STYLE} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip formatter={(v: any) => [`${v} tender(s)`, "Count"]} />
+              <Bar
+                dataKey="count"
+                name="Tenders"
+                fill={ACCENT}
+                radius={[3, 3, 0, 0]}
+                onClick={(data: any) => {
+                  const key = data?.payload?.key ?? data?.key;
+                  openDrawer({ title: `Forecast — ${key}`, rows: upcoming.filter((r) => keyOf(r) === key) });
+                }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Panel>
+
+      <Panel title="Forecasted pipeline value by period">
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={buckets}>
+            <CartesianGrid vertical={false} stroke="#EEF1F0" />
+            <XAxis dataKey="key" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} />
+            <YAxis tick={BAR_STYLE} axisLine={false} tickLine={false} tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(0)}k`} />
+            <Tooltip formatter={(v: any) => fmtMYR(Number(v))} />
+            <Line type="monotone" dataKey="value" name="Pipeline Value" stroke="#C88A15" strokeWidth={2} dot={{ r: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Panel>
+
+      <div className="grid grid-cols-2 gap-6">
+        <Panel title="Upcoming tenders by state">
+          {stateData.length === 0 ? (
+            <div className="rounded-md border border-dashed border-[#DEE3E2] py-10 text-center text-[13px] text-[#8B9895]">
+              No state data available.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={stateData} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid horizontal={false} stroke="#EEF1F0" />
+                <XAxis type="number" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="state" tick={BAR_STYLE} axisLine={false} tickLine={false} width={100} />
+                <Tooltip />
+                <Bar
+                  dataKey="count"
+                  name="Tenders"
+                  fill={ACCENT}
+                  radius={[0, 3, 3, 0]}
+                  onClick={(data: any) => {
+                    const state = data?.payload?.state ?? data?.state;
+                    openDrawer({ title: `Forecast — ${state}`, rows: upcoming.filter((r) => r.state === state) });
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Panel>
+
+        <Panel title="Quick access by period">
+          <div className="grid grid-cols-2 gap-3">
             {buckets.map((b) => (
               <ClickKpi
                 key={b.key}
                 label={b.key}
                 value={b.count}
-                sub="tenders"
+                sub={fmtMYR(b.value)}
                 accent={ACCENT}
                 onClick={() => openDrawer({ title: `Forecast — ${b.key}`, rows: upcoming.filter((r) => keyOf(r) === b.key) })}
               />
             ))}
           </div>
-        )}
-      </Panel>
+        </Panel>
+      </div>
     </div>
   );
 }
-
 /* ================================ 2. Status ================================ */
 export function StatusTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
   const statuses: ResultStatus[] = ["Pending", "Win", "Lose", "Not Participate"];

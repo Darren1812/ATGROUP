@@ -28,6 +28,16 @@ export interface KpiProps {
   sub?: React.ReactNode;
   accent?: string;
 }
+export function Eyebrow1({ children }: { children: React.ReactNode }) {
+  return <div className="text-[23px] font-semibold uppercase tracking-[0.14em] text-[#5F7A76]">{children}</div>;
+}
+
+export interface KpiProps {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  accent?: string;
+}
 
 export function Kpi({ label, value, sub, accent }: KpiProps) {
   return (
@@ -52,10 +62,10 @@ export function ClickKpi({ label, value, sub, accent, onClick }: ClickKpiProps) 
       className="group w-full rounded-lg border border-[#E4E7E6] bg-white px-5 py-4 text-left shadow-[0_1px_2px_rgba(15,30,28,0.04)] transition hover:border-[#0E5C56] hover:shadow-[0_2px_10px_rgba(14,92,86,0.12)]"
     >
       <div className="flex items-center justify-between">
-        <Eyebrow>{label}</Eyebrow>
+        <Eyebrow1>{label}</Eyebrow1>
         <ChevronRight size={14} className="text-[#B7C2C0] transition group-hover:text-[#0E5C56]" />
       </div>
-      <div className="mt-1.5 text-[28px] font-semibold leading-none tabular-nums text-[#0F1E1C]" style={accent ? { color: accent } : undefined}>
+      <div className="mt-1.5 text-[20px] font-semibold leading-none tabular-nums text-[#0F1E1C]" style={accent ? { color: accent } : undefined}>
         {value}
       </div>
       {sub != null && <div className="mt-1 text-[12.5px] text-[#7C8A87]">{sub}</div>}
@@ -135,33 +145,29 @@ export function TenderTable({ rows }: { rows: TenderRow[] }) {
       <table className="w-full min-w-[860px] text-left text-[12.5px]">
         <thead>
           <tr className="border-b border-[#E4E7E6] bg-[#F7F8F7] text-[10.5px] uppercase tracking-[0.06em] text-[#7C8A87]">
-            <th className="px-3 py-2 font-semibold">Tender No.</th>
             <th className="px-3 py-2 font-semibold">End User</th>
-            <th className="px-3 py-2 font-semibold">State</th>
             <th className="px-3 py-2 font-semibold">Marketing</th>
             <th className="px-3 py-2 font-semibold">Sales</th>
             <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-6 py-2 font-semibold">End Date</th>
             <th className="px-3 py-2 font-semibold">Expected Open</th>
-            <th className="px-6 py-2 font-semibold">Open Date</th>
-            <th className="px-6 py-2 text-right font-semibold">Awarded Amount</th>
+            <th className="px-6 py-2 text-right font-semibold">Awarded Amount</th> 
+            <th className="px-3 py-2 font-semibold">Awarded Vendor</th>
             <th className="px-3 py-2 font-semibold">Awarded Brand</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} className="border-b border-[#EEF1F0] last:border-0 hover:bg-[#F7FAF9]">
-              <td className="px-3 py-2 font-medium text-[#0F1E1C]">{r.tenderNo}</td>
               <td className="max-w-[260px] truncate px-3 py-2 text-[#3E4E4B]" title={r.endUser ?? undefined}>{r.endUser ?? "—"}</td>
-              <td className="px-3 py-2 text-[#3E4E4B]">{r.state ?? "—"}</td>
               <td className="px-3 py-2 text-[#3E4E4B]">{r.marketing ?? "—"}</td>
               <td className="px-3 py-2 text-[#3E4E4B]">{r.sales ?? "—"}</td>
               <td className="px-3 py-2"><StatusPill status={r.resultStatus} /></td>
               {/* 这里使用了 formatDate 进行了包装 */}
-              <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.contractEndDate)}</td>
               <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.expectedTenderOpenDate)}</td>
-              <td className="px-3 py-2 text-[#3E4E4B]">{formatDate(r.tenderOpenDate)}</td>
               <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{fmtMYR(r.awardedAmount)}</td>
+              <td className="max-w-[260px] truncate px-3 py-2 text-[#3E4E4B]" title={r.awardedVendor ?? undefined}>
+                {r.awardedVendor ?? "—"}
+              </td>
               <td className="px-3 py-2 text-[#3E4E4B]">{r.awardedBrand ?? "—"}</td>
             </tr>
           ))}
