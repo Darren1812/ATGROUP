@@ -39,7 +39,6 @@ interface MdTableDto {
   specsRequirement?: string | null;
   budget?: number | null;
   companyName?: string | null;           // 🆕 Section 4 - multi-select, comma-separated
-  submissionPrice?: number | null;       // 🆕 Section 4
   remarkSubmissionprice?: string | null; // 🆕 Section 4
   proposedBrand?: string | null;         // moved to Section 4 - multi-select, comma-separated
   updateRemark?: string | null;          // 🆕 Section 5 "Remark"
@@ -95,7 +94,6 @@ export default function TenderManagementPage() {
     specsRequirement: '',
     budget: null,
     companyName: '',           // 🆕
-    submissionPrice: null,     // 🆕
     remarkSubmissionprice: '', // 🆕
     proposedBrand: '',
     updateRemark: '',          // 🆕
@@ -193,14 +191,16 @@ export default function TenderManagementPage() {
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formRecord.tenderNo?.trim()) {
       showToast('Tender No. is required.', 'error');
       return;
     }
-    if (!formRecord.contractEndDateNext) {
-      showToast('Contract End Date (Next) is required.', 'error');
+
+    // 💡 改为校验 expectedTenderOpenDate（同时将空字符串或未填项转为 null 传给后端）
+    if (!formRecord.expectedTenderOpenDate) {
+      showToast('Expected Open Date is required.', 'error');
       return;
     }
 
@@ -208,11 +208,20 @@ export default function TenderManagementPage() {
     const url = isEdit ? `${API}/${formRecord.id}` : API;
     const method = isEdit ? 'PUT' : 'POST';
 
+    // 💡 构造提交给后端的 Payload，把空的字符串日期处理为 null，防止后端 400 报错
+    const payload = {
+      ...formRecord,
+      contractEndDate: formRecord.contractEndDate || null,
+      contractEndDateNext: formRecord.contractEndDateNext || null,
+      expectedTenderOpenDate: formRecord.expectedTenderOpenDate || null,
+      tenderOpenDate: formRecord.tenderOpenDate || null,
+    };
+
     try {
       const res = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formRecord)
+        body: JSON.stringify(payload) // 传递处理后的 payload
       });
 
       if (res.status === 409) {
@@ -519,7 +528,7 @@ export default function TenderManagementPage() {
                 <th colSpan={6} className="px-4 py-2 text-center bg-indigo-50 text-indigo-900 border-b border-r border-slate-200">Category & Current Contract</th>
                 <th colSpan={6} className="px-4 py-2 text-center bg-amber-50 text-amber-900 border-b border-r border-slate-200">Planning & Requirements</th>
                 <th colSpan={5} className="px-4 py-2 text-center bg-sky-50 text-sky-900 border-b border-r border-slate-200">Tender Planning</th>
-                <th colSpan={4} className="px-4 py-2 text-center bg-purple-50 text-purple-900 border-b border-r border-slate-200">Submission Info</th>
+                <th colSpan={3} className="px-4 py-2 text-center bg-purple-50 text-purple-900 border-b border-r border-slate-200">Submission Info</th>
                 <th colSpan={5} className="px-4 py-2 text-center bg-emerald-50 text-emerald-950 border-b border-slate-200">Result Outcomes</th>
                 <th colSpan={5} className="px-4 py-2 text-center bg-red-50 text-red-950 border-b border-l border-slate-200">Variance</th>
               </tr>
@@ -537,14 +546,13 @@ export default function TenderManagementPage() {
                 <th className="px-4 py-3 font-semibold min-w-[90px] border-b border-slate-200">Existing Qty</th>
                 <th className="px-4 py-3 font-semibold min-w-[90px] border-b border-slate-200">Duration</th>
                 <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-r border-slate-300 border-slate-200">End Date</th>
-                <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-200">Expected Open</th>
                 <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-300">Open Date</th>
                 <th className="px-4 py-3 font-semibold min-w-[240px] border-b border-slate-200">Specs Requirement</th>
                 <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-200">Budget</th>
-                <th className="px-4 py-3 font-semibold min-w-[130px] border-b border-r border-slate-300 bg-rose-50 text-rose-900">End Date (Next) *</th>
+                <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-200">End Date (Next)</th>
+                <th className="px-4 py-3 font-semibold min-w-[130px] border-b border-r border-slate-300 bg-rose-50 text-rose-900">Expected Open (Next) *</th>
                 <th className="px-4 py-3 font-semibold min-w-[160px] border-b border-slate-200">Company Name</th>
                 <th className="px-4 py-3 font-semibold min-w-[140px] border-b border-slate-200">Proposed Brand</th>
-                <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-200">Submission Price</th>
                 <th className="px-4 py-3 font-semibold min-w-[160px] border-b border-r border-slate-300">Remark (Submission)</th>
                 <th className="px-4 py-3 font-semibold min-w-[100px] border-b border-slate-200">Status</th>
                 <th className="px-4 py-3 font-semibold min-w-[160px] border-b border-slate-200">Awarded Vendor</th>
@@ -603,14 +611,13 @@ export default function TenderManagementPage() {
                     <td className="px-4 py-3 border-b border-slate-200">{item.existingQuantity ?? '-'}</td>
                     <td className="px-4 py-3 border-b border-slate-200">{item.contractDuration ? `${item.contractDuration} Mths` : '-'}</td>
                     <td className="px-4 py-3 border-r border-b border-slate-200">{formatDate(item.contractEndDate)}</td>
-                    <td className="px-4 py-3 border-b border-slate-200">{formatDate(item.expectedTenderOpenDate)}</td>
                     <td className="px-4 py-3 border-b border-slate-300">{formatDate(item.tenderOpenDate)}</td>
                     <td className="px-4 py-3 border-b  border-slate-200 whitespace-pre-line text-slate-600 text-[11px] leading-relaxed max-w-[240px] font-mono">{item.specsRequirement || '-'}</td>
                     <td className="px-4 py-3 border-b border-slate-200 font-semibold">{formatCurrency(item.budget)}</td>
-                    <td className="px-4 py-3 border-b border-r border-slate-300 bg-rose-50/40 font-medium text-rose-900">{formatDate(item.contractEndDateNext)}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{formatDate(item.contractEndDateNext)}</td>
+                    <td className="px-4 py-3 border-b border-r border-slate-300 bg-rose-50/40 font-medium text-rose-900">{formatDate(item.expectedTenderOpenDate)}</td>
                     <td className="px-4 py-3 min-w-[160px] whitespace-normal break-words border-b border-slate-200">{item.companyName || '-'}</td>
                     <td className="px-4 py-3 min-w-[140px] whitespace-normal break-words border-b border-slate-200">{item.proposedBrand || '-'}</td>
-                    <td className="px-4 py-3 border-b border-slate-200 font-semibold">{formatCurrency(item.submissionPrice)}</td>
                     <td className="px-4 py-3 border-b border-r border-slate-300 whitespace-pre-line break-words max-w-[160px]">
                       {item.remarkSubmissionprice || '-'}
                     </td>
@@ -737,7 +744,19 @@ export default function TenderManagementPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Tender Category</label>
-                  <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.tenderCategory || ''} onChange={e => setFormRecord({...formRecord, tenderCategory: e.target.value})} />
+                  <select
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                    value={formRecord.tenderCategory || ''}
+                    onChange={e => setFormRecord({ ...formRecord, tenderCategory: e.target.value })}
+                  >
+                    <option value="" disabled>Select Category</option>
+                    <option value="Copier">Copier</option>
+                    <option value="Plotter">Plotter</option>
+                    <option value="Smartboard">Smartboard</option>
+                    <option value="Copier + Plotter">Copier + Plotter</option>
+                    <option value="CCTV">CCTV</option>
+                    <option value="Shredder">Shredder</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Existing Vendor</label>
@@ -746,7 +765,13 @@ export default function TenderManagementPage() {
                     list="existing-vendor-list"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                     value={formRecord.existingVendor || ''}
-                    onChange={e => setFormRecord({ ...formRecord, existingVendor: e.target.value })}
+                    onChange={e => {
+                      const formatted = e.target.value.replace(
+                        /\w\S*/g,
+                        txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+                      );
+                      setFormRecord({ ...formRecord, existingVendor: formatted });
+                    }}
                     autoComplete="off"
                   />
                   <datalist id="existing-vendor-list">
@@ -757,7 +782,20 @@ export default function TenderManagementPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Existing Brand</label>
-                  <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.existingBrand || ''} onChange={e => setFormRecord({...formRecord, existingBrand: e.target.value})} />
+                  <select
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                    value={formRecord.existingBrand || ''}
+                    onChange={e => setFormRecord({ ...formRecord, existingBrand: e.target.value })}
+                  >
+                    <option value="" disabled>Select Brand</option>
+                    <option value="Canon">Canon</option>
+                    <option value="HP">HP</option>
+                    <option value="Sharp">Sharp</option>
+                    <option value="Fuji">Fuji</option>
+                    <option value="Konica Minolta">Konica Minolta</option>
+                    <option value="Toshiba">Toshiba</option>
+                    <option value="Ricoh">Ricoh</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Existing Qty</label>
@@ -777,10 +815,6 @@ export default function TenderManagementPage() {
                   <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">3. Planning & Requirements</span>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Expected Open Date</label>
-                  <input type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.expectedTenderOpenDate || ''} onChange={e => setFormRecord({...formRecord, expectedTenderOpenDate: e.target.value})} />
-                </div>
-                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Actual Open Date</label>
                   <input type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.tenderOpenDate || ''} onChange={e => setFormRecord({...formRecord, tenderOpenDate: e.target.value})} />
                 </div>
@@ -788,115 +822,126 @@ export default function TenderManagementPage() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Budget (RM)</label>
                   <input type="number" step="0.01" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.budget || ''} onChange={e => setFormRecord({...formRecord, budget: e.target.value ? parseFloat(e.target.value) : null})} />
                 </div>
-
-                {/* 🆕 Contract End Date (Next) — required, its year determines which "year" this row belongs to */}
                 <div>
                   <label className="block text-xs font-bold text-rose-600 mb-1">
-                    Contract End Date (Next) <span className="text-rose-500">*</span>
+                    Expected Open Date <span className="text-rose-500">*</span>
                   </label>
                   <input
                     required
                     type="date"
                     className="w-full px-3 py-2 border border-rose-200 rounded-lg text-sm focus:ring-2 focus:ring-rose-400 bg-rose-50/40"
+                    value={formRecord.expectedTenderOpenDate || ''}
+                    onChange={e => setFormRecord({ ...formRecord, expectedTenderOpenDate: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Contract End Date (Next)
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                     value={formRecord.contractEndDateNext || ''}
                     onChange={e => setFormRecord({ ...formRecord, contractEndDateNext: e.target.value })}
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">此日期的年份将决定这笔资料归属于哪一年，请务必填写。</p>
                 </div>
-
                 <div className="sm:col-span-3">
                   <label className="block text-xs font-bold text-slate-700 mb-1">Specs Requirement</label>
                   <textarea rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.specsRequirement || ''} onChange={e => setFormRecord({...formRecord, specsRequirement: e.target.value})} />
                 </div>
-
-                {/* 4. Submission Info */}
+                {/* 4. SUBMISSION INFO */}
                 <div className="sm:col-span-3 border-b border-slate-100 pt-2 pb-1">
-                  <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">4. Submission Info</span>
+                  <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">
+                    4. Submission Info
+                  </span>
                 </div>
 
-                {/* Company Name 多选组 */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
-                  <div className="flex flex-wrap gap-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                    {['ATP', 'ASN', 'ARENA', 'SKY'].map(item => {
-                      // 解析当前选择的选项数组
-                      const currentValues = formRecord.companyName ? formRecord.companyName.split(',').map(s => s.trim()) : [];
-                      const isChecked = currentValues.includes(item);
+                {/* 第一行：将 Company Name 和 Proposed Brand 放在同一排，各占一半/自适应平衡 */}
+                <div className="sm:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Company Name 多选组 */}
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2.5 min-h-[42px] bg-slate-50/80 rounded-lg border border-slate-200/80">
+                      {['ATP', 'ASN', 'ARENA', 'SKY'].map(item => {
+                        const currentValues = formRecord.companyName ? formRecord.companyName.split(',').map(s => s.trim()) : [];
+                        const isChecked = currentValues.includes(item);
 
-                      return (
-                        <label key={item} className="inline-flex items-center space-x-1.5 cursor-pointer text-sm text-slate-700">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                            checked={isChecked}
-                            onChange={e => {
-                              let updated;
-                              if (e.target.checked) {
-                                updated = [...currentValues, item];
-                              } else {
-                                updated = currentValues.filter(val => val !== item);
-                              }
-                              // 拼回逗号分隔字符串更新状态
-                              setFormRecord({ ...formRecord, companyName: updated.join(', ') });
-                            }}
-                          />
-                          <span>{item}</span>
-                        </label>
-                      );
-                    })}
+                        return (
+                          <label key={item} className="inline-flex items-center space-x-1.5 cursor-pointer text-sm text-slate-700 hover:text-slate-900">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={isChecked}
+                              onChange={e => {
+                                let updated;
+                                if (e.target.checked) {
+                                  updated = [...currentValues, item];
+                                } else {
+                                  updated = currentValues.filter(val => val !== item);
+                                }
+                                setFormRecord({ ...formRecord, companyName: updated.join(', ') });
+                              }}
+                            />
+                            <span>{item}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* Proposed Brand 多选组 */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Proposed Brand</label>
-                  <div className="flex flex-wrap gap-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                    {['KM', 'Canon'].map(item => {
-                      const currentValues = formRecord.proposedBrand ? formRecord.proposedBrand.split(',').map(s => s.trim()) : [];
-                      const isChecked = currentValues.includes(item);
+                  {/* Proposed Brand 多选组 */}
+                  <div className="flex flex-col justify-between">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Proposed Brand</label>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-2.5 min-h-[42px] bg-slate-50/80 rounded-lg border border-slate-200/80">
+                      {['KM', 'Canon'].map(item => {
+                        const currentValues = formRecord.proposedBrand ? formRecord.proposedBrand.split(',').map(s => s.trim()) : [];
+                        const isChecked = currentValues.includes(item);
 
-                      return (
-                        <label key={item} className="inline-flex items-center space-x-1.5 cursor-pointer text-sm text-slate-700">
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                            checked={isChecked}
-                            onChange={e => {
-                              let updated;
-                              if (e.target.checked) {
-                                updated = [...currentValues, item];
-                              } else {
-                                updated = currentValues.filter(val => val !== item);
-                              }
-                              setFormRecord({ ...formRecord, proposedBrand: updated.join(', ') });
-                            }}
-                          />
-                          <span>{item}</span>
-                        </label>
-                      );
-                    })}
+                        return (
+                          <label key={item} className="inline-flex items-center space-x-1.5 cursor-pointer text-sm text-slate-700 hover:text-slate-900">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={isChecked}
+                              onChange={e => {
+                                let updated;
+                                if (e.target.checked) {
+                                  updated = [...currentValues, item];
+                                } else {
+                                  updated = currentValues.filter(val => val !== item);
+                                }
+                                setFormRecord({ ...formRecord, proposedBrand: updated.join(', ') });
+                              }}
+                            />
+                            <span>{item}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
+
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Submission Price (RM)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                    value={formRecord.submissionPrice ?? ''}
-                    onChange={e => setFormRecord({ ...formRecord, submissionPrice: e.target.value ? parseFloat(e.target.value) : null })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Remark (Submission Price)</label>
+
+                {/* 第二行：Remark 占满整行，并将 Sample 内嵌在 Label 右侧，干净整洁 */}
+                <div className="sm:col-span-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Remark (Submission Price)
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Sample: <span className="text-slate-500 font-medium">ASN - RM xxx, ATP - RM xxx</span>
+                    </span>
+                  </div>
                   <textarea
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-300"
+                    placeholder="ASN - RM xxx, ATP - RM xxx"
                     value={formRecord.remarkSubmissionprice || ''}
                     onChange={e => setFormRecord({ ...formRecord, remarkSubmissionprice: e.target.value })}
                   />
                 </div>
-
                 {/* 5. Result Details */}
                 <div className="sm:col-span-3 border-b border-slate-100 pt-2 pb-1">
                   <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">5. Result Details</span>

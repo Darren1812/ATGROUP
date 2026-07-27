@@ -55,7 +55,7 @@ export function WinRatePulse({ rows }: { rows: TenderRow[] }) {
 /* ================================ 1. Forecast ================================ */
 export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
   const [period, setPeriod] = useState<"month" | "quarter" | "half">("quarter");
-  const upcoming = base.filter((r) => r.expectedTenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
+  const upcoming = base.filter((r) => r.tenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
 
   const keyOf = (r: TenderRow): string => {
     if (period === "month") return monthOf(r.expectedTenderOpenDate) ?? "—";
