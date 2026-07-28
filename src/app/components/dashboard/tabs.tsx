@@ -54,8 +54,47 @@ export function WinRatePulse({ rows }: { rows: TenderRow[] }) {
 
 /* ================================ 1. Forecast ================================ */
 export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
-  const [period, setPeriod] = useState<"month" | "quarter" | "half">("quarter");
-  const upcoming = base.filter((r) => r.tenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
+  const [period, setPeriod] = useState<"month" | "quarter" | "half">("month");
+
+  // 🆕 「未来 N 个月」的时间窗口，默认 6 个月，用户可以自己打数字
+  const [upcomingWindowMonths, setUpcomingWindowMonths] = useState<number>(6);
+  const [windowInput, setWindowInput] = useState<string>("6");
+
+  // 🆕 年份多选筛选，空集合 = 显示全部年份（默认状态）
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
+  const allUpcoming = base.filter((r) => r.expectedTenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
+
+  // 🆕 KPI 用的「未来 N 个月」窗口数据
+  const windowedUpcoming = useMemo(() => {
+    const cutoff = new Date(TODAY);
+    cutoff.setMonth(cutoff.getMonth() + upcomingWindowMonths);
+    return allUpcoming.filter((r) => (parseDate(r.expectedTenderOpenDate) as Date) <= cutoff);
+  }, [allUpcoming, upcomingWindowMonths]);
+
+  const totalUpcoming = windowedUpcoming.length;
+  const totalPipelineValue = windowedUpcoming.reduce((s, r) => s + (r.budget ?? 0), 0);
+  const avgBudget = totalUpcoming ? totalPipelineValue / totalUpcoming : 0;
+
+  // 🆕 年份多选影响的是下面所有图表，跟上面 KPI 窗口是分开的两套筛选
+  const yearOfRow = (r: TenderRow) => (r.expectedTenderOpenDate ? new Date(r.expectedTenderOpenDate).getFullYear() : null);
+  const availableYears = useMemo(() => uniqNum(allUpcoming.map(yearOfRow)), [allUpcoming]);
+
+  const chartUpcoming = useMemo(() => {
+    if (selectedYears.size === 0) return allUpcoming; // 空集合 = 全选
+    return allUpcoming.filter((r) => {
+      const y = yearOfRow(r);
+      return y != null && selectedYears.has(y);
+    });
+  }, [allUpcoming, selectedYears]);
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+  };
 
   const keyOf = (r: TenderRow): string => {
     if (period === "month") return monthOf(r.expectedTenderOpenDate) ?? "—";
@@ -66,48 +105,130 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
   };
 
   const buckets = useMemo(() => {
-    const keys = Array.from(new Set(upcoming.map(keyOf))).sort((a, b) => a.localeCompare(b));
+    const keys = Array.from(new Set(chartUpcoming.map(keyOf))).sort((a, b) => a.localeCompare(b));
     return keys.map((key) => {
-      const g = upcoming.filter((r) => keyOf(r) === key);
+      const g = chartUpcoming.filter((r) => keyOf(r) === key);
       return {
         key,
         count: g.length,
         value: g.reduce((s, r) => s + (r.budget ?? 0), 0),
       };
     });
-  }, [upcoming, period]);
+  }, [chartUpcoming, period]);
 
-  const totalUpcoming = upcoming.length;
-  const totalPipelineValue = upcoming.reduce((s, r) => s + (r.budget ?? 0), 0);
-  const avgBudget = totalUpcoming ? totalPipelineValue / totalUpcoming : 0;
-
-  // 按 State 分布，看未来商机集中在哪
-  const states = uniqStr(upcoming.map((r) => r.state));
+  // 按 State 分布（跟随年份筛选）
+  const states = uniqStr(chartUpcoming.map((r) => r.state));
   const stateData = states
-    .map((s) => ({ state: s, count: upcoming.filter((r) => r.state === s).length }))
+    .map((s) => ({ state: s, count: chartUpcoming.filter((r) => r.state === s).length }))
     .sort((a, b) => b.count - a.count);
+
+  // 🆕 处理「未来 N 个月」输入框的确认（Enter 或 blur 时生效）
+  const commitWindowInput = () => {
+    const n = parseInt(windowInput, 10);
+    if (!isNaN(n) && n > 0) {
+      setUpcomingWindowMonths(n);
+    } else {
+      setWindowInput(String(upcomingWindowMonths)); // 输入不合法就还原
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* 🆕 未来窗口设置：默认 6 个月，用户可自行输入 */}
+      <div className="flex items-center justify-between rounded-lg border border-[#E4E7E6] bg-white px-4 py-2.5">
+        <div className="text-[12.5px] text-[#7C8A87]">
+          KPIs below reflect opportunities expected to open within the next window.
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-medium text-[#5F7A76]">Show next</span>
+          <input
+            type="number"
+            min={1}
+            value={windowInput}
+            onChange={(e) => setWindowInput(e.target.value)}
+            onBlur={commitWindowInput}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitWindowInput();
+            }}
+            className="w-16 rounded-md border border-[#DEE3E2] bg-white px-2 py-1 text-center text-[12.5px] text-[#0F1E1C] outline-none focus:border-[#0E5C56]"
+          />
+          <span className="text-[12px] font-medium text-[#5F7A76]">month(s)</span>
+          <div className="ml-1 flex gap-1">
+            {[3, 6, 12].map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  setUpcomingWindowMonths(m);
+                  setWindowInput(String(m));
+                }}
+                className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${
+                  upcomingWindowMonths === m
+                    ? "bg-[#0E5C56] text-white"
+                    : "bg-[#F3F5F4] text-[#6B7A78] hover:text-[#0F1E1C]"
+                }`}
+              >
+                {m}mo
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-4 gap-4">
-        <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No forecast data"} accent={ACCENT} />
-        <Kpi label="Total Upcoming" value={totalUpcoming} sub="tenders forecasted" />
+        <ClickKpi
+          label="Total Upcoming"
+          value={totalUpcoming}
+          sub={`within next ${upcomingWindowMonths} month(s)`}
+          accent={ACCENT}
+          onClick={() => openDrawer({ title: `Forecast — Next ${upcomingWindowMonths} Month(s)`, rows: windowedUpcoming })}
+        />
         <Kpi label="Pipeline Value" value={fmtMYR(totalPipelineValue)} sub="total budgeted" accent={ACCENT} />
         <Kpi label="Avg. Budget / Tender" value={fmtMYR(avgBudget)} />
+        <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No forecast data"} />
       </div>
 
       <Panel
         title="Upcoming tenders by period"
         action={
-          <Segmented
-            value={period}
-            onChange={setPeriod}
-            options={[
-              { value: "month", label: "Month" },
-              { value: "quarter", label: "Quarter" },
-              { value: "half", label: "Half-Year" },
-            ]}
-          />
+          <div className="flex items-center gap-3">
+            {/* 🆕 年份多选筛选 chip */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+              {availableYears.map((y) => {
+                const active = selectedYears.size === 0 || selectedYears.has(y);
+                return (
+                  <button
+                    key={y}
+                    onClick={() => toggleYear(y)}
+                    className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                      active
+                        ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                        : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+              {selectedYears.size > 0 && (
+                <button
+                  onClick={() => setSelectedYears(new Set())}
+                  className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <Segmented
+              value={period}
+              onChange={setPeriod}
+              options={[
+                { value: "month", label: "Month" },
+                { value: "quarter", label: "Quarter" },
+                { value: "half", label: "Half-Year" },
+              ]}
+            />
+          </div>
         }
       >
         {buckets.length === 0 ? (
@@ -128,7 +249,7 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
                 radius={[3, 3, 0, 0]}
                 onClick={(data: any) => {
                   const key = data?.payload?.key ?? data?.key;
-                  openDrawer({ title: `Forecast — ${key}`, rows: upcoming.filter((r) => keyOf(r) === key) });
+                  openDrawer({ title: `Forecast — ${key}`, rows: chartUpcoming.filter((r) => keyOf(r) === key) });
                 }}
               />
             </BarChart>
@@ -168,7 +289,7 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
                   radius={[0, 3, 3, 0]}
                   onClick={(data: any) => {
                     const state = data?.payload?.state ?? data?.state;
-                    openDrawer({ title: `Forecast — ${state}`, rows: upcoming.filter((r) => r.state === state) });
+                    openDrawer({ title: `Forecast — ${state}`, rows: chartUpcoming.filter((r) => r.state === state) });
                   }}
                 />
               </BarChart>
@@ -185,7 +306,7 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
                 value={b.count}
                 sub={fmtMYR(b.value)}
                 accent={ACCENT}
-                onClick={() => openDrawer({ title: `Forecast — ${b.key}`, rows: upcoming.filter((r) => keyOf(r) === b.key) })}
+                onClick={() => openDrawer({ title: `Forecast — ${b.key}`, rows: chartUpcoming.filter((r) => keyOf(r) === b.key) })}
               />
             ))}
           </div>
@@ -233,7 +354,30 @@ type WinLosePeriod = "year" | "quarter" | "half";
 
 export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
   const [period, setPeriod] = useState<WinLosePeriod>("year");
-  const decided = rows.filter((r) => r.resultStatus === "Win" || r.resultStatus === "Lose");
+
+  // 🆕 年份多选筛选，空集合 = 显示全部年份
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
+  const allDecided = rows.filter((r) => r.resultStatus === "Win" || r.resultStatus === "Lose");
+
+  const yearOfRow = (r: TenderRow) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null);
+  const availableYears = useMemo(() => uniqNum(allDecided.map(yearOfRow)), [allDecided]);
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+  };
+
+  const decided = useMemo(() => {
+    if (selectedYears.size === 0) return allDecided;
+    return allDecided.filter((r) => {
+      const y = yearOfRow(r);
+      return y != null && selectedYears.has(y);
+    });
+  }, [allDecided, selectedYears]);
 
   const keyOf = (r: TenderRow): string => {
     const y = r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : "—";
@@ -265,7 +409,42 @@ export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
         <Kpi label="Win Rate" value={`${winRate}%`} accent={STATUS_COLORS.Win} />
         <Kpi label="Lose Rate" value={`${loseRate}%`} accent={STATUS_COLORS.Lose} />
       </div>
-      <Panel title="Win vs Lose over time" action={<Segmented value={period} onChange={setPeriod} options={[{ value: "year", label: "Year" }, { value: "quarter", label: "Quarter" }, { value: "half", label: "Half-Year" }]} />}>
+      <Panel
+        title="Win vs Lose over time"
+        action={
+          <div className="flex items-center gap-3">
+            {/* 🆕 年份多选筛选 chip */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+              {availableYears.map((y) => {
+                const active = selectedYears.size === 0 || selectedYears.has(y);
+                return (
+                  <button
+                    key={y}
+                    onClick={() => toggleYear(y)}
+                    className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                      active
+                        ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                        : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+              {selectedYears.size > 0 && (
+                <button
+                  onClick={() => setSelectedYears(new Set())}
+                  className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <Segmented value={period} onChange={setPeriod} options={[{ value: "year", label: "Year" }, { value: "quarter", label: "Quarter" }, { value: "half", label: "Half-Year" }]} />
+          </div>
+        }
+      >
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} barGap={4}>
             <CartesianGrid vertical={false} stroke="#EEF1F0" />
@@ -281,15 +460,36 @@ export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
     </div>
   );
 }
-
 /* ================================ 4. Awarded Value ================================ */
 type ValuePeriod = "month" | "quarter" | "half" | "year";
 
 export function ValueTab({ rows }: { rows: TenderRow[] }) {
   const [period, setPeriod] = useState<ValuePeriod>("quarter");
-  const [year, setYear] = useState<string>("");
+
+  // 🆕 年份多选筛选，空集合 = 显示全部年份（默认状态），跟 Forecast 分页保持一致的交互
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
   const wins = rows.filter((r) => r.resultStatus === "Win" && r.awardedAmount != null);
-  const years = uniqNum(wins.map((r) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null)));
+
+  const yearOfRow = (r: TenderRow) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null);
+  const years = uniqNum(wins.map(yearOfRow));
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+  };
+
+  // 🆕 空集合视为「全选」，否则只保留被勾选的年份
+  const scopedRows = useMemo(() => {
+    if (selectedYears.size === 0) return wins;
+    return wins.filter((r) => {
+      const y = yearOfRow(r);
+      return y != null && selectedYears.has(y);
+    });
+  }, [wins, selectedYears]);
 
   const keyOf = (r: TenderRow): string => {
     const y = r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : "—";
@@ -298,8 +498,6 @@ export function ValueTab({ rows }: { rows: TenderRow[] }) {
       : period === "half" ? `${y} ${halfOf(r.tenderOpenDate)}`
       : String(y);
   };
-
-  const scopedRows = year ? wins.filter((r) => String(r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : "") === year) : wins;
 
   const data = useMemo(() => {
     const keys = Array.from(new Set(scopedRows.map(keyOf))).sort((a, b) => a.localeCompare(b));
@@ -321,18 +519,41 @@ export function ValueTab({ rows }: { rows: TenderRow[] }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <Kpi label="Total Awarded Value" value={fmtMYR(wins.reduce((s, r) => s + (r.awardedAmount ?? 0), 0))} accent={ACCENT} />
-        <Kpi label="Won Tenders" value={wins.length} />
+        <Kpi label="Won Tenders" value={scopedRows.length} />
         <Kpi label="Avg. Variance" value={avgVarianceOverall != null ? `${avgVarianceOverall}%` : "—"} sub="vs. budget" />
       </div>
       <Panel
         title="Awarded amount by period"
         action={
-          <div className="flex items-center gap-2">
-            <select value={year} onChange={(e) => setYear(e.target.value)} className="rounded-md border border-[#DEE3E2] bg-white px-2 py-1 text-[12px]">
-              <option value="">All years</option>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+          <div className="flex items-center gap-3">
+            {/* 🆕 年份多选筛选 chip，取代原本的单选 <select> */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+              {years.map((y) => {
+                const active = selectedYears.size === 0 || selectedYears.has(y);
+                return (
+                  <button
+                    key={y}
+                    onClick={() => toggleYear(y)}
+                    className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                      active
+                        ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                        : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+              {selectedYears.size > 0 && (
+                <button
+                  onClick={() => setSelectedYears(new Set())}
+                  className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
             <Segmented value={period} onChange={setPeriod} options={[{ value: "month", label: "Month" }, { value: "quarter", label: "Quarter" }, { value: "half", label: "H1/H2" }, { value: "year", label: "Year" }]} />
           </div>
         }
@@ -346,7 +567,7 @@ export function ValueTab({ rows }: { rows: TenderRow[] }) {
             <Bar dataKey="amount" name="Awarded Amount" fill={ACCENT} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </Panel>
+      </Panel>*/
       <Panel title="Awarded variance trend (avg. vs budget)">
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data}>
@@ -430,12 +651,56 @@ export function ExpiryTab({ base, openDrawer }: { base: TenderRow[]; openDrawer:
 
 /* ================================ 6. Opportunities ================================ */
 export function OpportunityTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
-  const years = uniqNum(rows.map((r) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null)));
+  // 🆕 年份多选筛选，空集合 = 显示全部年份
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
   const yearOfRow = (r: TenderRow) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null);
-  const data = years.map((y) => ({ year: y, count: rows.filter((r) => yearOfRow(r) === y).length }));
+  const availableYears = uniqNum(rows.map(yearOfRow));
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+  };
+
+  const displayYears = selectedYears.size === 0 ? availableYears : availableYears.filter((y) => selectedYears.has(y));
+  const data = displayYears.map((y) => ({ year: y, count: rows.filter((r) => yearOfRow(r) === y).length }));
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        {/* 🆕 年份多选筛选 chip */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+          {availableYears.map((y) => {
+            const active = selectedYears.size === 0 || selectedYears.has(y);
+            return (
+              <button
+                key={y}
+                onClick={() => toggleYear(y)}
+                className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                  active
+                    ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                    : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                }`}
+              >
+                {y}
+              </button>
+            );
+          })}
+          {selectedYears.size > 0 && (
+            <button
+              onClick={() => setSelectedYears(new Set())}
+              className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {data.map((y) => (
           <ClickKpi
@@ -461,15 +726,36 @@ export function OpportunityTab({ rows, openDrawer }: { rows: TenderRow[]; openDr
     </div>
   );
 }
-
 /* ================================ 7. Brand Contribution ================================ */
 interface BrandRow { brand: string; total: number; share: string; [year: number]: number | string; }
 
 export function BrandTab({ rows }: { rows: TenderRow[] }) {
-  const wins = rows.filter((r): r is TenderRow & { awardedAmount: number } => r.resultStatus === "Win" && r.awardedAmount != null);
-  const brands = uniqStr(wins.map((r) => r.awardedBrand ?? r.proposedBrand));
+  // 🆕 年份多选筛选，空集合 = 显示全部年份
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+
+  const allWins = rows.filter((r): r is TenderRow & { awardedAmount: number } => r.resultStatus === "Win" && r.awardedAmount != null);
   const yearOfRow = (r: TenderRow) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null);
-  const years = uniqNum(wins.map(yearOfRow));
+  const availableYears = uniqNum(allWins.map(yearOfRow));
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+  };
+
+  // 🆕 筛选后的 wins：所有下面的统计（总额、品牌占比、趋势）都基于这个集合
+  const wins = useMemo(() => {
+    if (selectedYears.size === 0) return allWins;
+    return allWins.filter((r) => {
+      const y = yearOfRow(r);
+      return y != null && selectedYears.has(y);
+    });
+  }, [allWins, selectedYears]);
+
+  const brands = uniqStr(wins.map((r) => r.awardedBrand ?? r.proposedBrand));
+  const years = selectedYears.size === 0 ? availableYears : availableYears.filter((y) => selectedYears.has(y));
   const totalAll = wins.reduce((s, r) => s + r.awardedAmount, 0);
 
   const byBrandYear: BrandRow[] = brands.map((b) => {
@@ -490,6 +776,37 @@ export function BrandTab({ rows }: { rows: TenderRow[] }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        {/* 🆕 年份多选筛选 chip */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+          {availableYears.map((y) => {
+            const active = selectedYears.size === 0 || selectedYears.has(y);
+            return (
+              <button
+                key={y}
+                onClick={() => toggleYear(y)}
+                className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                  active
+                    ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                    : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                }`}
+              >
+                {y}
+              </button>
+            );
+          })}
+          {selectedYears.size > 0 && (
+            <button
+              onClick={() => setSelectedYears(new Set())}
+              className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <Kpi label="Total Awarded (All Brands)" value={fmtMYR(totalAll)} accent={ACCENT} />
         <Kpi label="Brands Contributing" value={brands.length} />
@@ -545,25 +862,147 @@ export function BrandTab({ rows }: { rows: TenderRow[] }) {
     </div>
   );
 }
-
 /* ================================ 8. Sales Performance ================================ */
-export function SalesTab({ rows }: { rows: TenderRow[] }) {
-  const people = uniqStr(rows.map((r) => r.sales));
+type SalesPeriodType = "none" | "quarter" | "month" | "half";
+
+export function SalesTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
+  // 🆕 年份多选筛选，空集合 = 显示全部年份
+  const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
+  // 🆕 周期粒度：不细分 / 按季度 / 按月 / 按半年
+  const [periodType, setPeriodType] = useState<SalesPeriodType>("none");
+  // 🆕 选定粒度后，具体是哪一个周期（例如 "2027 Q2"），空字符串 = 该粒度下全部周期
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+
+  const yearOfRow = (r: TenderRow) => (r.tenderOpenDate ? new Date(r.tenderOpenDate).getFullYear() : null);
+  const availableYears = useMemo(() => uniqNum(rows.map(yearOfRow)), [rows]);
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      const next = new Set(prev);
+      next.has(y) ? next.delete(y) : next.add(y);
+      return next;
+    });
+    setSelectedPeriod("");
+  };
+
+  const yearFilteredRows = useMemo(() => {
+    if (selectedYears.size === 0) return rows;
+    return rows.filter((r) => {
+      const y = yearOfRow(r);
+      return y != null && selectedYears.has(y);
+    });
+  }, [rows, selectedYears]);
+
+  const periodKeyOf = (r: TenderRow): string | null => {
+    if (!r.tenderOpenDate) return null;
+    const y = new Date(r.tenderOpenDate).getFullYear();
+    if (periodType === "quarter") return `${y} Q${quarterOf(r.tenderOpenDate)}`;
+    if (periodType === "month") return monthOf(r.tenderOpenDate);
+    if (periodType === "half") return `${y} ${halfOf(r.tenderOpenDate)}`;
+    return null;
+  };
+
+  const availablePeriods = useMemo(() => {
+    if (periodType === "none") return [];
+    const keys = Array.from(new Set(yearFilteredRows.map(periodKeyOf).filter((k): k is string => !!k)));
+    return keys.sort((a, b) => a.localeCompare(b));
+  }, [yearFilteredRows, periodType]);
+
+  const handlePeriodTypeChange = (t: SalesPeriodType) => {
+    setPeriodType(t);
+    setSelectedPeriod("");
+  };
+
+  // 🆕 最终用来计算图表 / 表格的数据集：年份 → 粒度 → 具体周期 三层递进筛选
+  const scopedRows = useMemo(() => {
+    let r = yearFilteredRows;
+    if (periodType !== "none" && selectedPeriod) {
+      r = r.filter((row) => periodKeyOf(row) === selectedPeriod);
+    }
+    return r;
+  }, [yearFilteredRows, periodType, selectedPeriod]);
+
+  const people = uniqStr(scopedRows.map((r) => r.sales));
   const data = people.map((p) => {
-    const personRows = rows.filter((r) => r.sales === p);
+    const personRows = scopedRows.filter((r) => r.sales === p);
     const decided = personRows.filter((r) => r.resultStatus === "Win" || r.resultStatus === "Lose");
     const wins = personRows.filter((r) => r.resultStatus === "Win");
+    const losses = personRows.filter((r) => r.resultStatus === "Lose");
     return {
       name: p,
       opportunities: personRows.length,
       wins: wins.length,
+      losses: losses.length,
       winRate: decided.length ? +((wins.length / decided.length) * 100).toFixed(1) : 0,
       awarded: wins.reduce((s, r) => s + (r.awardedAmount ?? 0), 0),
     };
   }).sort((a, b) => b.awarded - a.awarded);
 
+  // 🆕 点击查看某个业务员在当前筛选范围内的所有 tender
+  const openPersonDrawer = (name: string, statusFilter?: "Win" | "Lose") => {
+    let personRows = scopedRows.filter((r) => r.sales === name);
+    if (statusFilter) personRows = personRows.filter((r) => r.resultStatus === statusFilter);
+    const suffix = statusFilter ? ` — ${statusFilter}` : "";
+    openDrawer({ title: `Salesperson — ${name}${suffix}`, rows: personRows });
+  };
+
   return (
     <div className="space-y-6">
+      {/* 年份 → 粒度 → 具体周期 递进筛选条 */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#E4E7E6] bg-white px-4 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
+          {availableYears.map((y) => {
+            const active = selectedYears.size === 0 || selectedYears.has(y);
+            return (
+              <button
+                key={y}
+                onClick={() => toggleYear(y)}
+                className={`rounded-md border px-2 py-1 text-[11.5px] font-medium transition ${
+                  active
+                    ? "border-[#0E5C56] bg-[#0E5C56]/10 text-[#0E5C56]"
+                    : "border-[#DEE3E2] bg-white text-[#8B9895] hover:text-[#0F1E1C]"
+                }`}
+              >
+                {y}
+              </button>
+            );
+          })}
+          {selectedYears.size > 0 && (
+            <button
+              onClick={() => { setSelectedYears(new Set()); setSelectedPeriod(""); }}
+              className="ml-1 text-[11px] font-medium text-[#8B9895] underline hover:text-[#0F1E1C]"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        <div className="h-4 w-px bg-[#E4E7E6]" />
+
+        <Segmented
+          value={periodType}
+          onChange={handlePeriodTypeChange}
+          options={[
+            { value: "none", label: "All" },
+            { value: "quarter", label: "Quarter" },
+            { value: "month", label: "Month" },
+            { value: "half", label: "Half-Year" },
+          ]}
+        />
+
+        {periodType !== "none" && (
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="rounded-md border border-[#DEE3E2] bg-white px-2.5 py-1.5 text-[12px] text-[#0F1E1C] outline-none focus:border-[#0E5C56]"
+          >
+            <option value="">All {periodType === "quarter" ? "quarters" : periodType === "month" ? "months" : "halves"}</option>
+            {availablePeriods.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        )}
+      </div>
+
       <Panel title="Total awarded amount by salesperson">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
@@ -571,28 +1010,72 @@ export function SalesTab({ rows }: { rows: TenderRow[] }) {
             <XAxis type="number" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="name" tick={BAR_STYLE} axisLine={false} tickLine={false} width={80} />
             <Tooltip formatter={(v: any) => fmtMYR(Number(v))} />
-            <Bar dataKey="awarded" name="Awarded Amount" fill={ACCENT} radius={[0, 3, 3, 0]} />
+            <Bar
+              dataKey="awarded"
+              name="Awarded Amount"
+              fill={ACCENT}
+              radius={[0, 3, 3, 0]}
+              cursor="pointer"
+              onClick={(d: any) => openPersonDrawer(d?.payload?.name ?? d?.name, "Win")}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Panel>
+
+      {/* Win vs Lose 对比图，Lose 用红色 */}
+      <Panel title="Win vs Lose by salesperson">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
+            <CartesianGrid horizontal={false} stroke="#EEF1F0" />
+            <XAxis type="number" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} allowDecimals={false} />
+            <YAxis type="category" dataKey="name" tick={BAR_STYLE} axisLine={false} tickLine={false} width={80} />
+            <Tooltip />
+            <Legend />
+            <Bar
+              dataKey="wins"
+              name="Win"
+              fill={STATUS_COLORS.Win}
+              radius={[0, 3, 3, 0]}
+              cursor="pointer"
+              onClick={(d: any) => openPersonDrawer(d?.payload?.name ?? d?.name, "Win")}
+            />
+            <Bar
+              dataKey="losses"
+              name="Lose"
+              fill={STATUS_COLORS.Lose}
+              radius={[0, 3, 3, 0]}
+              cursor="pointer"
+              onClick={(d: any) => openPersonDrawer(d?.payload?.name ?? d?.name, "Lose")}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </Panel>
+
       <Panel title="Salesperson breakdown">
         <div className="overflow-x-auto rounded-md border border-[#E4E7E6]">
-          <table className="w-full min-w-[640px] text-left text-[12.5px]">
+          <table className="w-full min-w-[700px] text-left text-[12.5px]">
             <thead>
               <tr className="border-b border-[#E4E7E6] bg-[#F7F8F7] text-[10.5px] uppercase tracking-[0.06em] text-[#7C8A87]">
                 <th className="px-3 py-2 font-semibold">Salesperson</th>
                 <th className="px-3 py-2 text-right font-semibold">Opportunities</th>
                 <th className="px-3 py-2 text-right font-semibold">Wins</th>
+                <th className="px-3 py-2 text-right font-semibold">Losses</th>
                 <th className="px-3 py-2 text-right font-semibold">Win Rate</th>
                 <th className="px-3 py-2 text-right font-semibold">Total Awarded</th>
               </tr>
             </thead>
             <tbody>
               {data.map((p) => (
-                <tr key={p.name} className="border-b border-[#EEF1F0] last:border-0 hover:bg-[#F7FAF9]">
+                <tr
+                  key={p.name}
+                  onClick={() => openPersonDrawer(p.name)}
+                  title="Click to view this salesperson's tenders"
+                  className="cursor-pointer border-b border-[#EEF1F0] last:border-0 hover:bg-[#F0F7F5] transition"
+                >
                   <td className="px-3 py-2 font-medium text-[#0F1E1C]">{p.name}</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{p.opportunities}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{p.wins}</td>
+                  <td className="px-3 py-2 text-right tabular-nums" style={{ color: STATUS_COLORS.Win }}>{p.wins}</td>
+                  <td className="px-3 py-2 text-right tabular-nums" style={{ color: STATUS_COLORS.Lose }}>{p.losses}</td>
                   <td className="px-3 py-2 text-right tabular-nums" style={{ color: STATUS_COLORS.Win }}>{p.winRate}%</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{fmtMYR(p.awarded)}</td>
                 </tr>

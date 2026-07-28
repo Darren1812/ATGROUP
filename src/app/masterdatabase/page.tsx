@@ -72,10 +72,10 @@ export default function TenderDashboardPage() {
   }
 
   return (
-    <div className="flex h-full min-h-[720px] w-full overflow-hidden rounded-xl border border-[#E4E7E6] bg-[#F7F8F7]">
+    <div className="flex h-[100dvh] w-full overflow-hidden rounded-xl border border-[#E4E7E6] bg-[#F7F8F7]">
       {/* ---------------- Sidebar ---------------- */}
-      <aside className="flex w-[228px] shrink-0 flex-col bg-[#0B211E] text-white">
-        <div className="border-b border-white/10 px-5 py-5">
+      <aside className=" sticky top-0 h-screen w-[228px] shrink-0 flex flex-col bg-[#0B211E] text-white">
+            <div className="border-b border-white/10 px-5 py-5">
           <div className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#8FB8AF]">Tender Ops</div>
           <div className="mt-0.5 text-[16px] font-semibold">Pipeline Console</div>
         </div>
@@ -148,7 +148,7 @@ export default function TenderDashboardPage() {
           {tab === "expiry" && <ExpiryTab base={base} openDrawer={setDrawer} />}
           {tab === "opportunity" && <OpportunityTab rows={base} openDrawer={setDrawer} />}
           {tab === "brand" && <BrandTab rows={base} />}
-          {tab === "salesperson" && <SalesTab rows={base} />}
+          {tab === "salesperson" && <SalesTab rows={base} openDrawer={setDrawer} />}
         </div>
       </div>
 

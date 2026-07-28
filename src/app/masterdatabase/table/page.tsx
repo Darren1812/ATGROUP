@@ -363,8 +363,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
   const SALES_PERSONS = ['Husni', 'Husna', 'Hannah', 'Nik'];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 text-slate-800 font-sans">
-
+    <div className="h-screen bg-slate-50 p-6 text-slate-800 font-sans flex flex-col overflow-hidden"> 
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center space-x-2 px-4 py-3 rounded-lg shadow-lg text-white transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
           {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
@@ -519,8 +518,8 @@ const handleFormSubmit = async (e: React.FormEvent) => {
       </div>
 
       {/* 数据明细表格 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto max-h-[650px]">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="overflow-auto flex-1 min-h-0">
           <table className="w-full text-left border-separate border-spacing-0 table-auto">
             <thead className="text-xs font-bold text-slate-600 tracking-wider sticky top-0 z-20">
               <tr className="bg-slate-100 text-slate-900">
