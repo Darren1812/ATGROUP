@@ -18,39 +18,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useAuth } from "@/context/AuthContext";
 
-import {
-  Package,
-  Plus,
-  Trash2,
-  RefreshCw,
-  MapPin,
-  Building2,
-  User,
-  Clock,
-  Truck,
-  CheckCircle2,
-  Loader2,
-  ArrowRight,
-  X,
-  Upload,
-  FileText,
-  Eye,
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-  Filter,
-  Columns3,
-  GripVertical,
-  CircleDot,
-  Settings,
-  Phone,
-  Archive,
-  Building,
-  Sparkles,
-} from "lucide-react";
-
+import { Package, Plus, Trash2, RefreshCw, MapPin, Building2, User, Clock, Truck, CheckCircle2, Loader2, ArrowRight, X, Upload, FileText, Eye, Search, SlidersHorizontal, ChevronDown, Filter, Columns3, GripVertical, CircleDot, Settings, Phone, Archive, Building, Sparkles } from "lucide-react";
 interface OcrItem {
   description: string;
+  status: string;   // 🆕
 }
 
 interface PendingTaskDraft {
@@ -61,6 +32,7 @@ interface PendingTaskDraft {
   department: string;
   picDeliver: string;
   scheduledTime: string | null;
+  status: string;
   items: OcrItem[];
 }
 
@@ -71,6 +43,13 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string; dot: string }
 > = {
+    AwaitingStock: {
+    label: "Awaiting Stock",
+    color: "text-orange-700",
+    bg: "bg-orange-50 border-orange-200",
+    dot: "bg-orange-500",
+  },
+
   Waiting: {
     label: "Waiting",
     color: "text-amber-700",
@@ -90,7 +69,15 @@ const STATUS_CONFIG: Record<
     dot: "bg-red-500",
   },
 };
-
+// 🆕 统一计算某笔任务应该显示的状态：
+// Complete/Arrange 由业务事实（有没有完成单、有没有指派 PIC）决定，优先级最高；
+// 否则就照 creator 当初建单/后续手动更新的原始 status 来（AwaitingStock 或 Waiting）
+function computeDisplayStatus(t: any): string {
+  if (t.hasComplete || t.status === "Complete") return "Complete";
+  if (t.picDeliver) return "Arrange";
+  if (t.status === "AwaitingStock") return "AwaitingStock";
+  return "Waiting";
+}
 const COLUMN_DEFS = [
   { key: "orderNumber", label: "ID", icon: null, width: 100 },
   { key: "createdAt", label: "At", icon: Clock, width: 100 },
@@ -340,6 +327,7 @@ export default function LogisticsPage() {
     picDeliver: "",
     phoneNumber: "",
     createdBy: "",
+    status:"AwaitingStock"
   };
   const [newTasks, setNewTasks] = useState<any[]>([emptyRow]);
 
@@ -369,11 +357,7 @@ export default function LogisticsPage() {
 
       const updated = data.map((t: any) => ({
         ...t,
-        status: t.hasComplete
-          ? "Complete"
-          : t.picDeliver
-            ? "Arrange"
-            : "Waiting",
+  status: computeDisplayStatus(t),
       }));
 
       setTasks(updated);
@@ -478,7 +462,14 @@ export default function LogisticsPage() {
 
     fetchTasks(true);
   };
-
+  const markStockArrived = async (id: number) => {
+    await fetch(`${API}/status/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify("Waiting"),
+    });
+    fetchTasks(true);
+  };
   // ── Unique PIC list for dropdown ──
   const picOptions = useMemo(() => {
     const s = new Set(tasks.map((t) => t.picDeliver).filter(Boolean));
@@ -507,13 +498,7 @@ export default function LogisticsPage() {
         if (!haystack.includes(q)) return false;
       }
       if (filterPic && t.picDeliver !== filterPic) return false;
-      const computedStatus =
-        t.status === "Complete"
-          ? t.status
-          : t.scheduledAt && t.picDeliver
-            ? "Arrange"
-            : "Waiting";
-
+      const computedStatus = computeDisplayStatus(t);
       if (filterStatus && computedStatus !== filterStatus) return false;
       if (filterDateFrom || filterDateTo) {
         const scheduled = t.scheduledAt ? new Date(t.scheduledAt) : null;
@@ -596,7 +581,6 @@ export default function LogisticsPage() {
       if (!response.ok) throw new Error("OCR processing failed");
 
       const ocrData = await response.json();
-
       const newTaskDraft: PendingTaskDraft = {
         from: ocrData.from_shop || "",
         companyName: ocrData.to_company || "",
@@ -604,9 +588,11 @@ export default function LogisticsPage() {
         phoneNumber: ocrData.phone_number || "",
         department: user?.department || "Marketing",
         picDeliver: "",
+        status: "AwaitingStock",   
         scheduledTime: null,
         items: (ocrData.items || []).map((i: any) => ({
           description: i.description || "",
+          status: "AwaitingStock",   // 🆕 每个 item 各自默认待货
         })),
       };
 
@@ -635,7 +621,7 @@ export default function LogisticsPage() {
       prev.map((draft, idx) => {
         if (idx !== taskIdx) return draft;
         const updatedItems = draft.items.map((item, i) =>
-          i === itemIdx ? { description: value } : item,
+          i === itemIdx ? { description: value , status: item.status } : item,
         );
         return { ...draft, items: updatedItems };
       }),
@@ -650,12 +636,27 @@ export default function LogisticsPage() {
       }),
     );
   };
+  const updateDraftItemStatus = (
+    taskIdx: number,
+    itemIdx: number,
+    value: string,
+  ) => {
+    setPendingTasks((prev) =>
+      prev.map((draft, idx) => {
+        if (idx !== taskIdx) return draft;
+        const updatedItems = draft.items.map((item, i) =>
+          i === itemIdx ? { ...item, status: value } : item,
+        );
+        return { ...draft, items: updatedItems };
+      }),
+    );
+  };
 
   const addDraftItem = (taskIdx: number) => {
     setPendingTasks((prev) =>
       prev.map((draft, idx) => {
         if (idx !== taskIdx) return draft;
-        return { ...draft, items: [...draft.items, { description: "" }] };
+        return { ...draft, items: [...draft.items, { description: "", status: "AwaitingStock"  }] };
       }),
     );
   };
@@ -701,12 +702,15 @@ export default function LogisticsPage() {
           location: draft.location,
           phoneNumber: draft.phoneNumber,
           picDeliver: draft.picDeliver || "",
-          status: "Waiting",
+          status: draft.status || "AwaitingStock",   
 
           // 🌟 这次发送出去的绝对是纯净的 "2026-06-19T16:17:00"，没任何人能背地里篡改它
           scheduledTime: formattedTime,
 
-          items: draft.items.map((i) => ({ description: i.description })),
+          items: draft.items.map((i) => ({
+            description: i.description,
+            status: i.status || "AwaitingStock",   // 🆕
+          })),
         };
       });
 
@@ -953,19 +957,32 @@ export default function LogisticsPage() {
             </datalist>
           </div>
         );
-      case "status":
-        const cfg = STATUS_CONFIG[t.status] ?? STATUS_CONFIG["Waiting"];
-        return (
-          <div
-            className={`text-[11px] px-2 py-1.5 w-[90px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color}`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}
-            />
-            {cfg.label}
-          </div>
-        );
-      case "documents":
+        case "status":
+          const displayStatus = computeDisplayStatus(t);
+          const cfg = STATUS_CONFIG[displayStatus] ?? STATUS_CONFIG["Waiting"];
+          return (
+            <div className='flex flex-col gap-1.5 w-[130px]'>
+              <div
+                className={`text-[11px] px-2 py-1.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.bg} ${cfg.color}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}
+                />
+                {cfg.label}
+              </div>
+              {/* 🆕 只有还在 Awaiting Stock 阶段才显示这个按钮，货到了点一下改成 Waiting */}
+              {displayStatus === "AwaitingStock" && (
+                <button
+                  onClick={() => markStockArrived(t.id)}
+                  className='flex items-center justify-center gap-1 px-2 py-1 text-[10px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors'
+                >
+                  <CheckCircle2 size={11} />
+                  Stock Arrived
+                </button>
+              )}
+            </div>
+          );
+        case "documents":
         return (
           <div className='flex flex-col gap-2'>
             <div className='flex items-center gap-1.5'>
@@ -1321,41 +1338,44 @@ export default function LogisticsPage() {
                       order number
                     </span>
                     <div className='space-y-1.5'>
-                      {draft.items.map((item, itemIdx) => (
-                        <div
-                          key={itemIdx}
-                          className='flex items-center gap-2 pl-2'
-                        >
-                          <span className='text-[10px] font-bold text-slate-400 w-4'>
-                            #{itemIdx + 1}
-                          </span>
-                          <input
-                            type='text'
-                            value={item.description}
-                            onChange={(e) =>
-                              updateDraftItem(
-                                taskIndex,
-                                itemIdx,
-                                e.target.value,
-                              )
-                            }
-                            className='flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-[11px] font-medium text-slate-700 focus:border-violet-400 focus:ring-1 focus:ring-violet-100 outline-none'
-                          />
-                          <button
-                            onClick={() => removeDraftItem(taskIndex, itemIdx)}
-                            className='p-1 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors'
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => addDraftItem(taskIndex)}
-                        className='flex items-center gap-1 pl-2 text-[11px] text-violet-600 font-bold hover:text-violet-800 transition-colors'
-                      >
-                        <Plus size={12} /> Add item row
-                      </button>
-                    </div>
+  {draft.items.map((item, itemIdx) => (
+    <div key={itemIdx} className='flex items-center gap-2 pl-2'>
+      <span className='text-[10px] font-bold text-slate-400 w-4'>
+        #{itemIdx + 1}
+      </span>
+      <input
+        type='text'
+        value={item.description}
+        onChange={(e) => updateDraftItem(taskIndex, itemIdx, e.target.value)}
+        className='flex-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-[11px] font-medium text-slate-700 focus:border-violet-400 focus:ring-1 focus:ring-violet-100 outline-none'
+      />
+      {/* 🆕 每行独立的 status 选择 */}
+      <select
+        value={item.status || "AwaitingStock"}
+        onChange={(e) => updateDraftItemStatus(taskIndex, itemIdx, e.target.value)}
+        className={`px-2 py-1 rounded-md text-[10px] font-bold border outline-none cursor-pointer transition-colors
+          ${item.status === "AwaitingStock"
+            ? "bg-orange-50 border-orange-200 text-orange-700"
+            : "bg-amber-50 border-amber-200 text-amber-700"}`}
+      >
+        <option value='AwaitingStock'>Awaiting Stock</option>
+        <option value='Waiting'>Waiting</option>
+      </select>
+      <button
+        onClick={() => removeDraftItem(taskIndex, itemIdx)}
+        className='p-1 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors'
+      >
+        <Trash2 size={12} />
+      </button>
+    </div>
+  ))}
+  <button
+    onClick={() => addDraftItem(taskIndex)}
+    className='flex items-center gap-1 pl-2 text-[11px] text-violet-600 font-bold hover:text-violet-800 transition-colors'
+  >
+    <Plus size={12} /> Add item row
+  </button>
+</div>
                   </div>
                 </div>
               ))}
@@ -1386,7 +1406,7 @@ export default function LogisticsPage() {
               </button>
             </div>
             <div className='p-6 space-y-3'>
-              <div className='hidden md:grid grid-cols-8 gap-3 px-1'>
+              <div className='hidden md:grid grid-cols-9 gap-3 px-1'>
                 {[
                   "From",
                   "Company",
@@ -1394,6 +1414,7 @@ export default function LogisticsPage() {
                   "Item",
                   "Estimate Time",
                   "Phone Number",
+                  "Status",
                   "Created By",
                 ].map((h) => (
                   <p
@@ -1407,7 +1428,7 @@ export default function LogisticsPage() {
               {newTasks.map((task, i) => (
                 <div
                   key={i}
-                  className='grid grid-cols-1 md:grid-cols-8 gap-3 items-center group'
+                  className='grid grid-cols-1 md:grid-cols-9 gap-3 items-center group'
                 >
                   {(["from", "companyName", "location", "item"] as const).map(
                     (field) =>
@@ -1448,6 +1469,14 @@ export default function LogisticsPage() {
                     }
                     className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none'
                   />
+                  <select
+                    value={task.status || "AwaitingStock"}
+                    onChange={(e) => updateRow(i, "status", e.target.value)}
+                    className='w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-800'
+                  >
+                    <option value='AwaitingStock'>Awaiting Stock</option>
+                    <option value='Waiting'>Waiting (Stock Ready)</option>
+                  </select>
                   <input
                     type='text'
                     value={name}
@@ -1686,6 +1715,7 @@ export default function LogisticsPage() {
                     <option value='Waiting'>Waiting</option>
                     <option value='Arrange'>Arranging</option>
                     <option value='Complete'>Complete</option>
+                    <option value='AwaitingStock'>Awaiting Stock</option>
                   </select>
                   <ChevronDown
                     size={13}
