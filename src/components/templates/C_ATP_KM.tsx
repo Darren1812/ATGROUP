@@ -420,6 +420,8 @@ export default function C_ATP() {
     Inner?: string;
     Booklet?: string;
     Puncher?: string;
+    ["3 Trays"]?: string;
+    ["5 Trays"]?: string;
     Details?: string;
     [key: string]: string | undefined; // dynamic fields
   }
@@ -495,6 +497,8 @@ export default function C_ATP() {
         handleItemChange(index, "Inner", data.Inner || "");
         handleItemChange(index, "Booklet", data.Booklet || "");
         handleItemChange(index, "Puncher", data.Puncher || "");
+        handleItemChange(index, "3 Trays", data["3 Trays"] || "");
+        handleItemChange(index, "5 Trays", data["5 Trays"] || "");
 
         // ✅ Use ref to safely access latest cache
         const lastModelData =
@@ -1281,6 +1285,8 @@ export default function C_ATP() {
                               "Inner",
                               "Booklet",
                               "Puncher",
+                              "3 Trays",
+                              "5 Trays",
                               "Staple",
                             ].map((func) => {
                               // determine if selected from i_selectedFunction

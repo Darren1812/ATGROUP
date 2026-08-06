@@ -218,7 +218,7 @@ export default function Dashboard() {
       category:"CORE SYSTEM",
       allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)", "Sales (Melaka)"],
     },
-    /*{
+    {
       title:"BROCHURE GENERATOR",
       description:"",
       route:"/brochure",
@@ -228,7 +228,7 @@ export default function Dashboard() {
       iconColor:"text-amber-600",
       category:"CORE SYSTEM",
       allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)", "Sales (Melaka)"],
-    },*/
+    }
   ];
 
   const filteredCards = cards.filter(card => {
