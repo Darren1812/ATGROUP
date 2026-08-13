@@ -513,6 +513,7 @@ export default function ModelManagementPage() {
                   <option value="ENV_PROFILE">ENVIRONMENTAL_PROFILE</option>
                   <option value="ECO_TONER">ECOTONER</option>
                   <option value="IS_C">Information Security & Compliance</option>
+                  <option value="ECO_TONER_ARENA_CANON">ECO TONER ARENA CANON</option>
                 </select>
               </div>
 
