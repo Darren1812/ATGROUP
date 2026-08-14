@@ -29,7 +29,7 @@ export default function ArenaCanonBrochureView({
 }: CompanyViewProps) {
   const [printerModels, setPrinterModels] = useState<PrinterModel[]>([]);
 
-  // 1. 请求后端数据库中的 printer_models
+  // 1. 请求后端数据库中的 printer_models（跟 ASN 共用同一张表）
   useEffect(() => {
     fetch(`${BASE_URL}/api/Brochure/printer-models`)
       .then(async (res) => {
@@ -44,20 +44,18 @@ export default function ArenaCanonBrochureView({
       .catch((err) => console.error("Error fetching printer models:", err));
   }, []);
 
-  // 过滤不需要的模板（如 ArenaGantt），并按序排列
-  const filteredAndSortedTemplates = templates
-    .filter((tpl) => !tpl.includes("ArenaGantt"))
-    .sort((a, b) => {
-      const getOrder = (name: string) => {
-        for (const [key, val] of Object.entries(TEMPLATE_ORDER)) {
-          if (name.includes(key)) return val;
-        }
-        return 99;
-      };
-      return getOrder(a) - getOrder(b);
-    });
+  // 对传入的 templates 按预设顺序进行自定义排序
+  const sortedTemplates = [...templates].sort((a, b) => {
+    const getOrder = (name: string) => {
+      for (const [key, val] of Object.entries(TEMPLATE_ORDER)) {
+        if (name.includes(key)) return val;
+      }
+      return 99; // 其它未匹配到的模版排在最后
+    };
+    return getOrder(a) - getOrder(b);
+  });
 
-  // 统一同步更新所有卡片的 Customer Name
+  // 统一同步更新所有卡片的 Customer Name（NilaiTambahan + SLA 共用）
   const handleCustomerNameChange = (val: string) => {
     selectedItems.forEach((item) => {
       if (item.data["customername"] !== val) {
@@ -69,7 +67,7 @@ export default function ArenaCanonBrochureView({
     });
   };
 
-  // 格式化文本生成逻辑
+  // 2. 格式化文本生成逻辑
   const generateModelDetailsText = useCallback(
     (configs: ModelConfig[] = [], models: PrinterModel[] = printerModels) => {
       return configs
@@ -97,7 +95,7 @@ export default function ArenaCanonBrochureView({
     [printerModels],
   );
 
-  // 自动对全局 Item_Coverpage 排序 (A, B, C...) 与刷新文本
+  // 3. 自动对全局 Item_Coverpage 排序 (A, B, C...) 与刷新文本
   useEffect(() => {
     if (printerModels.length === 0) return;
 
@@ -138,7 +136,7 @@ export default function ArenaCanonBrochureView({
     });
   }, [selectedItems.length, printerModels, generateModelDetailsText]);
 
-  // 统一更新单一 Instance 内部 Model 配置
+  // 4. 统一更新单一 Instance 内部 Model 配置
   const handleUpdateConfigs = (
     instanceId: string,
     updatedConfigs: ModelConfig[],
@@ -162,8 +160,10 @@ export default function ArenaCanonBrochureView({
 
   return (
     <div className='space-y-6 max-w-5xl'>
-      <div className="columns-1 md:columns-2 gap-6 space-y-6">
-        {filteredAndSortedTemplates.map((tpl) => {
+      {/* 按照自定义排序后的 sortedTemplates 进行遍历 */}
+      {/* 核心修改：使用 grid grid-cols-1 md:grid-cols-2 替换原来的 columns-2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {sortedTemplates.map((tpl) => {
           const matchingItems = selectedItems.filter(
             (item) =>
               item.templateName.endsWith(tpl) || item.templateName === tpl,
@@ -173,7 +173,7 @@ export default function ArenaCanonBrochureView({
           const displayName = getTemplateDisplayName(tpl);
 
           return (
-            <div key={tpl} className='flex flex-col space-y-4'>
+            <div key={tpl} className='flex flex-col space-y-4 break-inside-avoid'>
               {!isSelected ? (
                 <div className='border border-slate-200 rounded-xl p-5 bg-white shadow-sm hover:border-blue-300 hover:shadow transition-all'>
                   <div className='flex items-center justify-between'>
@@ -207,7 +207,7 @@ export default function ArenaCanonBrochureView({
                   return (
                     <div
                       key={item.instanceId}
-                      className='border border-blue-500 ring-1 ring-blue-500/20 rounded-xl p-5 bg-white shadow-md relative space-y-4'
+                      className='border border-blue-500 ring-1 ring-blue-500/20 rounded-xl p-5 bg-white shadow-md relative space-y-4 break-inside-avoid'
                     >
                       <div className='flex items-center justify-between pb-3 border-b border-slate-100'>
                         <div className='flex items-center space-x-3'>
