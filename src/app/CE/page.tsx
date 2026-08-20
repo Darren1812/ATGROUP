@@ -761,6 +761,7 @@ export default function Page() {
                 <option value='CHIPSOFT'>CHIPSOFT</option>
                 <option value='ALLTIME'>ALLTIME</option>
                 <option value='GEMILANG CETAK'>GEMILANG CETAK</option>
+                <option value='FASTROCOM'>FASTROCOM</option>
               </select>
 
               {/* 2. Jurisdiction Checkboxes (New State & Handler) */}
@@ -935,6 +936,9 @@ export default function Page() {
                           "GEMILANG CETAK",
                           "GEMILANG CETAK(state)",
                           "GEMILANG CETAK(federal)",
+                          "FASTROCOM",
+                          "FASTROCOM(state)",
+                          "FASTROCOM(federal)"
                         ].map((company) => (
                           <button
                             key={company}
@@ -1128,6 +1132,7 @@ export default function Page() {
                     <option value='CHIPSOFT'>CHIPSOFT</option>
                     <option value='ALLTIME'>ALLTIME</option>
                     <option value='GEMILANG CETAK'>GEMILANG CETAK</option>
+                    <option value='FASTROCOM'>FASTROCOM</option>
                   </select>
 
                   <div className='flex space-x-6 mt-2'>
