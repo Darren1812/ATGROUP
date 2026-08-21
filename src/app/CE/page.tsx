@@ -298,12 +298,38 @@ export default function Page() {
     // Add 1 (to match your Excel formula)
     return Math.max(months + 1, 0).toString();
   };
-  const formatToMidnightISO = (dateStr: string) => {
-    // 假设输入是 dd/mm/yyyy
-    const [day, month, year] = dateStr.split("/");
-    // 拼接成标准的 YYYY-MM-DDT00:00:00Z 格式
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00.000Z`;
-  };
+// 修复后支持 DD/MM/YYYY、YYYY-MM-DD 或 ISO 格式安全转换
+const formatToMidnightISO = (dateStr?: string) => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+
+  let day = '', month = '', year = '';
+
+  if (dateStr.includes('/')) {
+    // 处理 DD/MM/YYYY
+    const parts = dateStr.split('/').map((p) => p.trim());
+    if (parts.length === 3) [day, month, year] = parts;
+  } else if (dateStr.includes('-')) {
+    // 处理 YYYY-MM-DD
+    const parts = dateStr.split('-').map((p) => p.trim());
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        [year, month, day] = parts;
+      } else {
+        [day, month, year] = parts;
+      }
+    }
+  }
+
+  // 关键防错：如果拆不出来，直接回退原值或空串，避免 padStart 崩溃
+  if (!day || !month || !year) return dateStr;
+
+  const formattedDay = day.padStart(2, '0');
+  const formattedMonth = month.padStart(2, '0');
+  const formattedYear = year.length === 2 ? `20${year}` : year;
+
+  // 返回后台需要的 ISO 格式 (或按你需要调整)
+  return `${formattedYear}-${formattedMonth}-${formattedDay}T00:00:00`;
+};
   const handleSave = async () => {
     // 1. 验证日期是否存在
     if (!formData.startDate || !formData.endDate) {
@@ -414,11 +440,17 @@ export default function Page() {
   };
   // ✅ Edit contract
   const handleEdit = (index: number) => {
-    setFormData(contracts[index]);
+    const selected = contracts[index];
+    
+    setFormData({
+      ...selected,
+      startDate: formatToSlashDate(selected.startDate),
+      endDate: formatToSlashDate(selected.endDate),
+    });
+    
     setEditIndex(index);
     setShowForm(true);
   };
-
   // ✅ Delete contract
   const handleDelete = async (index: number) => {
     const item = contracts[index];
@@ -735,6 +767,62 @@ export default function Page() {
   }, [baseCompany, jurisdiction]);
   const [loading, setLoading] = useState<boolean>(false);
 
+// 1. 转给 <input type="date" /> 使用 (需输出 YYYY-MM-DD)
+const convertToInputDate = (dateStr?: string) => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+  
+  // 兼容 ISO 格式 (例如 "2026-12-12T00:00:00")
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // 兼容 DD/MM/YYYY 格式
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/').map((p) => p.trim());
+    if (parts.length === 3) {
+      const [day, month, year] = parts;
+      return `${year.length === 2 ? '20' + year : year}-${(month || '').padStart(2, '0')}-${(day || '').padStart(2, '0')}`;
+    }
+  }
+
+  return '';
+};
+
+// 2. 转回存入 formData 使用 (强制输出 DD/MM/YYYY)
+const convertToDisplayDate = (dateStr?: string) => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr; // 非 YYYY-MM-DD 格式则原样返回
+
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return ''; // 避免出现空段导致报错
+
+  // 强制生成带斜杠的 DD/MM/YYYY
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+};
+// 专门负责将后台/状态里的各种日期格式（如 "2026-02-01T00:00:00"）转为 "01/02/2026" 显示
+const formatToSlashDate = (dateStr?: string) => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+
+  // 如果已经包含斜杠，说明已经是 DD/MM/YYYY
+  if (dateStr.includes('/')) return dateStr;
+
+  // 使用 Date 对象解析（能完美处理 ISO 字符串如 "2026-02-01T00:00:00" 或 "2026-02-01"）
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  return dateStr;
+};
   return (
     <main className='p-4 md:p-8 bg-gray-100 min-h-screen'>
       <div className='flex flex-col h-screen'>
@@ -1062,26 +1150,85 @@ export default function Page() {
                 label='PEGAWAI UNTUK DIHUBUNGI'
                 icon={<User size={20} />}
               />
-              <InputField
-                name='startDate'
-                value={formData.startDate}
-                onChange={
-                  handleChange as (e: ChangeEvent<HTMLInputElement>) => void
-                }
-                placeholder='dd/mm/yyyy'
-                label='TARIKH TEMPOH KONTRAK MULA'
-                icon={<Calendar size={20} />}
-              />
-              <InputField
-                name='endDate'
-                value={formData.endDate}
-                onChange={
-                  handleChange as (e: ChangeEvent<HTMLInputElement>) => void
-                }
-                placeholder='dd/mm/yyyy'
-                label='TARIKH TEMPOH KONTRAK TAMAT'
-                icon={<Calendar size={20} />}
-              />
+              {/* Start Date Field */}
+<div className='flex flex-col space-y-1'>
+  <label
+    htmlFor='startDate'
+    className='text-sm font-semibold text-gray-700'
+  >
+    TARIKH TEMPOH KONTRAK MULA
+  </label>
+  <div className='relative flex items-center'>
+    <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 z-10'>
+      <Calendar size={20} />
+    </div>
+    {/* 显示用 Input：通过 formatToSlashDate 格式化为 DD/MM/YYYY */}
+    <input
+      type='text'
+      id='startDate'
+      name='startDate'
+      placeholder='dd/mm/yyyy'
+      value={formatToSlashDate(formData.startDate)}
+      onChange={handleChange}
+      className='w-full border border-gray-300 p-2 pl-10 pr-10 rounded-lg bg-white text-gray-800 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150 ease-in-out'
+    />
+    {/* 隐藏的 Date Picker：点击右侧图标弹出原生选择框 */}
+    <input
+      type='date'
+      value={convertToInputDate(formData.startDate)}
+      onChange={(e) => {
+        const formattedDate = convertToDisplayDate(e.target.value);
+        handleChange({
+          target: {
+            name: 'startDate',
+            value: formattedDate,
+          },
+        } as React.ChangeEvent<HTMLInputElement>);
+      }}
+      className='absolute right-2 opacity-0 w-8 h-8 cursor-pointer z-20'
+    />
+  </div>
+</div>
+
+{/* End Date Field */}
+<div className='flex flex-col space-y-1'>
+  <label
+    htmlFor='endDate'
+    className='text-sm font-semibold text-gray-700'
+  >
+    TARIKH TEMPOH KONTRAK TAMAT
+  </label>
+  <div className='relative flex items-center'>
+    <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 z-10'>
+      <Calendar size={20} />
+    </div>
+    {/* 显示用 Input：通过 formatToSlashDate 格式化为 DD/MM/YYYY */}
+    <input
+      type='text'
+      id='endDate'
+      name='endDate'
+      placeholder='dd/mm/yyyy'
+      value={formatToSlashDate(formData.endDate)}
+      onChange={handleChange}
+      className='w-full border border-gray-300 p-2 pl-10 pr-10 rounded-lg bg-white text-gray-800 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition duration-150 ease-in-out'
+    />
+    {/* 隐藏的 Date Picker：点击右侧图标弹出原生选择框 */}
+    <input
+      type='date'
+      value={convertToInputDate(formData.endDate)}
+      onChange={(e) => {
+        const formattedDate = convertToDisplayDate(e.target.value);
+        handleChange({
+          target: {
+            name: 'endDate',
+            value: formattedDate,
+          },
+        } as React.ChangeEvent<HTMLInputElement>);
+      }}
+      className='absolute right-2 opacity-0 w-8 h-8 cursor-pointer z-20'
+    />
+  </div>
+</div>
               {/* NEW: Textarea for multi-line Agency Name/Address */}
               <div className='md:col-span-2 lg:col-span-3 flex flex-col space-y-1'>
                 <label
