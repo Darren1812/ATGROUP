@@ -188,7 +188,7 @@ export default function Dashboard() {
     {
       title: "SALES ORDER",
       description: "SALES ORDER.",
-      route: "/page2",
+      route: "/logisticstable",
       icon: Truck,
       color: "from-violet-500 to-purple-600",
       lightColor: "bg-violet-50",
