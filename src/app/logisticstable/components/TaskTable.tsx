@@ -38,10 +38,21 @@ function LinkWrapper({ children, className, href = "#" }: LinkWrapperProps) {
   );
 }
 
+import { Pagination } from "./Pagination";
+
 interface TaskTableProps {
   loading: boolean;
   tasks: any[];
-  filteredTasks: any[];
+  hasActiveFilters: boolean;
+  page: number;
+  pageSize: number;
+  pagination: {
+    totalCount: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
+  onPageChange: (page: number) => void;
   clearAllFilters: () => void;
   visibleColumns: Column[];
   sensors: any;
@@ -64,7 +75,11 @@ const PIC_LIST_OPTIONS = ["Akmal", "Nahfiz", "Darwin", "Darren"];
 export function TaskTable({
   loading,
   tasks,
-  filteredTasks,
+  hasActiveFilters,
+  page,
+  pageSize,
+  pagination,
+  onPageChange,
   clearAllFilters,
   visibleColumns,
   sensors,
@@ -347,15 +362,7 @@ export function TaskTable({
           All Deliveries <div className='h-px w-16 bg-slate-200' />
         </h2>
         <span className='text-xs font-bold text-slate-400'>
-          {filteredTasks.length !== tasks.length ? (
-            <>
-              {filteredTasks.length} <span className='text-slate-300 font-normal'>of</span> {tasks.length} records
-            </>
-          ) : (
-            <>
-              {tasks.length} record{tasks.length !== 1 ? "s" : ""}
-            </>
-          )}
+          {pagination.totalCount} record{pagination.totalCount !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -364,12 +371,12 @@ export function TaskTable({
           <Loader2 size={32} className='text-indigo-400 animate-spin' />
           <p className='text-slate-400 text-sm font-medium'>Loading tasks...</p>
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : tasks.length === 0 ? (
         <div className='py-24 text-center'>
           <div className='inline-flex p-6 rounded-full bg-slate-100 mb-4'>
             <Package size={36} className='text-slate-300' />
           </div>
-          {tasks.length === 0 ? (
+          {!hasActiveFilters ? (
             <>
               <p className='text-slate-600 font-bold'>No logistics tasks yet</p>
               <p className='text-slate-400 text-sm mt-1'>Click "New Task" to get started</p>
@@ -408,7 +415,7 @@ export function TaskTable({
                 </tr>
               </thead>
               <tbody className='divide-y divide-slate-100'>
-                {filteredTasks.map((t) => (
+                {tasks.map((t) => (
                   <tr key={t.id} className='hover:bg-slate-50/70 transition-colors duration-150 group'>
                     {visibleColumns.map((col) => (
                       <td key={col.key} className='px-5 py-4'>
@@ -421,6 +428,18 @@ export function TaskTable({
             </table>
           </DndContext>
         </div>
+      )}
+
+      {!loading && tasks.length > 0 && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={pagination.totalCount}
+          totalPages={pagination.totalPages}
+          hasNext={pagination.hasNext}
+          hasPrevious={pagination.hasPrevious}
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );

@@ -22,9 +22,16 @@ export default function LogisticsPage() {
   const { user } = useAuth();
   const [name] = useState(user?.nameUse || "");
 
-  // ── Core task data ──
+  // ── Search & filters（放在 tasks hook 前面，因为过滤条件要传给后端）──
+  const filters = useTaskFilters();
+
+  // ── Core task data（分页 + 后端过滤）──
   const {
     tasks,
+    page,
+    setPage,
+    pagination,
+    pageSize,
     loading,
     refreshing,
     deletingId,
@@ -34,7 +41,7 @@ export default function LogisticsPage() {
     updateSchedule,
     updatePic,
     markStockArrived,
-  } = useLogisticsTasks(user);
+  } = useLogisticsTasks(user, filters.appliedFilters);
 
   // ── Documents (install / DO / completion uploads) ──
   const { docStatus, uploadingDoc, triggerUpload, viewDocument } =
@@ -51,9 +58,6 @@ export default function LogisticsPage() {
     resetForm,
     createTask,
   } = useNewTaskForm(user, () => fetchTasks(true));
-
-  // ── Search & filters ──
-  const filters = useTaskFilters(tasks);
 
   // ── Column visibility / ordering ──
   const {
@@ -143,7 +147,16 @@ export default function LogisticsPage() {
         <TaskTable
           loading={loading}
           tasks={tasks}
-          filteredTasks={filters.filteredTasks}
+          hasActiveFilters={
+            filters.activeFilterCount > 0 || !!filters.searchQuery
+          }
+          page={page}
+          pageSize={pageSize}
+          pagination={pagination}
+          onPageChange={(p: number) => {
+            setPage(p);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           clearAllFilters={filters.clearAllFilters}
           visibleColumns={visibleColumns}
           sensors={sensors}

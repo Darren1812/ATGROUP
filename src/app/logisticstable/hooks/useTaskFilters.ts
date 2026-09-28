@@ -1,9 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { computeDisplayStatus } from "../utils";
+import { useEffect, useMemo, useState } from "react";
+import { PIC_OPTIONS_STATIC } from "../constants";
 
-export function useTaskFilters(tasks: any[]) {
+// 传给后端的过滤条件（key 名字跟后端 query 参数一致）
+export interface TaskQueryFilters {
+  search: string;
+  orderNumber: string;
+  createdAt: string;
+  from: string;
+  companyName: string;
+  pic: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+}
+
+// 现在过滤由后端做（分页之前先过滤），所以这里不再需要 tasks 参数
+export function useTaskFilters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPic, setFilterPic] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -15,77 +29,44 @@ export function useTaskFilters(tasks: any[]) {
   const [filterorderNumber, setFilterorderNumber] = useState("");
   const [filterCreatedAt, setFilterCreatedAt] = useState("");
 
-  const picOptions = useMemo(() => {
-    const s = new Set(tasks.map((t) => t.picDeliver).filter(Boolean));
-    return Array.from(s).sort() as string[];
-  }, [tasks]);
+  // 只有 PIC 在当前页的数据里是不完整的，所以改用固定列表
+  const picOptions = PIC_OPTIONS_STATIC;
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const haystack = [
-          t.companyName,
-          t.createdAt,
-          t.item,
-          t.location,
-          t.companyName,
-          t.picDeliver,
-          t.from,
-          t.createdAt,
-          t.orderNumber,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      if (filterPic && t.picDeliver !== filterPic) return false;
-      const computedStatus = computeDisplayStatus(t);
-      if (filterStatus && computedStatus !== filterStatus) return false;
-      if (filterDateFrom || filterDateTo) {
-        const scheduled = t.scheduledAt ? new Date(t.scheduledAt) : null;
-        if (!scheduled) return false;
-        if (filterDateFrom && scheduled < new Date(filterDateFrom))
-          return false;
-        if (filterDateTo) {
-          const to = new Date(filterDateTo);
-          to.setHours(23, 59, 59, 999);
-          if (scheduled > to) return false;
-        }
-      }
-      if (filterCompanyName) {
-        const company = t.companyName?.toLowerCase() || "";
-        if (!company.includes(filterCompanyName.toLowerCase())) return false;
-      }
-      if (filterFrom) {
-        const from = t.from?.toLowerCase() || "";
-        if (!from.includes(filterFrom.toLowerCase())) return false;
-      }
-      if (filterorderNumber) {
-        const orderNumber = t.orderNumber?.toLowerCase() || "";
-        if (!orderNumber.includes(filterorderNumber.toLowerCase()))
-          return false;
-      }
-      if (filterCreatedAt) {
-        const createdAt = t.createdAt?.toLowerCase() || "";
-        if (!createdAt.includes(filterCreatedAt.toLowerCase())) return false;
-      }
+  const rawFilters: TaskQueryFilters = useMemo(
+    () => ({
+      search: searchQuery.trim(),
+      orderNumber: filterorderNumber.trim(),
+      createdAt: filterCreatedAt.trim(),
+      from: filterFrom.trim(),
+      companyName: filterCompanyName.trim(),
+      pic: filterPic,
+      status: filterStatus,
+      dateFrom: filterDateFrom,
+      dateTo: filterDateTo,
+    }),
+    [
+      searchQuery,
+      filterorderNumber,
+      filterCreatedAt,
+      filterFrom,
+      filterCompanyName,
+      filterPic,
+      filterStatus,
+      filterDateFrom,
+      filterDateTo,
+    ],
+  );
 
-      return true;
-    });
-  }, [
-    tasks,
-    searchQuery,
-    filterCompanyName,
-    filterPic,
-    filterStatus,
-    filterDateFrom,
-    filterDateTo,
-    filterFrom,
-    filterCreatedAt,
-    filterorderNumber,
-  ]);
+  // 🕐 Debounce：用户打字停 400ms 才真正发请求，避免每按一个键就打一次 API
+  const rawKey = JSON.stringify(rawFilters);
+  const [appliedFilters, setAppliedFilters] =
+    useState<TaskQueryFilters>(rawFilters);
+
+  useEffect(() => {
+    const id = setTimeout(() => setAppliedFilters(rawFilters), 400);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawKey]);
 
   const activeFilterCount = [
     filterCompanyName,
@@ -132,7 +113,7 @@ export function useTaskFilters(tasks: any[]) {
     filterCreatedAt,
     setFilterCreatedAt,
     picOptions,
-    filteredTasks,
+    appliedFilters, // 🆕 debounce 之后、真正发给后端的条件
     activeFilterCount,
     clearAllFilters,
   };
