@@ -1,22 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PIC_OPTIONS_STATIC } from "../constants";
+import { API } from "../constants";
+import type { TaskFilterParams } from "./useLogisticsTasks";
 
-// 传给后端的过滤条件（key 名字跟后端 query 参数一致）
-export interface TaskQueryFilters {
-  search: string;
-  orderNumber: string;
-  createdAt: string;
-  from: string;
-  companyName: string;
-  pic: string;
-  status: string;
-  dateFrom: string;
-  dateTo: string;
-}
-
-// 现在过滤由后端做（分页之前先过滤），所以这里不再需要 tasks 参数
+// 过滤全部交给后端做，这里只负责保存输入框的值，
+// 并产生 filterParams 传给 useLogisticsTasks。
 export function useTaskFilters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPic, setFilterPic] = useState("");
@@ -29,14 +18,27 @@ export function useTaskFilters() {
   const [filterorderNumber, setFilterorderNumber] = useState("");
   const [filterCreatedAt, setFilterCreatedAt] = useState("");
 
-  // 只有 PIC 在当前页的数据里是不完整的，所以改用固定列表
-  const picOptions = PIC_OPTIONS_STATIC;
+  // PIC 下拉选项：从后端拿全部 PIC（不能再从当前页的 30 笔里取）
+  const [picOptions, setPicOptions] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API}/pics`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: string[]) => {
+        if (!cancelled) setPicOptions(list);
+      })
+      .catch((e) => console.error(e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const rawFilters: TaskQueryFilters = useMemo(
+  // 只有输入框的值真的变了，这个对象才会换新
+  const filterParams: TaskFilterParams = useMemo(
     () => ({
       search: searchQuery.trim(),
       orderNumber: filterorderNumber.trim(),
-      createdAt: filterCreatedAt.trim(),
+      createdAt: filterCreatedAt,
       from: filterFrom.trim(),
       companyName: filterCompanyName.trim(),
       pic: filterPic,
@@ -57,17 +59,6 @@ export function useTaskFilters() {
     ],
   );
 
-  // 🕐 Debounce：用户打字停 400ms 才真正发请求，避免每按一个键就打一次 API
-  const rawKey = JSON.stringify(rawFilters);
-  const [appliedFilters, setAppliedFilters] =
-    useState<TaskQueryFilters>(rawFilters);
-
-  useEffect(() => {
-    const id = setTimeout(() => setAppliedFilters(rawFilters), 400);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawKey]);
-
   const activeFilterCount = [
     filterCompanyName,
     filterFrom,
@@ -78,6 +69,8 @@ export function useTaskFilters() {
     filterCreatedAt,
     filterorderNumber,
   ].filter(Boolean).length;
+
+  const hasActiveFilters = activeFilterCount > 0 || !!searchQuery;
 
   const clearAllFilters = () => {
     setFilterCreatedAt("");
@@ -113,7 +106,8 @@ export function useTaskFilters() {
     filterCreatedAt,
     setFilterCreatedAt,
     picOptions,
-    appliedFilters, // 🆕 debounce 之后、真正发给后端的条件
+    filterParams,
+    hasActiveFilters,
     activeFilterCount,
     clearAllFilters,
   };

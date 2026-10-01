@@ -13,6 +13,8 @@ import {
   Eye,
   ArrowRight,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Highlight, SortableHeader } from "./shared";
 import { computeDisplayStatus, formatForInput, formatDate, getTodayMinString, mapUrl, formatDisplayValue } from "../utils";
@@ -38,21 +40,15 @@ function LinkWrapper({ children, className, href = "#" }: LinkWrapperProps) {
   );
 }
 
-import { Pagination } from "./Pagination";
-
 interface TaskTableProps {
   loading: boolean;
   tasks: any[];
-  hasActiveFilters: boolean;
+  totalCount: number;
   page: number;
+  totalPages: number;
   pageSize: number;
-  pagination: {
-    totalCount: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-  };
   onPageChange: (page: number) => void;
+  hasActiveFilters: boolean;
   clearAllFilters: () => void;
   visibleColumns: Column[];
   sensors: any;
@@ -75,11 +71,12 @@ const PIC_LIST_OPTIONS = ["Akmal", "Nahfiz", "Darwin", "Darren"];
 export function TaskTable({
   loading,
   tasks,
-  hasActiveFilters,
+  totalCount,
   page,
+  totalPages,
   pageSize,
-  pagination,
   onPageChange,
+  hasActiveFilters,
   clearAllFilters,
   visibleColumns,
   sensors,
@@ -362,7 +359,14 @@ export function TaskTable({
           All Deliveries <div className='h-px w-16 bg-slate-200' />
         </h2>
         <span className='text-xs font-bold text-slate-400'>
-          {pagination.totalCount} record{pagination.totalCount !== 1 ? "s" : ""}
+          {totalCount} record{totalCount !== 1 ? "s" : ""}
+          {totalPages > 1 && (
+            <span className='text-slate-300 font-normal'>
+              {" "}
+              · showing {(page - 1) * pageSize + 1}-
+              {(page - 1) * pageSize + tasks.length}
+            </span>
+          )}
         </span>
       </div>
 
@@ -430,16 +434,27 @@ export function TaskTable({
         </div>
       )}
 
-      {!loading && tasks.length > 0 && (
-        <Pagination
-          page={page}
-          pageSize={pageSize}
-          totalCount={pagination.totalCount}
-          totalPages={pagination.totalPages}
-          hasNext={pagination.hasNext}
-          hasPrevious={pagination.hasPrevious}
-          onPageChange={onPageChange}
-        />
+      {totalPages > 1 && (
+        <div className='px-6 py-3.5 border-t border-slate-100 flex items-center justify-between'>
+          <button
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1 || loading}
+            className='flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+          >
+            <ChevronLeft size={14} /> Previous
+          </button>
+          <span className='text-xs font-bold text-slate-500'>
+            Page {page} <span className='text-slate-300 font-normal'>of</span>{" "}
+            {totalPages}
+          </span>
+          <button
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages || loading}
+            className='flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+          >
+            Next <ChevronRight size={14} />
+          </button>
+        </div>
       )}
     </div>
   );

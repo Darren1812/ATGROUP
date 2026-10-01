@@ -106,7 +106,7 @@ export default function Dashboard() {
       lightColor: "bg-rose-50",
       iconColor: "text-rose-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director", "Sales (JB)"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director"],
     },
     {
       title: "Comparison Table",
@@ -194,7 +194,7 @@ export default function Dashboard() {
       lightColor: "bg-violet-50",
       iconColor: "text-violet-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Software Engineer", "Logistics Leader", "Sales (JB)", "Marketing (JB)", "Operations Director", "ATPLAN Admin Manager", "ATP Admin Manager", "ATPLAN Admin", "ATP Admin", "ATPLAN Staff", "Boss", "Operations Director"],
+      allowedDepartments: ["Software Engineer", "Logistics Leader", "Operations Director", "ATPLAN Admin Manager", "ATP Admin Manager", "ATPLAN Admin", "ATP Admin", "ATPLAN Staff", "Boss", "Operations Director"],
     },
     {
       title: "DELIVERY",

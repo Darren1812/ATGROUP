@@ -2,38 +2,65 @@
 
 import { useEffect, useRef, useState } from "react";
 import { API } from "../constants";
-import { computeDisplayStatus } from "../utils";
-import type { TaskQueryFilters } from "./useTaskFilters";
 
 export const PAGE_SIZE = 30;
 
-export function useLogisticsTasks(user: any, filters: TaskQueryFilters) {
+// key 名字必须跟后端 query 参数一致
+export interface TaskFilterParams {
+  search: string;
+  orderNumber: string;
+  createdAt: string;
+  from: string;
+  companyName: string;
+  pic: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+}
+
+// 值停止变化 delay 毫秒后才更新（用来给搜索框做 debounce）
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+export function useLogisticsTasks(user: any, filterParams: TaskFilterParams) {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    totalPages: 0,
-    hasNext: false,
-    hasPrevious: false,
-  });
 
-  // 页码跟「当前过滤条件」绑在一起：过滤条件一变，页码自动回到第 1 页（不会多发一次请求）
-  const filtersKey = JSON.stringify(filters);
-  const [pageState, setPageState] = useState({ page: 1, key: filtersKey });
-  const page = pageState.key === filtersKey ? pageState.page : 1;
-  const setPage = (p: number) => setPageState({ page: p, key: filtersKey });
+  // ── filter debounce ──
+  const debouncedFilters = useDebouncedValue(filterParams, 400);
+  const filterKey = JSON.stringify(debouncedFilters);
 
-  // 让 fetchTasks 永远读到最新的 page / filters（避免 async 回调拿到旧值）
-  const latest = useRef({ user, page, filters });
-  latest.current = { user, page, filters };
-  const requestId = useRef(0); // 防止旧请求比新请求晚回来，覆盖掉新数据
+  // ── 页码：filter 一变，页码自动回到第 1 页（不需要额外的 reset effect，也不会多发一次请求）──
+  const [pageState, setPageState] = useState({ page: 1, key: filterKey });
+  const page = pageState.key === filterKey ? pageState.page : 1;
+  const setPage = (p: number) =>
+    setPageState({ page: Math.max(1, p), key: filterKey });
+
+  // 永远拿到最新的 user / page / filters（给 fetchTasks 用）
+  const latest = useRef({ user, page, filters: debouncedFilters, filterKey });
+  latest.current = { user, page, filters: debouncedFilters, filterKey };
+
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchTasks = async (isRefresh = false) => {
-    const { user, page, filters } = latest.current;
+    const { user, page, filters, filterKey } = latest.current;
     if (!user) return;
-    const myId = ++requestId.current;
+
+    // 取消上一个还没回来的请求
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     isRefresh ? setRefreshing(true) : setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -45,58 +72,39 @@ export function useLogisticsTasks(user: any, filters: TaskQueryFilters) {
         if (v) params.set(k, v as string);
       });
 
-      const res = await fetch(`${API}/by-department?${params.toString()}`);
-      if (!res.ok) throw new Error(`Failed to load tasks (${res.status})`);
-      const data = await res.json();
-      if (myId !== requestId.current) return; // 已经有更新的请求了，丢掉这个
-
-      const items: any[] = data.items ?? [];
-
-      // 删掉当前页最后一笔之后，这一页可能空了 → 退回到最后一页
-      if (items.length === 0 && page > 1) {
-        setPage(Math.max(1, data.totalPages ?? 1));
-        return;
-      }
-
-      await Promise.all(
-        items.map(async (t: any) => {
-          if (t.hasComplete && t.status !== "Complete") {
-            await fetch(`${API}/status/${t.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify("Complete"),
-            });
-          }
-        }),
-      );
-      if (myId !== requestId.current) return;
-
-      setTasks(
-        items.map((t: any) => ({ ...t, status: computeDisplayStatus(t) })),
-      );
-      setPagination({
-        totalCount: data.totalCount ?? 0,
-        totalPages: data.totalPages ?? 0,
-        hasNext: !!data.hasNext,
-        hasPrevious: !!data.hasPrevious,
+      const res = await fetch(`${API}/by-department?${params.toString()}`, {
+        signal: controller.signal,
       });
-    } catch (err) {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // 替换，不是追加 → 上一页的资料会被丢掉
+      setTasks(data.items ?? []);
+      setTotalCount(data.totalCount ?? 0);
+      setTotalPages(data.totalPages ?? 0);
+
+      // 删除后当前页已经没资料了 → 退回最后一页
+      if (data.totalPages > 0 && page > data.totalPages) {
+        setPageState({ page: data.totalPages, key: filterKey });
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       console.error(err);
     } finally {
-      if (myId === requestId.current) {
+      // 只有「最新那个请求」才有资格关掉 loading
+      if (abortRef.current === controller) {
         setLoading(false);
         setRefreshing(false);
       }
     }
   };
 
-  // user / 页码 / 过滤条件 任何一个变了就重新拿数据
+  // user / 页码 / filter（debounce 后）变化 → 重新向后端要 30 笔
   useEffect(() => {
-    if (user) {
-      fetchTasks();
-    }
+    if (user) fetchTasks();
+    return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, page, filtersKey]);
+  }, [user, page, filterKey]);
 
   const deleteTask = async (id: number) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
@@ -158,9 +166,10 @@ export function useLogisticsTasks(user: any, filters: TaskQueryFilters) {
 
   return {
     tasks,
+    totalCount,
+    totalPages,
     page,
     setPage,
-    pagination,
     pageSize: PAGE_SIZE,
     loading,
     refreshing,

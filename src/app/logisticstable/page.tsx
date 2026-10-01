@@ -22,15 +22,16 @@ export default function LogisticsPage() {
   const { user } = useAuth();
   const [name] = useState(user?.nameUse || "");
 
-  // ── Search & filters（放在 tasks hook 前面，因为过滤条件要传给后端）──
+  // ── Search & filters（只保存输入框的值，真正的过滤在后端）──
   const filters = useTaskFilters();
 
-  // ── Core task data（分页 + 后端过滤）──
+  // ── Core task data（一次只拿 30 笔）──
   const {
     tasks,
+    totalCount,
+    totalPages,
     page,
     setPage,
-    pagination,
     pageSize,
     loading,
     refreshing,
@@ -41,7 +42,7 @@ export default function LogisticsPage() {
     updateSchedule,
     updatePic,
     markStockArrived,
-  } = useLogisticsTasks(user, filters.appliedFilters);
+  } = useLogisticsTasks(user, filters.filterParams);
 
   // ── Documents (install / DO / completion uploads) ──
   const { docStatus, uploadingDoc, triggerUpload, viewDocument } =
@@ -147,16 +148,12 @@ export default function LogisticsPage() {
         <TaskTable
           loading={loading}
           tasks={tasks}
-          hasActiveFilters={
-            filters.activeFilterCount > 0 || !!filters.searchQuery
-          }
+          totalCount={totalCount}
           page={page}
+          totalPages={totalPages}
           pageSize={pageSize}
-          pagination={pagination}
-          onPageChange={(p: number) => {
-            setPage(p);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
+          onPageChange={setPage}
+          hasActiveFilters={filters.hasActiveFilters}
           clearAllFilters={filters.clearAllFilters}
           visibleColumns={visibleColumns}
           sensors={sensors}

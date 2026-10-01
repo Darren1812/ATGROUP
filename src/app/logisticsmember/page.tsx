@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Loader2,Package,MapPin,Building2,FileText,Search,Truck,ArrowRight,Clock,Phone,Upload,ListTodo,CheckCheck,Hourglass,
+  Loader2,Package,MapPin,Building2,FileText,Search,Truck,ArrowRight,Clock,Phone,Upload,ListTodo,CheckCheck,Hourglass,ChevronLeft,ChevronRight,
 } from "lucide-react";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Logistics`;
+const PAGE_SIZE = 30;
 
 const STATUS_CONFIG: Record<
   string,
@@ -53,14 +54,137 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// 值停止变化 delay 毫秒后才更新（搜索框 debounce）
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function LogisticsPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [statusCounts, setStatusCounts] = useState({ Arrange: 0, Complete: 0 });
+  const [initialLoading, setInitialLoading] = useState(true); // 第一次进页面才整页转圈
+  const [loading, setLoading] = useState(false); // 之后换页 / 搜索 / 切换 tab 只在卡片区转圈
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("Arrange"); // Default to "Arranging"
   const [remarks, setRemarks] = useState<Record<number, string>>({});
   const [savingRemark, setSavingRemark] = useState<number | null>(null);
+
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
+
+  // 后端用逗号分隔多个名字，不分大小写比对
+  const picParam = [user?.name, user?.nameUse].filter(Boolean).join(",");
+
+  // ── 页码：搜索 / tab / 用户一变，页码自动回到第 1 页 ──
+  const queryKey = `${picParam}|${selectedStatus}|${debouncedSearch}`;
+  const [pageState, setPageState] = useState({ page: 1, key: queryKey });
+  const page = pageState.key === queryKey ? pageState.page : 1;
+  const setPage = (p: number) =>
+    setPageState({ page: Math.max(1, p), key: queryKey });
+
+  const latest = useRef({ picParam, selectedStatus, debouncedSearch, page, queryKey });
+  latest.current = { picParam, selectedStatus, debouncedSearch, page, queryKey };
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  // 一次只向后端要 30 笔
+  const fetchTasks = async () => {
+    const { picParam, selectedStatus, debouncedSearch, page, queryKey } =
+      latest.current;
+
+    if (!picParam) {
+      setTasks([]);
+      setTotalCount(0);
+      setTotalPages(0);
+      setInitialLoading(false);
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+        pic: picParam,
+        // Arranging tab = 有 PIC 且未完成（含已排期的 Assign）
+        status: selectedStatus === "Arrange" ? "Arrange,Assign" : "Complete",
+      });
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+
+      const res = await fetch(`${API}?${params.toString()}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+
+      const items: any[] = data.items ?? [];
+      setTasks(items);
+      setTotalCount(data.totalCount ?? 0);
+      setTotalPages(data.totalPages ?? 0);
+
+      // 只保留当前这一页的 remark（替换，不累积）
+      const initialRemarks: Record<number, string> = {};
+      items.forEach((t: any) => {
+        initialRemarks[t.id] = t.remark || "";
+      });
+      setRemarks(initialRemarks);
+
+      // 当前页已经没资料了（例如刚上传完成单）→ 退回最后一页
+      if (data.totalPages > 0 && page > data.totalPages) {
+        setPageState({ page: data.totalPages, key: queryKey });
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
+      console.error(err);
+    } finally {
+      if (abortRef.current === controller) {
+        setLoading(false);
+        setInitialLoading(false);
+      }
+    }
+  };
+
+  // 两个 tab 上的数量
+  const fetchCounts = async () => {
+    const { picParam } = latest.current;
+    if (!picParam) {
+      setStatusCounts({ Arrange: 0, Complete: 0 });
+      return;
+    }
+    try {
+      const res = await fetch(
+        `${API}/status-counts?pic=${encodeURIComponent(picParam)}`,
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      setStatusCounts({ Arrange: data.arrange ?? 0, Complete: data.complete ?? 0 });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchTasks();
+    return () => abortRef.current?.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, queryKey, page]);
+
+  useEffect(() => {
+    if (user) fetchCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, picParam]);
+
   // Function to view PDF
   const handleViewDocument = async (
     id: number,
@@ -86,56 +210,8 @@ export default function LogisticsPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await fetch(API);
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setTasks(data);
-        const initialRemarks: Record<number, string> = {};
-        data.forEach((t: any) => {
-          initialRemarks[t.id] = t.remark || "";
-        });
-        setRemarks(initialRemarks);
-
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchTasks();
-  }, [user]);
-
-  const filteredTasks = useMemo(() => {
-    if (!user) return [];
-    return tasks.filter((t) => {
-      const matchesPIC =
-        t.picDeliver === user.name || t.picDeliver === user.nameUse;
-      const matchesSearch =
-        t.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.item.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = t.status === selectedStatus;
-
-      return matchesPIC && matchesSearch && matchesStatus;
-    });
-  }, [tasks, user, searchTerm, selectedStatus]);
-
-  const statusCounts = useMemo(() => {
-    const userTasks = tasks.filter(
-      (t) => t.picDeliver === user?.name || t.picDeliver === user?.nameUse,
-    );
-
-    return {
-      Arrange: userTasks.filter((t) => t.status === "Arrange").length,
-      Complete: userTasks.filter((t) => t.status === "Complete").length,
-    };
-  }, [tasks, user]);
-
   const formatDate = (dateString: string) => {
-    if (!dateString) return "Not scheduled";
+    if (!dateString || dateString.startsWith("0001-01-01")) return "Not scheduled";
     const date = new Date(dateString);
 
     const day = date.getUTCDate();
@@ -153,7 +229,7 @@ export default function LogisticsPage() {
     return `${month} ${day}, ${year} • ${displayHours}:${minutes} ${ampm}`;
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className='flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100'>
         <div className='text-center'>
@@ -207,14 +283,8 @@ export default function LogisticsPage() {
 
       if (!statusRes.ok) throw new Error("Failed to update status in database");
 
-      // 3. --- INSTANT UI UPDATE ---
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === id
-            ? { ...task, status: "Complete", hasComplete: true }
-            : task,
-        ),
-      );
+      // 3. 重新向后端要当前页 + 两个 tab 的数量（这笔已经完成，会从 Arranging 消失）
+      await Promise.all([fetchTasks(), fetchCounts()]);
 
       alert("Upload and status update successful!");
     } catch (err) {
@@ -380,14 +450,25 @@ export default function LogisticsPage() {
               } animate-pulse`}
             ></div>
             <span className='text-sm font-bold text-slate-700'>
-              Showing {filteredTasks.length}{" "}
+              Showing {totalCount}{" "}
               {selectedStatus === "Arrange" ? "Arranging" : "Completed"}{" "}
-              {filteredTasks.length === 1 ? "Task" : "Tasks"}
+              {totalCount === 1 ? "Task" : "Tasks"}
+              {totalPages > 1 && (
+                <span className='text-slate-400 font-medium'>
+                  {" "}
+                  · Page {page} of {totalPages}
+                </span>
+              )}
             </span>
           </div>
         </div>
 
-        {filteredTasks.length === 0 ? (
+        {loading ? (
+          <div className='py-24 flex flex-col items-center gap-4'>
+            <Loader2 size={32} className='text-indigo-400 animate-spin' />
+            <p className='text-slate-400 text-sm font-medium'>Loading tasks...</p>
+          </div>
+        ) : tasks.length === 0 ? (
           <div className='text-center py-20'>
             <div className='inline-flex p-6 rounded-full bg-slate-100 mb-4'>
               {selectedStatus === "Arrange" ? (
@@ -408,9 +489,11 @@ export default function LogisticsPage() {
           </div>
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
-            {filteredTasks.map((t) => {
+            {tasks.map((t) => {
+              // 后端的显示状态有 Assign（已指派 + 已排期），司机页当作 Arranging 显示
               const statusConfig =
-                STATUS_CONFIG[t.status] || STATUS_CONFIG["Waiting"];
+                STATUS_CONFIG[t.status === "Assign" ? "Arrange" : t.status] ||
+                STATUS_CONFIG["Waiting"];
               const StatusIcon = statusConfig.icon;
 
               return (
@@ -566,7 +649,6 @@ export default function LogisticsPage() {
                               Contact
                             </p>
 
-                            {/* 修正点：将属性移入 <a> 标签，使用正确的 JSX 语法 */}
                             <a
                               href={`tel:${t.phoneNumber}`}
                               className='text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline'
@@ -675,6 +757,29 @@ export default function LogisticsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className='mt-8 flex items-center justify-between'>
+            <button
+              onClick={() => setPage(page - 1)}
+              disabled={page <= 1 || loading}
+              className='flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+            <span className='text-sm font-bold text-slate-500'>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages || loading}
+              className='flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+            >
+              Next <ChevronRight size={16} />
+            </button>
           </div>
         )}
       </div>
