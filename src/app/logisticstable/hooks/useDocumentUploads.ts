@@ -18,7 +18,7 @@ export function useDocumentUploads(onUploaded: () => void) {
   ) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "application/pdf";
+    input.accept = "application/pdf,image/*";
 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
