@@ -63,7 +63,7 @@ export const COLUMN_DEFS: ColumnDef[] = [
   { key: "schedule", label: "Schedule", icon: Clock, width: 200 },
   { key: "pic", label: "PIC", icon: User, width: 120 },
   { key: "status", label: "Status", icon: CircleDot, width: 150 },
-  { key: "doId", label: "DO ID", icon: FileText, width: 120 },
+ // { key: "doId", label: "DO ID", icon: FileText, width: 120 },
   { key: "documents", label: "Documents", icon: FileText, width: 140 },
   { key: "remark", label: "Remark", icon: FileText, width: 200 },
   { key: "action", label: "Action", icon: Settings, width: 100 },
