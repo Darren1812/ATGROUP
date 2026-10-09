@@ -214,45 +214,6 @@ export default function Page() {
     },
     [],
   );
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-
-  const PAGE_SIZE = 1000;
-
-  const fetchContracts = useCallback(
-    async (pageToLoad = 0) => {
-      try {
-        const res = await fetch(
-          `${API_URL}?page=${pageToLoad}&pageSize=${PAGE_SIZE}`,
-        );
-        const data = await res.json();
-
-        // if less than page size, no more data
-        if (data.length < PAGE_SIZE) {
-          setHasMore(false);
-        }
-
-        const contractsWithProgress = data.map((contract: Contract) => ({
-          ...contract,
-          progress: calculateProgress(contract.startDate, contract.endDate),
-        }));
-
-        setContracts((prev) =>
-          pageToLoad === 0
-            ? contractsWithProgress
-            : [...prev, ...contractsWithProgress],
-        );
-      } catch (error) {
-        console.error("Failed to fetch:", error);
-      } finally {
-        setLoading(false); // 🔴 Stop loading regardless of success or error
-      }
-    },
-    [API_URL, calculateProgress],
-  );
-  useEffect(() => {
-    fetchContracts(0);
-  }, [fetchContracts]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -418,14 +379,8 @@ const formatToMidnightISO = (dateStr?: string) => {
           }),
         );
       } else {
-        // 新增模式：直接重新抓取或使用返回数据
-        const newData = await response.json();
-        // 如果后端返回的是大写 Key，这里可能需要 map 一下，或者直接调用获取列表函数
-        if (typeof fetchContracts === "function") {
-          await fetchContracts();
-        } else {
-          setContracts((prev: any[]) => [...prev, newData]);
-        }
+        // 新增模式：按当前的公司 / Agency 筛选重新加载第一页
+        await fetchContracts(baseCompany + jurisdiction, selectedAgency, 0);
       }
 
       alert(isEditing ? "Updated successfully!" : "Saved successfully!");
@@ -457,7 +412,7 @@ const formatToMidnightISO = (dateStr?: string) => {
     if (!item.id) return;
     if (confirm("Are you sure you want to delete this record?")) {
       await fetch(`${API_URL}/${item.id}`, { method: "DELETE" });
-      await fetchContracts();
+      await fetchContracts(baseCompany + jurisdiction, selectedAgency, 0);
     }
   };
 
@@ -474,44 +429,6 @@ const formatToMidnightISO = (dateStr?: string) => {
       {content}
     </td>
   );
-  const [selectedCompany, setSelectedCompany] = useState<string>("");
-  const [selectedAgency, setSelectedAgency] = useState<string>("");
-
-  const handleCompanyFilterChange = useCallback(
-    async (eOrValue: ChangeEvent<HTMLSelectElement> | string) => {
-      const company =
-        typeof eOrValue === "string" ? eOrValue : eOrValue.target.value;
-
-      setSelectedCompany(company);
-
-      const agency = selectedAgency || "";
-
-      try {
-        const query = new URLSearchParams();
-        query.append("company", company);
-        if (agency) query.append("agency", agency);
-
-        const res = await fetch(`${API_URL}/filter?${query.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          const filtered = data.map((contract: Contract) => ({
-            ...contract,
-            progress: calculateProgress(contract.startDate, contract.endDate),
-          }));
-          setContracts(filtered);
-        } else {
-          setContracts([]);
-        }
-      } catch (err) {
-        console.error("Failed to filter contracts:", err);
-        addToast(
-          "Error fetching filtered contracts. Check console for details.",
-        );
-      }
-    },
-    [selectedAgency, API_URL, calculateProgress, addToast],
-  );
-
   const handleExportExcel = async () => {
     try {
       // Use the same filters that are currently active
@@ -739,8 +656,63 @@ const formatToMidnightISO = (dateStr?: string) => {
     }
   };
 
+  // ───────── 列表加载（统一入口）─────────
+  // 一次只拿 PAGE_SIZE 笔，后端负责过滤 / 排序 / 分页；Load More 继续沿用当前筛选条件
+  const PAGE_SIZE = 100;
+
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [baseCompany, setBaseCompany] = useState("");
   const [jurisdiction, setJurisdiction] = useState("");
+  const [selectedAgency, setSelectedAgency] = useState<string>("");
+  const selectedCompany = baseCompany + jurisdiction; // 不需要再单独存 state
+  const latestRequest = useRef(0);
+
+  const fetchContracts = useCallback(
+    async (company: string, agency: string, pageToLoad: number) => {
+      // 快速切换筛选时，较早发出的请求不会覆盖较新的结果
+      const requestId = ++latestRequest.current;
+      setLoading(true);
+      try {
+        const q = new URLSearchParams({
+          page: String(pageToLoad),
+          pageSize: String(PAGE_SIZE),
+        });
+        if (company) q.append("company", company);
+        if (agency.trim()) q.append("agency", agency.trim());
+
+        const res = await fetch(`${API_URL}/filter?${q.toString()}`);
+        if (requestId !== latestRequest.current) return;
+
+        if (!res.ok) {
+          setContracts([]);
+          setHasMore(false);
+          return;
+        }
+
+        const data: Contract[] = await res.json();
+        const withProgress = data.map((c) => ({
+          ...c,
+          progress: calculateProgress(c.startDate, c.endDate),
+        }));
+
+        setContracts((prev) =>
+          pageToLoad === 0 ? withProgress : [...prev, ...withProgress],
+        );
+        setHasMore(data.length === PAGE_SIZE);
+        setPage(pageToLoad);
+      } catch (err) {
+        if (requestId === latestRequest.current) {
+          console.error("Failed to fetch contracts:", err);
+          addToast("Error fetching contracts. Check console for details.");
+        }
+      } finally {
+        if (requestId === latestRequest.current) setLoading(false);
+      }
+    },
+    [API_URL, calculateProgress, addToast],
+  );
 
   const handleBaseCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setBaseCompany(e.target.value);
@@ -754,18 +726,18 @@ const formatToMidnightISO = (dateStr?: string) => {
     setJurisdiction("");
   };
 
-  // *** THIS auto fires API whenever base / jurisdiction changes ***
+  // 公司 / 州属变化时重新加载（包含第一次进入页面，只会发 1 次请求）
+  // Agency 不放进依赖：输入时不请求，按 Enter 或点 Filter 才套用
   useEffect(() => {
-    const finalCompany = baseCompany + jurisdiction;
-    handleCompanyFilterChange(finalCompany);
-  }, [baseCompany, jurisdiction, handleCompanyFilterChange]);
+    fetchContracts(baseCompany + jurisdiction, selectedAgency, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseCompany, jurisdiction]);
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       company: baseCompany + jurisdiction, // "ASN", "ASN(state)", etc.
     }));
   }, [baseCompany, jurisdiction]);
-  const [loading, setLoading] = useState<boolean>(false);
 
 // 1. 转给 <input type="date" /> 使用 (需输出 YYYY-MM-DD)
 const convertToInputDate = (dateStr?: string) => {
@@ -1376,7 +1348,7 @@ const formatToSlashDate = (dateStr?: string) => {
               onChange={(e) => setSelectedAgency(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter")
-                  handleCompanyFilterChange(selectedCompany);
+                  fetchContracts(selectedCompany, selectedAgency, 0);
               }}
               className='
                                 flex-grow px-3 py-2 text-sm text-gray-700
@@ -1388,7 +1360,7 @@ const formatToSlashDate = (dateStr?: string) => {
 
             {/* 🎚 Filter Button (styled like Export Data) */}
             <button
-              onClick={() => handleCompanyFilterChange(selectedCompany)}
+              onClick={() => fetchContracts(selectedCompany, selectedAgency, 0)}
               className='
                                 flex items-center space-x-2
                                 px-4 py-2
@@ -1451,20 +1423,14 @@ const formatToSlashDate = (dateStr?: string) => {
 
                     {/* NEW: Formatted Agency Name/Address Cell */}
                     {renderTableCell(
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: item.agencyName
-                            .split("\n")
-                            .map((line, index) => {
-                              // Bold the first line (Agency Name)
-                              if (index === 0) {
-                                return `<strong>${line}</strong>`;
-                              }
-                              return line;
-                            })
-                            .join("<br />"), // Join lines with HTML break
-                        }}
-                      />,
+                      <div>
+                        {(item.agencyName ?? "").split("\n").map((line, idx) => (
+                          <React.Fragment key={idx}>
+                            {idx === 0 ? <strong>{line}</strong> : line}
+                            <br />
+                          </React.Fragment>
+                        ))}
+                      </div>,
                     )}
                     {/* END NEW CELL */}
 
@@ -1533,11 +1499,9 @@ const formatToSlashDate = (dateStr?: string) => {
             {hasMore && (
               <div className='flex justify-center py-8 border-t border-gray-100 bg-gray-50/50'>
                 <button
-                  onClick={() => {
-                    const nextPage = page + 1;
-                    setPage(nextPage);
-                    fetchContracts(nextPage);
-                  }}
+                  onClick={() =>
+                    fetchContracts(selectedCompany, selectedAgency, page + 1)
+                  }
                   disabled={loading} // Assuming you have a loading state
                   className='group relative flex items-center justify-center px-8 py-3 
                                             bg-white border border-gray-200 text-slate-600 font-semibold text-sm 
