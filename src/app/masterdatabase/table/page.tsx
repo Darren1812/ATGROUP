@@ -823,7 +823,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-rose-600 mb-1">
-                    Expected Open Date <span className="text-rose-500">*</span>
+                    Expected Open Date (NEXT) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     required
@@ -836,7 +836,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contract End Date (Next)
+                    Contract End Date (NEXT)
                   </label>
                   <input
                     type="date"
@@ -955,11 +955,35 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Vendor</label>
-                  <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedVendor || ''} onChange={e => setFormRecord({...formRecord, awardedVendor: e.target.value})} />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    value={formRecord.awardedVendor || ''}
+                    onChange={e => {
+                      const formatted = e.target.value.replace(
+                        /\w\S*/g,
+                        txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+                      );
+                      setFormRecord({ ...formRecord, awardedVendor: formatted });
+                    }}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Brand</label>
-                  <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedBrand || ''} onChange={e => setFormRecord({...formRecord, awardedBrand: e.target.value})} />
+                  <select
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 bg-white"
+                    value={formRecord.awardedBrand || ''}
+                    onChange={e => setFormRecord({ ...formRecord, awardedBrand: e.target.value })}
+                  >
+                    <option value="" disabled>Select Brand</option>
+                    <option value="Canon">Canon</option>
+                    <option value="HP">HP</option>
+                    <option value="Sharp">Sharp</option>
+                    <option value="Fuji">Fuji</option>
+                    <option value="Konica Minolta">Konica Minolta</option>
+                    <option value="Toshiba">Toshiba</option>
+                    <option value="Ricoh">Ricoh</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Amount (RM)</label>
