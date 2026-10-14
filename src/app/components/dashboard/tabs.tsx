@@ -344,7 +344,7 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
 }
 /* ================================ 2. Status ================================ */
 export function StatusTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
-  const statuses: ResultStatus[] = ["Pending", "Win", "Lose", "Not Participate"];
+  const statuses: ResultStatus[] = ["Pending", "Win", "Lose", "New"];
   const counts = statuses.map((s) => ({ status: s, count: rows.filter((r) => (r.resultStatus ?? "Not Participate") === s).length }));
   const pieData = counts.filter((c) => c.count > 0);
 
