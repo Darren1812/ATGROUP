@@ -949,6 +949,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Result Status</label>
                   <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.resultStatus || 'Pending'} onChange={e => setFormRecord({...formRecord, resultStatus: e.target.value})}>
                     <option value="Pending">Pending</option>
+                    <option value="New">New</option>
                     <option value="Win">Win</option>
                     <option value="Lose">Lose</option>
                   </select>

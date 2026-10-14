@@ -56,14 +56,29 @@ export function WinRatePulse({ rows }: { rows: TenderRow[] }) {
 export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
   const [period, setPeriod] = useState<"month" | "quarter" | "half">("month");
 
-  // 🆕 「未来 N 个月」的时间窗口，默认 6 个月，用户可以自己打数字
+  // 🆕 「未来 N 个月」的时间窗口，默认 6 个月
   const [upcomingWindowMonths, setUpcomingWindowMonths] = useState<number>(6);
   const [windowInput, setWindowInput] = useState<string>("6");
 
-  // 🆕 年份多选筛选，空集合 = 显示全部年份（默认状态）
+  // 🆕 年份多选筛选
   const [selectedYears, setSelectedYears] = useState<Set<number>>(new Set());
 
+  // 原有的 Total Upcoming（今天及之后）
   const allUpcoming = base.filter((r) => r.expectedTenderOpenDate && (parseDate(r.expectedTenderOpenDate) as Date) >= TODAY);
+
+  // 🆕 当前整月数据：获取当前月份的第一天与最后一天
+  const currentMonthRows = useMemo(() => {
+    const startOfCurrentMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+    const endOfCurrentMonth = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0, 23, 59, 59);
+
+    return base.filter((r) => {
+      const d = parseDate(r.expectedTenderOpenDate);
+      return d && d >= startOfCurrentMonth && d <= endOfCurrentMonth;
+    });
+  }, [base]);
+
+  const currentMonthKey = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonthValue = currentMonthRows.reduce((s, r) => s + (r.budget ?? 0), 0);
 
   // 🆕 KPI 用的「未来 N 个月」窗口数据
   const windowedUpcoming = useMemo(() => {
@@ -76,12 +91,11 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
   const totalPipelineValue = windowedUpcoming.reduce((s, r) => s + (r.budget ?? 0), 0);
   const avgBudget = totalUpcoming ? totalPipelineValue / totalUpcoming : 0;
 
-  // 🆕 年份多选影响的是下面所有图表，跟上面 KPI 窗口是分开的两套筛选
   const yearOfRow = (r: TenderRow) => (r.expectedTenderOpenDate ? new Date(r.expectedTenderOpenDate).getFullYear() : null);
   const availableYears = useMemo(() => uniqNum(allUpcoming.map(yearOfRow)), [allUpcoming]);
 
   const chartUpcoming = useMemo(() => {
-    if (selectedYears.size === 0) return allUpcoming; // 空集合 = 全选
+    if (selectedYears.size === 0) return allUpcoming;
     return allUpcoming.filter((r) => {
       const y = yearOfRow(r);
       return y != null && selectedYears.has(y);
@@ -116,25 +130,23 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
     });
   }, [chartUpcoming, period]);
 
-  // 按 State 分布（跟随年份筛选）
   const states = uniqStr(chartUpcoming.map((r) => r.state));
   const stateData = states
     .map((s) => ({ state: s, count: chartUpcoming.filter((r) => r.state === s).length }))
     .sort((a, b) => b.count - a.count);
 
-  // 🆕 处理「未来 N 个月」输入框的确认（Enter 或 blur 时生效）
   const commitWindowInput = () => {
     const n = parseInt(windowInput, 10);
     if (!isNaN(n) && n > 0) {
       setUpcomingWindowMonths(n);
     } else {
-      setWindowInput(String(upcomingWindowMonths)); // 输入不合法就还原
+      setWindowInput(String(upcomingWindowMonths));
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* 🆕 未来窗口设置：默认 6 个月，用户可自行输入 */}
+      {/* 未来窗口设置 */}
       <div className="flex items-center justify-between rounded-lg border border-[#E4E7E6] bg-white px-4 py-2.5">
         <div className="text-[12.5px] text-[#7C8A87]">
           KPIs below reflect opportunities expected to open within the next window.
@@ -174,24 +186,39 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <ClickKpi
-          label="Total Upcoming"
-          value={totalUpcoming}
-          sub={`within next ${upcomingWindowMonths} month(s)`}
-          accent={ACCENT}
-          onClick={() => openDrawer({ title: `Forecast — Next ${upcomingWindowMonths} Month(s)`, rows: windowedUpcoming })}
-        />
-        <Kpi label="Pipeline Value" value={fmtMYR(totalPipelineValue)} sub="total budgeted" accent={ACCENT} />
-        <Kpi label="Avg. Budget / Tender" value={fmtMYR(avgBudget)} />
-        <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No forecast data"} />
+      {/* 🆕 增加 Current Month 卡片，改为 5 列布局 */}
+      {/* 优化后的 KPI 区域：分左右/两行精致排布 */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* 左侧重点卡片：Current Month & Total Upcoming 并排 */}
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+          <ClickKpi
+            label="Current Month"
+            value={currentMonthRows.length}
+            sub={currentMonthKey}
+            accent={ACCENT}
+            onClick={() => openDrawer({ title: `Current Month — ${currentMonthKey}`, rows: currentMonthRows })}
+          />
+          <ClickKpi
+            label="Total Upcoming"
+            value={totalUpcoming}
+            sub={`next ${upcomingWindowMonths} month(s)`}
+            accent={ACCENT}
+            onClick={() => openDrawer({ title: `Forecast — Next ${upcomingWindowMonths} Month(s)`, rows: windowedUpcoming })}
+          />
+        </div>
+
+        {/* 右侧数值卡片：3 列并排 */}
+        <div className="grid grid-cols-3 gap-4 lg:col-span-3">
+          <Kpi label="Pipeline Value" value={fmtMYR(totalPipelineValue)} sub="total budgeted" accent={ACCENT} />
+          <Kpi label="Avg. Budget / Tender" value={fmtMYR(avgBudget)} />
+          <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No data"} />
+        </div>
       </div>
 
       <Panel
         title="Upcoming tenders by period"
         action={
           <div className="flex items-center gap-3">
-            {/* 🆕 年份多选筛选 chip */}
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-medium text-[#8B9895]">Year:</span>
               {availableYears.map((y) => {
