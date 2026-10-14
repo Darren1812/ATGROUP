@@ -7,7 +7,7 @@
  * everything else (utils, api, UI) reads from this single source of truth.
  */
 
-export type ResultStatus = "Win" | "Lose" | "Pending" | "Not Participate";
+export type ResultStatus = "Win" | "Lose" | "Pending" | "New";
 
 export interface TenderRow {
   id: number;

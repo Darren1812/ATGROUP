@@ -61,7 +61,7 @@ export const STATUS_COLORS: Record<string, string> = {
   Win: "#1E8E6E",
   Lose: "#C4453A",
   Pending: "#C88A15",
-  "Not Participate": "#6B7280",
+  New: "#6B7280",
 };
 
 export const statusColor = (status: string | null): string =>

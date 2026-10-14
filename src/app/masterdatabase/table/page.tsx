@@ -623,7 +623,9 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                     <td className="px-4 py-3 border-b border-slate-200">
                       <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                         item.resultStatus === 'Win' ? 'bg-emerald-100 text-emerald-800' :
-                        item.resultStatus === 'Lose' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                        item.resultStatus === 'Lose' ? 'bg-rose-100 text-rose-800' :
+                        item.resultStatus === 'New' ? 'bg-blue-100 text-blue-800' :
+                        'bg-amber-100 text-amber-800'
                       }`}>
                         {item.resultStatus || 'Pending'}
                       </span>
