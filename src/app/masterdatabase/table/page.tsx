@@ -225,7 +225,8 @@ const handleFormSubmit = async (e: React.FormEvent) => {
       });
 
       if (res.status === 409) {
-        showToast('Tender No. already exists!', 'error');
+        const errorText = await res.text();
+        showToast(errorText || 'Record already exists!', 'error');
         return;
       }
 
@@ -359,8 +360,8 @@ const handleFormSubmit = async (e: React.FormEvent) => {
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   };
 
-  const MARKETING_PERSONS = ['Khloe', 'Sonia', 'Syafiqah', 'Natasya'];
-  const SALES_PERSONS = ['Husni', 'Husna', 'Hannah', 'Nik'];
+  const MARKETING_PERSONS = ['Khloe', 'Sonia', 'Syafiqah', 'Liah'];
+  const SALES_PERSONS = ['Husni', 'Husna', 'Hannah', 'Aina', 'Ikhwan'];
 
   return (
     <div className="h-screen bg-slate-50 p-6 text-slate-800 font-sans flex flex-col overflow-hidden"> 

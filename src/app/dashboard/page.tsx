@@ -16,11 +16,9 @@ import {
   Clock,
   Search,
   Goal,
-  Bell,
   TrendingUp,
   ArrowUpRight,
   Paperclip,
-  LightbulbIcon,
   Truck
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -30,8 +28,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [showNotifications, setShowNotifications] = useState(false);
-  const allowedReviewUsers = ["Darren Wong", "Cheong Yan Kiet", "Boon Yee Kuan", "Wong Mei Jean", "Phang Ye Woon"];
   type CardItem = {
     title: string;
     description?: string;
@@ -317,7 +313,7 @@ export default function Dashboard() {
 
                       <div className="relative z-10 h-full flex flex-col">
                         <div className={`${card.lightColor} w-16 h-16 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform duration-500 mb-8`}>
-                          <Icon className={`${card.iconColor}`} size={32} />
+                          <Icon className={card.iconColor} size={32} />
                         </div>
                         <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">{card.title}</h3>
                         <p className="text-slate-500 text-sm font-medium leading-relaxed mb-8 flex-grow">{card.description}</p>
@@ -358,7 +354,7 @@ export default function Dashboard() {
                         className="group bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md hover:border-indigo-100 cursor-pointer"
                       >
                         <div className={`${card.lightColor} w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center`}>
-                          <Icon className={`${card.iconColor}`} size={20} />
+                          <Icon className={card.iconColor} size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-slate-800 font-bold text-[12px] uppercase tracking-tight truncate">{card.title}</h4>

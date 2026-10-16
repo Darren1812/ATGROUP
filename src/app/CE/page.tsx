@@ -340,7 +340,7 @@ const formatToMidnightISO = (dateStr?: string) => {
       const url = isEditing ? `${API_URL}/${formData.id}` : API_URL;
       const method = isEditing ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+const response = await fetch(url, {
         method: method,
         headers: {
           "Content-Type": "application/json",
@@ -349,12 +349,18 @@ const formatToMidnightISO = (dateStr?: string) => {
         body: JSON.stringify(payload),
       });
 
+      // 💡 针对重复的 Contract Number 进行精确捕获
+      if (response.status === 409) {
+        const errorData = await response.json();
+        alert(errorData.message || "Contract Number already exists!");
+        return; // 终止保存，让用户修改
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Backend Error:", errorData);
-        throw new Error("Server rejected the data.");
+        throw new Error(errorData.message || "Server rejected the data.");
       }
-
       // 3. 🔥 修复：即时更新本地 UI 列表
       if (isEditing) {
         setContracts((prev: any[]) =>
