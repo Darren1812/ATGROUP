@@ -7,6 +7,11 @@ import { fmtMYR, statusColor } from "@/app/lib/tenders/utils";
 
 const API = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/MdTable`;
 
+const formatTitleCase = (value: string) => value.replace(
+  /\w\S*/g,
+  (word) => word.charAt(0).toUpperCase() + word.substr(1).toLowerCase(),
+);
+
 const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   const date = new Date(dateString);
@@ -328,7 +333,7 @@ export function EditTenderModal({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">End User</label>
-              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.endUser || ''} onChange={e => setFormRecord({ ...formRecord, endUser: e.target.value })} />
+              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.endUser || ''} onChange={e => setFormRecord({ ...formRecord, endUser: formatTitleCase(e.target.value) })} />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">State</label>
@@ -341,7 +346,7 @@ export function EditTenderModal({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Area</label>
-              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.area || ''} onChange={e => setFormRecord({ ...formRecord, area: e.target.value })} />
+              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.area || ''} onChange={e => setFormRecord({ ...formRecord, area: formatTitleCase(e.target.value) })} />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Marketing Person</label>
@@ -371,7 +376,7 @@ export function EditTenderModal({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Existing Vendor</label>
-              <input type="text" list="edit-existing-vendor-list" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.existingVendor || ''} onChange={e => setFormRecord({ ...formRecord, existingVendor: e.target.value })} autoComplete="off" />
+            <input type="text" list="edit-existing-vendor-list" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.existingVendor || ''} onChange={e => setFormRecord({ ...formRecord, existingVendor: formatTitleCase(e.target.value) })} autoComplete="off" />
               <datalist id="edit-existing-vendor-list">
                 {existingVendors.map(v => <option key={v} value={v} />)}
               </datalist>
@@ -472,11 +477,14 @@ export function EditTenderModal({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Vendor</label>
-              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedVendor || ''} onChange={e => setFormRecord({ ...formRecord, awardedVendor: e.target.value })} />
+              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedVendor || ''} onChange={e => setFormRecord({ ...formRecord, awardedVendor: formatTitleCase(e.target.value) })} />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Brand</label>
-              <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedBrand || ''} onChange={e => setFormRecord({ ...formRecord, awardedBrand: e.target.value })} />
+              <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedBrand || ''} onChange={e => setFormRecord({ ...formRecord, awardedBrand: e.target.value })}>
+                <option value="" disabled>Select Brand</option>
+                {['Canon', 'HP', 'Sharp', 'Fuji', 'Konica Minolta', 'Toshiba', 'Ricoh'].map(brand => <option key={brand} value={brand}>{brand}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Amount (RM)</label>
@@ -507,6 +515,17 @@ export function EditTenderModal({
 
 export function TenderTable({ rows, onDataChanged }: { rows: TenderRow[]; onDataChanged?: () => void }) {
   const [editingRow, setEditingRow] = useState<TenderRow | null>(null);
+  const [expectedOpenSort, setExpectedOpenSort] = useState<"asc" | "desc">("asc");
+  const sortedRows = [...rows].sort((a, b) => {
+    const aDate = a.expectedTenderOpenDate ? new Date(a.expectedTenderOpenDate).getTime() : Number.NaN;
+    const bDate = b.expectedTenderOpenDate ? new Date(b.expectedTenderOpenDate).getTime() : Number.NaN;
+    const aValid = Number.isFinite(aDate);
+    const bValid = Number.isFinite(bDate);
+    if (!aValid && !bValid) return 0;
+    if (!aValid) return 1;
+    if (!bValid) return -1;
+    return expectedOpenSort === "asc" ? aDate - bDate : bDate - aDate;
+  });
 
   if (!rows.length) {
     return <div className="rounded-md border border-dashed border-[#DEE3E2] py-10 text-center text-[13px] text-[#8B9895]">No records match this selection.</div>;
@@ -521,14 +540,23 @@ export function TenderTable({ rows, onDataChanged }: { rows: TenderRow[]; onData
               <th className="px-3 py-2 font-semibold">Marketing</th>
               <th className="px-3 py-2 font-semibold">Sales</th>
               <th className="px-3 py-2 font-semibold">Status</th>
-              <th className="px-3 py-2 font-semibold">Expected Open</th>
+              <th className="px-3 py-2 font-semibold" aria-sort={expectedOpenSort === "asc" ? "ascending" : "descending"}>
+                <button
+                  type="button"
+                  onClick={() => setExpectedOpenSort((direction) => direction === "asc" ? "desc" : "asc")}
+                  className="inline-flex items-center gap-1 hover:text-[#0E5C56]"
+                  title="Sort by expected opening date"
+                >
+                  Expected Open <span aria-hidden="true">{expectedOpenSort === "asc" ? "↑" : "↓"}</span>
+                </button>
+              </th>
               <th className="px-6 py-2 text-right font-semibold">Awarded Amount</th>
               <th className="px-3 py-2 font-semibold">Awarded Vendor</th>
               <th className="px-3 py-2 font-semibold">Awarded Brand</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {sortedRows.map((r) => (
               <tr
                 key={r.id}
                 onClick={() => setEditingRow(r)}

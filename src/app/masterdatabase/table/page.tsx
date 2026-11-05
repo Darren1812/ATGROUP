@@ -711,7 +711,18 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Area</label>
-                  <input type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500" value={formRecord.area || ''} onChange={e => setFormRecord({...formRecord, area: e.target.value})} />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    value={formRecord.area || ''}
+                    onChange={e => {
+                      const formatted = e.target.value.replace(
+                        /\w\S*/g,
+                        txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+                      );
+                      setFormRecord({ ...formRecord, area: formatted });
+                    }}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Marketing Person</label>
