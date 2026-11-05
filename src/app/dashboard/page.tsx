@@ -68,7 +68,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Sales (Melaka)", "Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
+      allowedDepartments: ["Sales (Kelantan)","Sales (Melaka)", "Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
 
     },
     {
@@ -80,7 +80,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)", "Boss", "Operations Director"],
+      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director"],
     },
     {
       title: "TENDER MASTER DATABASE",
@@ -91,7 +91,7 @@ export default function Dashboard() {
       lightColor: "bg-blue-50",
       iconColor: "text-blue-600",
       category: "CORE SYSTEM",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Boss", "Operations Director"],
+      allowedDepartments: ["Sales (Kelantan)", "Marketing (JB)", "Software Engineer", "Boss", "Operations Director"],
     },
     {
       title: "Archidex Database",
@@ -146,7 +146,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Software Engineer"],
     },
     {
       title: "TD HELPER v2.0",
@@ -157,7 +157,7 @@ export default function Dashboard() {
       lightColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       category: "Tools",
-      allowedDepartments: ["Marketing (JB)", "Software Engineer", "Sales (JB)"],
+      allowedDepartments: ["Software Engineer"],
     },
     {
       title: "PROPOSAL DATA MANAGE",
@@ -212,7 +212,7 @@ export default function Dashboard() {
       lightColor: "bg-amber-50",
       iconColor:"text-amber-600",
       category:"CORE SYSTEM",
-      allowedDepartments: ["Management", "Software Engineer", "Boss", "Operations Director", "Sales (JB)", "Marketing (JB)", "Sales (Melaka)"],
+      allowedDepartments: ["Software Engineer"],
     },
     {
       title:"BROCHURE GENERATOR",
