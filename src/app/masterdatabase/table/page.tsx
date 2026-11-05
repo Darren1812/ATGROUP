@@ -808,6 +808,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                     <option value="Konica Minolta">Konica Minolta</option>
                     <option value="Toshiba">Toshiba</option>
                     <option value="Ricoh">Ricoh</option>
+                    <option value="Kyocera">Kyocera</option>
                   </select>
                 </div>
                 <div>
@@ -998,6 +999,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                     <option value="Konica Minolta">Konica Minolta</option>
                     <option value="Toshiba">Toshiba</option>
                     <option value="Ricoh">Ricoh</option>
+                    <option value="Kyocera">Kyocera</option>
                   </select>
                 </div>
                 <div>

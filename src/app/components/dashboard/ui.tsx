@@ -385,7 +385,7 @@ export function EditTenderModal({
               <label className="block text-xs font-bold text-slate-700 mb-1">Existing Brand</label>
               <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500" value={formRecord.existingBrand || ''} onChange={e => setFormRecord({ ...formRecord, existingBrand: e.target.value })}>
                 <option value="" disabled>Select Brand</option>
-                {['Canon','HP','Sharp','Fuji','Konica Minolta','Toshiba','Ricoh'].map(b => <option key={b} value={b}>{b}</option>)}
+                {['Canon','HP','Sharp','Fuji','Konica Minolta','Toshiba','Ricoh','Kyocera'].map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
             <div>
@@ -483,7 +483,7 @@ export function EditTenderModal({
               <label className="block text-xs font-bold text-slate-700 mb-1">Awarded Brand</label>
               <select className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500" value={formRecord.awardedBrand || ''} onChange={e => setFormRecord({ ...formRecord, awardedBrand: e.target.value })}>
                 <option value="" disabled>Select Brand</option>
-                {['Canon', 'HP', 'Sharp', 'Fuji', 'Konica Minolta', 'Toshiba', 'Ricoh'].map(brand => <option key={brand} value={brand}>{brand}</option>)}
+                {['Canon', 'HP', 'Sharp', 'Fuji', 'Konica Minolta', 'Toshiba', 'Ricoh', 'Kyocera'].map(brand => <option key={brand} value={brand}>{brand}</option>)}
               </select>
             </div>
             <div>
