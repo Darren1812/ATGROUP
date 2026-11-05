@@ -139,8 +139,8 @@ export function Select({ label, value, onChange, options }: { label: string; val
    the Master Tender Database page's Add/Edit form (Sections 1–5).
    ============================================================ */
 
-const MARKETING_PERSONS = ['Khloe', 'Sonia', 'Syafiqah', 'Natasya'];
-const SALES_PERSONS = ['Husni', 'Husna', 'Hannah', 'Nik'];
+const MARKETING_PERSONS = ['Khloe', 'Sonia', 'Syafiqah', 'Liah'];
+const SALES_PERSONS = ['Husni', 'Husna', 'Hannah', 'Ikhwan'];
 const COMPANY_OPTIONS = ['ATP', 'ASN', 'ARENA', 'SKY'];
 const BRAND_OPTIONS = ['KM', 'Canon'];
 

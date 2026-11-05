@@ -143,7 +143,7 @@ export default function TenderDashboardPage() {
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {tab === "forecast" && <ForecastTab base={base} openDrawer={setDrawer} />}
           {tab === "status" && <StatusTab rows={scoped} openDrawer={setDrawer} />}
-          {tab === "winlose" && <WinLoseTab rows={base} />}
+          {tab === "winlose" && <WinLoseTab rows={base} openDrawer={setDrawer} />}
           {tab === "value" && <ValueTab rows={base} />}
           {tab === "expiry" && <ExpiryTab base={base} openDrawer={setDrawer} />}
           {tab === "opportunity" && <OpportunityTab rows={base} openDrawer={setDrawer} />}

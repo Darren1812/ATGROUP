@@ -337,7 +337,7 @@ export const STAFF_NAMES = [
   "Keith Ee Tian Cheng",
   "Nurul Husna Binti Mohamed",
   "Sonia Lee",
-  "Nik Mohd Azlan",
+  "AHMAD IKHWAN SOLIHIN BIN RAMLI",
   "Alya Amran",
   "Khloe Wong",
   "Lily Lim",

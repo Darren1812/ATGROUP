@@ -209,9 +209,27 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
 
         {/* 右侧数值卡片：3 列并排 */}
         <div className="grid grid-cols-3 gap-4 lg:col-span-3">
-          <Kpi label="Pipeline Value" value={fmtMYR(totalPipelineValue)} sub="total budgeted" accent={ACCENT} />
-          <Kpi label="Avg. Budget / Tender" value={fmtMYR(avgBudget)} />
-          <Kpi label="Nearest Period" value={buckets[0]?.key ?? "—"} sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No data"} />
+          <ClickKpi
+            label="Pipeline Value"
+            value={fmtMYR(totalPipelineValue)}
+            sub="total budgeted"
+            accent={ACCENT}
+            onClick={() => openDrawer({ title: `Pipeline Value — Next ${upcomingWindowMonths} Month(s)`, rows: windowedUpcoming })}
+          />
+          <ClickKpi
+            label="Avg. Budget / Tender"
+            value={fmtMYR(avgBudget)}
+            onClick={() => openDrawer({ title: `Average Budget — Next ${upcomingWindowMonths} Month(s)`, rows: windowedUpcoming })}
+          />
+          <ClickKpi
+            label="Nearest Period"
+            value={buckets[0]?.key ?? "—"}
+            sub={buckets[0] ? `${buckets[0].count} tender(s)` : "No data"}
+            onClick={() => {
+              const nearestKey = buckets[0]?.key;
+              if (nearestKey) openDrawer({ title: `Forecast — ${nearestKey}`, rows: chartUpcoming.filter((r) => keyOf(r) === nearestKey) });
+            }}
+          />
         </div>
       </div>
 
@@ -291,7 +309,29 @@ export function ForecastTab({ base, openDrawer }: { base: TenderRow[]; openDrawe
             <XAxis dataKey="key" tick={BAR_STYLE} axisLine={{ stroke: "#E4E7E6" }} tickLine={false} />
             <YAxis tick={BAR_STYLE} axisLine={false} tickLine={false} tickFormatter={(v: any) => `${(Number(v) / 1000).toFixed(0)}k`} />
             <Tooltip formatter={(v: any) => fmtMYR(Number(v))} />
-            <Line type="monotone" dataKey="value" name="Pipeline Value" stroke="#C88A15" strokeWidth={2} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              name="Pipeline Value"
+              stroke="#C88A15"
+              strokeWidth={2}
+              dot={{
+                r: 4,
+                cursor: "pointer",
+                onClick: (_event: any, point: any) => {
+                  const key = point?.payload?.key;
+                  if (key) openDrawer({ title: `Forecast Value — ${key}`, rows: chartUpcoming.filter((r) => keyOf(r) === key) });
+                },
+              }}
+              activeDot={{
+                r: 6,
+                cursor: "pointer",
+                onClick: (_event: any, point: any) => {
+                  const key = point?.payload?.key;
+                  if (key) openDrawer({ title: `Forecast Value — ${key}`, rows: chartUpcoming.filter((r) => keyOf(r) === key) });
+                },
+              }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </Panel>
@@ -379,7 +419,7 @@ export function StatusTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer:
 /* ================================ 3. Win / Lose ================================ */
 type WinLosePeriod = "year" | "quarter" | "half";
 
-export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
+export function WinLoseTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer: (d: DrawerState) => void }) {
   const [period, setPeriod] = useState<WinLosePeriod>("year");
 
   // 🆕 年份多选筛选，空集合 = 显示全部年份
@@ -428,13 +468,19 @@ export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
   const winRate = decided.length ? ((totalWin / decided.length) * 100).toFixed(1) : "0.0";
   const loseRate = decided.length ? ((totalLose / decided.length) * 100).toFixed(1) : "0.0";
 
+  const openPeriodRows = (key: string, status?: "Win" | "Lose") => {
+    const periodRows = decided.filter((row) => keyOf(row) === key);
+    const filteredRows = status ? periodRows.filter((row) => row.resultStatus === status) : periodRows;
+    openDrawer({ title: `${key} — ${status ?? "Win / Lose"}`, rows: filteredRows });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <Kpi label="Total Win" value={totalWin} accent={STATUS_COLORS.Win} />
-        <Kpi label="Total Lose" value={totalLose} accent={STATUS_COLORS.Lose} />
-        <Kpi label="Win Rate" value={`${winRate}%`} accent={STATUS_COLORS.Win} />
-        <Kpi label="Lose Rate" value={`${loseRate}%`} accent={STATUS_COLORS.Lose} />
+        <ClickKpi label="Total Win" value={totalWin} accent={STATUS_COLORS.Win} onClick={() => openDrawer({ title: "All Wins", rows: decided.filter((row) => row.resultStatus === "Win") })} />
+        <ClickKpi label="Total Lose" value={totalLose} accent={STATUS_COLORS.Lose} onClick={() => openDrawer({ title: "All Losses", rows: decided.filter((row) => row.resultStatus === "Lose") })} />
+        <ClickKpi label="Win Rate" value={`${winRate}%`} accent={STATUS_COLORS.Win} onClick={() => openDrawer({ title: `Win Rate — ${winRate}%`, rows: decided })} />
+        <ClickKpi label="Lose Rate" value={`${loseRate}%`} accent={STATUS_COLORS.Lose} onClick={() => openDrawer({ title: `Lose Rate — ${loseRate}%`, rows: decided })} />
       </div>
       <Panel
         title="Win vs Lose over time"
@@ -479,10 +525,73 @@ export function WinLoseTab({ rows }: { rows: TenderRow[] }) {
             <YAxis tick={BAR_STYLE} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="Win" fill={STATUS_COLORS.Win} radius={[3, 3, 0, 0]} />
-            <Bar dataKey="Lose" fill={STATUS_COLORS.Lose} radius={[3, 3, 0, 0]} />
+            <Bar
+              dataKey="Win"
+              fill={STATUS_COLORS.Win}
+              radius={[3, 3, 0, 0]}
+              cursor="pointer"
+              onClick={(entry: any) => {
+                const key = entry?.payload?.key ?? entry?.key;
+                if (key) openPeriodRows(key, "Win");
+              }}
+            />
+            <Bar
+              dataKey="Lose"
+              fill={STATUS_COLORS.Lose}
+              radius={[3, 3, 0, 0]}
+              cursor="pointer"
+              onClick={(entry: any) => {
+                const key = entry?.payload?.key ?? entry?.key;
+                if (key) openPeriodRows(key, "Lose");
+              }}
+            />
           </BarChart>
         </ResponsiveContainer>
+      </Panel>
+
+      <Panel title="Win / Lose breakdown by period">
+        <div className="overflow-x-auto rounded-md border border-[#E4E7E6]">
+          <table className="w-full min-w-[560px] text-left text-[12.5px]">
+            <thead>
+              <tr className="border-b border-[#E4E7E6] bg-[#F7F8F7] text-[10.5px] uppercase tracking-[0.06em] text-[#7C8A87]">
+                <th className="px-3 py-2 font-semibold">Period</th>
+                <th className="px-3 py-2 text-right font-semibold">Win</th>
+                <th className="px-3 py-2 text-right font-semibold">Lose</th>
+                <th className="px-3 py-2 text-right font-semibold">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item) => (
+                <tr
+                  key={item.key}
+                  onClick={() => openPeriodRows(item.key)}
+                  title={`Click to view tenders for ${item.key}`}
+                  className="cursor-pointer border-b border-[#EEF1F0] last:border-0 hover:bg-[#F0F7F5] transition"
+                >
+                  <td className="px-3 py-2 font-medium text-[#0F1E1C]">{item.key}</td>
+                  <td
+                    className="px-3 py-2 text-right tabular-nums"
+                    style={{ color: STATUS_COLORS.Win }}
+                    onClick={(event) => { event.stopPropagation(); openPeriodRows(item.key, "Win"); }}
+                    title={`View wins in ${item.key}`}
+                  >
+                    {item.Win}
+                  </td>
+                  <td
+                    className="px-3 py-2 text-right tabular-nums"
+                    style={{ color: STATUS_COLORS.Lose }}
+                    onClick={(event) => { event.stopPropagation(); openPeriodRows(item.key, "Lose"); }}
+                    title={`View losses in ${item.key}`}
+                  >
+                    {item.Lose}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{item.winRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[11px] text-[#8B9895]">Click a period row to view all decided tenders, or click its Win / Lose count to view that result only.</p>
       </Panel>
     </div>
   );
