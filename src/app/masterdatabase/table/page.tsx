@@ -185,7 +185,11 @@ export default function TenderManagementPage() {
   const handleExportExcel = () => {
     try {
       showToast('Generating Excel report...', 'success');
-      window.location.href = `${API}/export`;
+      const params = new URLSearchParams({ filtered: 'true' });
+      filteredData.forEach(item => {
+        if (item.id != null) params.append('ids', String(item.id));
+      });
+      window.location.href = `${API}/export?${params.toString()}`;
     } catch (error) {
       showToast('Export failed.', 'error');
     }
