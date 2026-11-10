@@ -8,7 +8,7 @@ import { useTenderData } from "../lib/tenders/api";
 import { NAV, uniqNum, uniqStr, yearOf } from "../lib/tenders/utils";
 import { Drawer, Select } from "../components/dashboard/ui";
 import {
-  ForecastTab, StatusTab, WinLoseTab, ValueTab, ExpiryTab,
+  ForecastTab, OverdueExpectedOpenTab, StatusTab, WinLoseTab, ValueTab, ExpiryTab,
   OpportunityTab, BrandTab, SalesTab, WinRatePulse,
 } from "../components/dashboard/tabs";
 
@@ -33,8 +33,8 @@ export default function TenderDashboardPage() {
   }), [allRows]);
 
   // Global slice: state / marketing / sales / brand always apply.
-  // Year applies against tenderOpenDate by default; Forecast & Expiry tabs
-  // reason over their own date fields, so they ignore the global Year filter.
+  // Year applies against tenderOpenDate by default; Forecast, Overdue, and
+  // Expiry tabs reason over their own date fields, so they ignore global Year.
   const base = useMemo(() => allRows.filter((r) => {
     if (filters.state && r.state !== filters.state) return false;
     if (filters.marketing && r.marketing !== filters.marketing) return false;
@@ -142,6 +142,7 @@ export default function TenderDashboardPage() {
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {tab === "forecast" && <ForecastTab base={base} openDrawer={setDrawer} />}
+          {tab === "overdue" && <OverdueExpectedOpenTab rows={base} openDrawer={setDrawer} />}
           {tab === "status" && <StatusTab rows={scoped} openDrawer={setDrawer} />}
           {tab === "winlose" && <WinLoseTab rows={base} openDrawer={setDrawer} />}
           {tab === "value" && <ValueTab rows={base} />}

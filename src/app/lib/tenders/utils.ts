@@ -1,6 +1,6 @@
 import {
   CalendarClock, ListChecks, Trophy, Wallet, ShieldAlert, Target,
-  BarChart3, Users,
+  BarChart3, Users, AlertTriangle,
   Table2,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -88,6 +88,7 @@ export interface NavItem {
  */
 export const NAV: NavItem[] = [
   { key: "forecast", label: "Tender Forecast", icon: CalendarClock },
+  { key: "overdue", label: "Overdue / Ignored", icon: AlertTriangle },
   { key: "status", label: "Tender Status", icon: ListChecks },
   { key: "winlose", label: "Win / Lose Performance", icon: Trophy },
   { key: "value", label: "Awarded Value", icon: Wallet },

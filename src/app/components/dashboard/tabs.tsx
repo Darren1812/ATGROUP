@@ -10,7 +10,7 @@ import {
   ACCENT, fmtMYR, halfOf, monthOf, monthsBetween, parseDate, quarterOf,
   statusColor, STATUS_COLORS, uniqNum, uniqStr, varianceNum, SERIES_PALETTE,
 } from "@/app/lib/tenders/utils";
-import { ClickKpi, Kpi, Panel, Segmented, BAR_STYLE } from "@/app/components/dashboard/ui";
+import { ClickKpi, Kpi, Panel, Segmented, StatusPill, BAR_STYLE } from "@/app/components/dashboard/ui";
 
 /**
  * One tab component per dashboard requirement. Each owns only the
@@ -411,6 +411,109 @@ export function StatusTab({ rows, openDrawer }: { rows: TenderRow[]; openDrawer:
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================ Expected Open Overdue ============================ */
+export function OverdueExpectedOpenTab({
+  rows,
+  openDrawer,
+}: {
+  rows: TenderRow[];
+  openDrawer: (d: DrawerState) => void;
+}) {
+  const currentMonthStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  const currentMonthLabel = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, "0")}`;
+  const overdueRows = rows
+    .filter((row) => {
+      const expectedOpen = parseDate(row.expectedTenderOpenDate);
+      return expectedOpen != null && expectedOpen < currentMonthStart;
+    })
+    .sort((a, b) => {
+      const aDate = parseDate(a.expectedTenderOpenDate)?.getTime() ?? 0;
+      const bDate = parseDate(b.expectedTenderOpenDate)?.getTime() ?? 0;
+      return bDate - aDate;
+    });
+  const unresolvedRows = overdueRows.filter((row) => row.resultStatus !== "Win" && row.resultStatus !== "Lose");
+  const totalBudget = overdueRows.reduce((total, row) => total + (row.budget ?? 0), 0);
+  const formatExpectedOpen = (value: string | null) => {
+    const date = parseDate(value);
+    return date ? date.toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[12.5px] text-amber-900">
+        Shows tenders whose Expected Open date is before {currentMonthLabel}. The most recently overdue tenders appear first.
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ClickKpi
+          label="Overdue Tenders"
+          value={overdueRows.length}
+          sub={`Expected Open before ${currentMonthLabel}`}
+          accent="#C88A15"
+          onClick={() => openDrawer({ title: `Overdue / Ignored — Before ${currentMonthLabel}`, rows: overdueRows })}
+        />
+        <ClickKpi
+          label="Unresolved"
+          value={unresolvedRows.length}
+          sub="Pending, new, or without a result"
+          accent="#C4453A"
+          onClick={() => openDrawer({ title: `Unresolved — Before ${currentMonthLabel}`, rows: unresolvedRows })}
+        />
+        <ClickKpi
+          label="Budget at Stake"
+          value={fmtMYR(totalBudget)}
+          sub="total budget for overdue tenders"
+          onClick={() => openDrawer({ title: `Budget at Stake — Before ${currentMonthLabel}`, rows: overdueRows })}
+        />
+      </div>
+
+      <Panel title={`Expected Open before ${currentMonthLabel}`}>
+        {overdueRows.length === 0 ? (
+          <div className="rounded-md border border-dashed border-[#DEE3E2] py-10 text-center text-[13px] text-[#8B9895]">
+            No tenders have an Expected Open date before this month.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-md border border-[#E4E7E6]">
+            <table className="w-full min-w-[900px] text-left text-[12.5px]">
+              <thead>
+                <tr className="border-b border-[#E4E7E6] bg-[#F7F8F7] text-[10.5px] uppercase tracking-[0.06em] text-[#7C8A87]">
+                  <th className="px-3 py-2 font-semibold">Expected Open</th>
+                  <th className="px-3 py-2 font-semibold">Tender No.</th>
+                  <th className="px-3 py-2 font-semibold">End User</th>
+                  <th className="px-3 py-2 font-semibold">State</th>
+                  <th className="px-3 py-2 font-semibold">Marketing</th>
+                  <th className="px-3 py-2 font-semibold">Sales</th>
+                  <th className="px-3 py-2 font-semibold">Status</th>
+                  <th className="px-3 py-2 text-right font-semibold">Budget</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overdueRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => openDrawer({ title: `Overdue Tender — ${row.tenderNo}`, rows: [row] })}
+                    title="Click to view this tender"
+                    className="cursor-pointer border-b border-[#EEF1F0] last:border-0 hover:bg-[#F0F7F5] transition"
+                  >
+                    <td className="px-3 py-2 font-medium text-amber-800">{formatExpectedOpen(row.expectedTenderOpenDate)}</td>
+                    <td className="px-3 py-2 font-medium text-[#0F1E1C]">{row.tenderNo}</td>
+                    <td className="max-w-[280px] truncate px-3 py-2 text-[#3E4E4B]" title={row.endUser ?? undefined}>{row.endUser ?? "—"}</td>
+                    <td className="px-3 py-2 text-[#3E4E4B]">{row.state ?? "—"}</td>
+                    <td className="px-3 py-2 text-[#3E4E4B]">{row.marketing ?? "—"}</td>
+                    <td className="px-3 py-2 text-[#3E4E4B]">{row.sales ?? "—"}</td>
+                    <td className="px-3 py-2"><StatusPill status={row.resultStatus} /></td>
+                    <td className="px-3 py-2 text-right tabular-nums text-[#3E4E4B]">{fmtMYR(row.budget)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
     </div>
   );
