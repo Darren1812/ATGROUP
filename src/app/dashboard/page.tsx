@@ -215,6 +215,17 @@ export default function Dashboard() {
       allowedDepartments: ["Software Engineer"],
     },
     {
+      title:"QUOTATION GENERATOR",
+      description:"",
+      route:"/quotation",
+      icon: Paperclip,
+      color:"from-amber-500 to-orange-600",
+      lightColor: "bg-amber-50",
+      iconColor:"text-amber-600",
+      category:"CORE SYSTEM",
+      allowedDepartments: ["Software Engineer"],
+    },
+    {
       title:"BROCHURE GENERATOR",
       description:"",
       route:"/brochure",
