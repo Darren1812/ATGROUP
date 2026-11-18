@@ -223,7 +223,7 @@ export default function Dashboard() {
       lightColor: "bg-amber-50",
       iconColor:"text-amber-600",
       category:"CORE SYSTEM",
-      allowedDepartments: ["Software Engineer"],
+      allowedDepartments: ["Software Engineer", "Sales (JB)", "Marketing (JB)", "Sales (Melaka)"],
     },
     {
       title:"BROCHURE GENERATOR",
