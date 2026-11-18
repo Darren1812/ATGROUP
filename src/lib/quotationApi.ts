@@ -1,4 +1,4 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export type QuotationGenerateDto = {
   template: "ATP_RENT" | "ATP_PURCHASE" | "ARENA_RENT" | "ARENA_PURCHASE" | "SKYACTIVE_RENT" | "SKYACTIVE_PURCHASE" | "ASN_RENT" | "ASN_PURCHASE" | "ALLTIME_RENT" | "ALLTIME_PURCHASE" | "ATPKL_RENT" | "ATPKL_PURCHASE" | "GC_RENT" | "GC_PURCHASE" | "ATPLAN_COPY_RENT" | "ATPLAN_COPY_PURCHASE" | "ATPLAN_SDN_RENT" | "ATPLAN_SDN_PURCHASE";
@@ -58,13 +58,13 @@ function safeReference(ref: string) {
 }
 
 export function previewQuotation(dto: QuotationGenerateDto) {
-  return postQuotation(`${API}/api/quotation/preview`, dto, `Quotation_${safeReference(dto.ref)}.pdf`, "Preview");
+  return postQuotation(`${API_URL}/api/quotation/preview`, dto, `Quotation_${safeReference(dto.ref)}.pdf`, "Preview");
 }
 
 export function generateQuotation(dto: QuotationGenerateDto, format: "pdf" | "docx") {
   const extension = format === "docx" ? "docx" : "pdf";
   return postQuotation(
-    `${API}/api/quotation/generate?format=${format}`,
+    `${API_URL}/api/quotation/generate?format=${format}`,
     dto,
     `Quotation_${safeReference(dto.ref)}.${extension}`,
     `Quotation export (${extension.toUpperCase()})`

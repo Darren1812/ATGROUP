@@ -1,5 +1,5 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
-const BASE = `${API}/api/quotation-inventory`;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const BASE = `${API_URL}/api/quotation-inventory`;
 
 export type QuotationInventory = {
   id: number;
