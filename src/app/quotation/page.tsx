@@ -21,6 +21,25 @@ function money(value: number | null | undefined) {
   return `RM ${value.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function getReferenceCompany(template: QuotationGenerateDto["template"]) {
+  return template.replace(/_(RENT|PURCHASE)$/, "");
+}
+
+function getReferencePrefix(template: QuotationGenerateDto["template"], date: string): string | null {
+  const [year = "", month = ""] = date.split("-");
+  const yy = year.slice(-2);
+  const mm = month.padStart(2, "0");
+
+  if (template.startsWith("ATP_")) return `QUC${yy}/`;
+  if (template.startsWith("ASN_")) return `K${yy}${mm}/`;
+  if (template.startsWith("GC_")) return `GCM${yy}${mm}/`;
+  if (template.startsWith("ARENA_")) return `QA${yy}`;
+  if (template.startsWith("SKYACTIVE_")) return `SQ${yy}`;
+  if (template.startsWith("ALLTIME_")) return `ALL${yy}${mm}.`;
+  if (template.startsWith("ATPLAN_")) return `QUO.${mm}`;
+  return null;
+}
+
 export default function QuotationPage() {
   const [inventory, setInventory] = useState<QuotationInventory[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
@@ -31,7 +50,8 @@ export default function QuotationPage() {
   const [address, setAddress] = useState("");
   const [attention, setAttention] = useState("");
   const [tel, setTel] = useState("");
-  const [ref, setRef] = useState("");
+  const [referenceSequence, setReferenceSequence] = useState("");
+  const [manualReference, setManualReference] = useState("");
   const [date, setDate] = useState(todayAsInputValue);
   const [salesPerson, setSalesPerson] = useState("");
   const [lines, setLines] = useState<QuotationLine[]>([]);
@@ -91,6 +111,10 @@ export default function QuotationPage() {
 
   const isRental = template.endsWith("RENT");
   const isAsn = template.startsWith("ASN_");
+  const referencePrefix = getReferencePrefix(template, date);
+  const quotationReference = referencePrefix === null
+    ? manualReference.trim()
+    : `${referencePrefix}${referenceSequence.trim()}`;
   const total = selectedItems.reduce((sum, line) => {
     const months = Number.parseInt(line.months, 10);
     const monthMultiplier = isRental && Number.isInteger(months) && months > 0 ? months : 1;
@@ -118,11 +142,23 @@ export default function QuotationPage() {
     setLines((current) => current.filter((_, lineIndex) => lineIndex !== index));
   }
 
+  function changeTemplate(nextTemplate: QuotationGenerateDto["template"]) {
+    if (getReferenceCompany(nextTemplate) !== getReferenceCompany(template)) {
+      setReferenceSequence("");
+      setManualReference("");
+    }
+    setTemplate(nextTemplate);
+  }
+
   async function handlePreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     if (lines.length === 0) {
       setError("Add at least one product to the quotation.");
+      return;
+    }
+    if (!quotationReference.trim() || (referencePrefix !== null && !referenceSequence.trim())) {
+      setError(referencePrefix === null ? "Enter the quotation reference." : "Enter the quotation sequence number.");
       return;
     }
 
@@ -132,7 +168,7 @@ export default function QuotationPage() {
       address: address.trim(),
       attention: attention.trim() || null,
       tel: tel.trim() || null,
-      ref: ref.trim(),
+      ref: quotationReference,
       date,
       salesPerson: salesPerson.trim(),
       items: lines.map((line) => ({ ...line, months: line.months.trim() || "-" })),
@@ -204,7 +240,7 @@ export default function QuotationPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-slate-700">Template
-                  <select value={template} onChange={(e) => setTemplate(e.target.value as QuotationGenerateDto["template"])} className={fieldClass}>
+                  <select value={template} onChange={(e) => changeTemplate(e.target.value as QuotationGenerateDto["template"])} className={fieldClass}>
                     <optgroup label="ATP">
                       <option value="ATP_RENT">Rental</option>
                       <option value="ATP_PURCHASE">Purchase</option>
@@ -244,7 +280,15 @@ export default function QuotationPage() {
                   </select>
                 </label>
                 <label className="text-sm font-medium text-slate-700">Quotation reference
-                  <input required maxLength={50} value={ref} onChange={(e) => setRef(e.target.value)} placeholder="e.g. QUM26/103" className={fieldClass} />
+                  {referencePrefix !== null ? (
+                    <div className="mt-1.5 flex min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white transition focus-within:border-orange-400 focus-within:ring-4 focus-within:ring-orange-100">
+                      <span className="flex shrink-0 items-center bg-slate-50 px-3.5 text-sm font-semibold text-slate-600">{referencePrefix}</span>
+                      <input required maxLength={3} inputMode="numeric" pattern="[0-9]{1,3}" value={referenceSequence} onChange={(e) => { if (/^\d{0,3}$/.test(e.target.value)) setReferenceSequence(e.target.value); }} placeholder="001" aria-label="Quotation sequence number" className="min-w-0 flex-1 px-3.5 py-2.5 text-sm text-slate-800 outline-none" />
+                    </div>
+                  ) : (
+                    <input required maxLength={50} value={manualReference} onChange={(e) => setManualReference(e.target.value)} placeholder="Enter quotation reference" className={fieldClass} />
+                  )}
+                  <span className="mt-1 block text-xs font-normal text-slate-400">{referencePrefix === null ? "Enter the complete reference manually for this template." : "The date-based prefix is automatic; enter the 3-digit sequence."}</span>
                 </label>
                 <label className="text-sm font-medium text-slate-700">Customer name
                   <input required maxLength={200} value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Company or customer name" className={fieldClass} />
@@ -262,7 +306,25 @@ export default function QuotationPage() {
                   <input value={tel} onChange={(e) => setTel(e.target.value)} placeholder="Phone number (optional)" className={fieldClass} />
                 </label>
                 <label className="text-sm font-medium text-slate-700 sm:col-span-2">Salesperson
-                  <input required value={salesPerson} onChange={(e) => setSalesPerson(e.target.value)} placeholder="Salesperson name" className={fieldClass} />
+                  <select required value={salesPerson} onChange={(e) => setSalesPerson(e.target.value)} className={fieldClass}>
+                    <option value="" disabled>Select a salesperson</option>
+                    {[
+                      "Keith",
+                      "Michael",
+                      "Husna",
+                      "Hannah",
+                      "Husni",
+                      "Ikhwan",
+                      "Lily",
+                      "Aina",
+                      "Khloe",
+                      "Sonia",
+                      "Syafiqah",
+                      "Iqliah",
+                      "Boon",
+                      "Cheong",
+                    ].map((name) => <option key={name} value={name}>{name}</option>)}
+                  </select>
                 </label>
               </div>
             </section>

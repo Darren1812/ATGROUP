@@ -529,16 +529,17 @@ const handleFormSubmit = async (e: React.FormEvent) => {
           <table className="w-full text-left border-separate border-spacing-0 table-auto">
             <thead className="text-xs font-bold text-slate-600 tracking-wider sticky top-0 z-20">
               <tr className="bg-slate-100 text-slate-900">
-                <th colSpan={1} className="px-4 py-2 text-center bg-slate-200 text-slate-900 border-b border-r border-slate-300 sticky left-0 z-30">Actions</th>
+                <th rowSpan={2} className="w-[52px] min-w-[52px] px-2 py-2 text-center bg-slate-200 text-slate-900 border-b border-r border-slate-300 sticky left-0 z-30">No.</th>
+                <th colSpan={1} className="px-4 py-2 text-center bg-slate-200 text-slate-900 border-b border-r border-slate-300 sticky left-[52px] z-30">Actions</th>
                 <th colSpan={6} className="px-4 py-2 text-center bg-indigo-50 text-indigo-900 border-b border-r border-slate-200">Category & Current Contract</th>
                 <th colSpan={6} className="px-4 py-2 text-center bg-amber-50 text-amber-900 border-b border-r border-slate-200">Planning & Requirements</th>
                 <th colSpan={5} className="px-4 py-2 text-center bg-sky-50 text-sky-900 border-b border-r border-slate-200">Tender Planning</th>
                 <th colSpan={3} className="px-4 py-2 text-center bg-purple-50 text-purple-900 border-b border-r border-slate-200">Submission Info</th>
                 <th colSpan={5} className="px-4 py-2 text-center bg-emerald-50 text-emerald-950 border-b border-slate-200">Result Outcomes</th>
-                <th colSpan={5} className="px-4 py-2 text-center bg-red-50 text-red-950 border-b border-l border-slate-200">Variance</th>
+                <th colSpan={1} className="px-4 py-2 text-center bg-red-50 text-red-950 border-b border-l border-slate-200">Variance</th>
               </tr>
               <tr className="bg-slate-50 text-slate-700 text-[11px] uppercase">
-                <th className="px-4 py-3 font-semibold text-center min-w-[90px] border-b border-r border-slate-300 sticky left-0 z-30 bg-slate-50">Action</th>
+                <th className="px-4 py-3 font-semibold text-center min-w-[90px] border-b border-r border-slate-300 sticky left-[52px] z-30 bg-slate-50">Action</th>
                 <th className="px-4 py-3 font-semibold min-w-[180px] border-b border-slate-200">Tender No.</th>
                 <th className="px-4 py-3 font-semibold min-w-[220px] border-b border-slate-200">End User</th>
                 <th className="px-4 py-3 font-semibold min-w-[120px] border-b border-slate-200">State</th>
@@ -570,7 +571,7 @@ const handleFormSubmit = async (e: React.FormEvent) => {
             <tbody className="text-xs text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={27} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200">
+                  <td colSpan={28} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
                       <span>Loading records...</span>
@@ -579,14 +580,15 @@ const handleFormSubmit = async (e: React.FormEvent) => {
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={27} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200">
+                  <td colSpan={28} className="px-4 py-12 text-center text-slate-400 border-b border-slate-200">
                     No records found matching the specified query filters.
                   </td>
                 </tr>
               ) : (
                 filteredData.map((item, index) => (
                   <tr key={(item.id ?? item.tenderNo) + '-' + index} className="hover:bg-slate-50/80 transition duration-150 group">
-                    <td className="px-4 py-3 text-center border-b border-r border-slate-300 sticky left-0 bg-white group-hover:bg-slate-50 transition z-10">
+                    <td className="w-[52px] min-w-[52px] px-2 py-3 text-center tabular-nums text-slate-500 border-b border-r border-slate-300 sticky left-0 bg-white group-hover:bg-slate-50 transition z-10">{index + 1}</td>
+                    <td className="px-4 py-3 text-center border-b border-r border-slate-300 sticky left-[52px] bg-white group-hover:bg-slate-50 transition z-10">
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => openEditModal(item)}
