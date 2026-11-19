@@ -125,6 +125,7 @@ export default function OnlineUsersTable() {
 
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -153,17 +154,27 @@ export default function OnlineUsersTable() {
   const fetchUsers = useCallback(async () => {
     if (!isManagementAdmin) return;
     setLoading(true);
+    setUsersError(null);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`,
         { credentials: "include" }
       );
-      if (!response.ok) throw new Error("Failed to fetch users");
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("The API did not receive your login session. Mobile Safari may block the cross-site login cookie.");
+        }
+        if (response.status === 403) {
+          throw new Error("Your account is not authorized to view user management data.");
+        }
+        throw new Error(`Could not load users (HTTP ${response.status}).`);
+      }
 
       const data = await response.json();
       setUsers(Array.isArray(data.users) ? data.users : []);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUsersError(error instanceof Error ? error.message : "Could not connect to the user API.");
       setUsers([]);
     } finally {
       setLoading(false);
@@ -493,6 +504,13 @@ export default function OnlineUsersTable() {
             <p className='text-slate-600 font-semibold text-sm'>
               Loading system directory...
             </p>
+          </div>
+        ) : usersError ? (
+          <div className='bg-white rounded-xl border border-amber-200 p-8 text-center shadow-sm'>
+            <Users className='mx-auto text-amber-500 mb-3' size={36} />
+            <h3 className='text-base font-bold text-slate-800'>Couldn&apos;t load the user list</h3>
+            <p className='mx-auto mt-2 max-w-xl text-sm text-slate-600'>{usersError}</p>
+            <button onClick={() => void fetchUsers()} className='mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500'>Try again</button>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className='bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm'>
