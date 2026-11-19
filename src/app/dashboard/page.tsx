@@ -9,17 +9,15 @@ import {
   HelpCircle,
   FileText,
   Briefcase,
-  Users,
-  ChevronRight,
   Table,
   Printer,
   Clock,
   Search,
   Goal,
-  TrendingUp,
-  ArrowUpRight,
   Paperclip,
-  Truck
+  Truck,
+  Sparkles,
+  LucideIcon,
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -27,12 +25,13 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSection, setActiveSection] = useState<"all" | "core" | "tools">("all");
   const [currentTime, setCurrentTime] = useState(new Date());
   type CardItem = {
     title: string;
     description?: string;
     route: string;
-    icon: any;
+    icon: LucideIcon;
     color: string;
     lightColor: string;
     iconColor: string;
@@ -241,6 +240,10 @@ export default function Dashboard() {
   const filteredCards = cards.filter(card => {
     const userDept = user?.department ?? "";
 
+    const inSection = activeSection === "all" ||
+      (activeSection === "core" ? card.category === "CORE SYSTEM" : card.category !== "CORE SYSTEM");
+    if (!inSection) return false;
+
     // 🔐 Department restriction
     if (card.allowedDepartments && card.allowedDepartments.length > 0) {
       if (!card.allowedDepartments.includes(userDept)) {
@@ -257,211 +260,123 @@ export default function Dashboard() {
   const coreCards = filteredCards.filter(c => c.category === "CORE SYSTEM");
   const standardCards = filteredCards.filter(c => c.category !== "CORE SYSTEM");
 
+  const greeting = currentTime.getHours() < 12 ? "Good morning" : currentTime.getHours() < 18 ? "Good afternoon" : "Good evening";
+  const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
+  const pastelCards = ["bg-[#cfe8d5]", "bg-[#d1d2ed]", "bg-[#f0cfca]", "bg-[#e9e5b9]", "bg-[#cce5ec]", "bg-[#e8cbed]"];
+
+  const selectSection = (section: "all" | "core" | "tools") => {
+    setActiveSection(section);
+    setSearchQuery("");
+  };
+
   return (
     <ProtectedRoute>
-      <div className="bg-white border-b border-slate-200 shadow-lg">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-xl">
-                    {user?.name?.charAt(0) || "M"}
-                  </span>
-                </div>
-                <div>
-                  <h1 className="text-3xl font-light text-slate-800 tracking-tight">
-                    {user ? `Welcome back, ${user.name}` : "USER"}
-                  </h1>
-                  <p className="text-slate-500 text-sm mt-0.5">Choose a system to get started</p>
-                </div>
-              </div>
-            </div>
+      <div className="min-h-[calc(100dvh-72px)] w-full bg-[#252528] md:h-dvh md:min-h-0">
+        <div className="flex min-h-[calc(100dvh-72px)] w-full max-w-none overflow-hidden bg-[#252528] text-white md:h-dvh md:min-h-0">
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                <Clock className="text-slate-500" size={16} />
-                <div className="text-sm">
-                  <div className="font-medium text-slate-800">
-                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <header className="border-b border-white/10 px-4 py-5 sm:px-6 sm:py-6 lg:px-9">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{greeting}, {firstName}</p>
+                    <p className="mt-1 text-xs text-white/45 sm:text-sm">Your systems and tools, all in one place.</p>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </div>
+                <div className="hidden shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 sm:flex">
+                  <Clock size={15} className="text-[#cfe8d5]" />
+                  <div className="text-right">
+                    <p className="text-xs font-semibold">{currentTime.toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="text-[10px] text-white/45">{currentTime.toLocaleDateString("en-MY", { weekday: "short", day: "numeric", month: "short" })}</p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-8 py-10">
-          {/* Search Bar */}
-          <div className="relative mb-12 max-w-2xl mx-auto">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search for a system or tool..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 outline-none transition-all shadow-sm text-lg"
-            />
-          </div>
-          {/* 1. CORE SYSTEMS - The Big Cards */}
-          {!searchQuery && coreCards.length > 0 && (
-            <div className="mb-16">
-              <h2 className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase mb-6 flex items-center gap-3">
-                Primary Operations <div className="h-px flex-1 bg-slate-200" />
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {coreCards.map((card, index) => {
-                  const Icon = card.icon;
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => router.push(card.route)}
-                      className="group relative bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
-                    >
-                      <div className={`absolute -right-12 -top-12 w-48 h-48 bg-gradient-to-br ${card.color} opacity-[0.03] group-hover:opacity-[0.08] rounded-full transition-all duration-700 group-hover:scale-150`} />
 
-                      <div className="relative z-10 h-full flex flex-col">
-                        <div className={`${card.lightColor} w-16 h-16 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform duration-500 mb-8`}>
-                          <Icon className={card.iconColor} size={32} />
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">{card.title}</h3>
-                        <p className="text-slate-500 text-sm font-medium leading-relaxed mb-8 flex-grow">{card.description}</p>
-                        <div className="flex items-center gap-2 text-xs font-black text-slate-900 tracking-widest group-hover:gap-4 transition-all uppercase">
-                          Access System <ArrowRight size={16} className="text-slate-400 group-hover:text-slate-900" />
-                        </div>
-                      </div>
+              <div className="mt-5 flex flex-col gap-3">
+                <div className="relative w-full">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={17} />
+                  <input
+                    type="search"
+                    placeholder="Search systems and tools..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-[#39393e] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/40 focus:border-[#cfe8d5]/70 focus:ring-2 focus:ring-[#cfe8d5]/15"
+                  />
+                </div>
+                <nav className="flex gap-2 overflow-x-auto pb-1">
+                  {([ ["all", "All systems"], ["core", "Primary"], ["tools", "Tools & forms"] ] as const).map(([section, label]) => (
+                    <button key={section} onClick={() => selectSection(section)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium ${activeSection === section ? "bg-[#cfe8d5] text-[#171719]" : "border border-white/10 bg-white/[0.04] text-white/65"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </header>
+
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-9">
+              <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Available systems", value: filteredCards.length, note: "Based on your access", color: "text-[#cfe8d5]" },
+                  { label: "Primary operations", value: coreCards.length, note: "Core department workflows", color: "text-[#d1d2ed]" },
+                  { label: "Tools & forms", value: standardCards.length, note: "Supporting applications", color: "text-[#f0cfca]" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-white/10 bg-[#303034] p-4 sm:p-5">
+                    <p className="text-xs text-white/50">{item.label}</p>
+                    <div className="mt-2 flex items-end justify-between gap-2">
+                      <p className={`text-3xl font-semibold tracking-tight ${item.color}`}>{item.value}</p>
+                      <p className="text-right text-[10px] text-white/35">{item.note}</p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col lg:flex-row gap-10 items-start max-w-7xl mx-auto p-6">
-
-            {/* LEFT ZONE: The Scrollable Container */}
-            <div className="flex-1 w-full bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-
-              {/* 1. Header Area (Fixed) */}
-              <div className="px-8 py-6 bg-white border-b border-slate-50">
-                <h2 className="text-[11px] font-black tracking-[0.4em] text-slate-400 uppercase flex items-center gap-4">
-                  Supporting Tools
-                  <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
-                </h2>
+                  </div>
+                ))}
               </div>
 
-              {/* 2. Scrollable Body (This is where the magic happens) */}
-              {/* h-[520px] is the sweet spot to show 4 cards and cut off the 5th/6th */}
-              <div className="h-[380px] overflow-y-auto custom-scrollbar p-6">
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                  {standardCards.map((card, index) => {
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{activeSection === "all" ? "Your workspace" : activeSection === "core" ? "Primary operations" : "Tools & forms"}</p>
+                  <h2 className="mt-1 text-lg font-semibold sm:text-xl">Open a system</h2>
+                </div>
+                <p className="shrink-0 text-xs text-white/40">{filteredCards.length} available</p>
+              </div>
+
+              {filteredCards.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 sm:gap-4">
+                  {filteredCards.map((card, index) => {
                     const Icon = card.icon;
                     return (
-                      <div
-                        key={index}
+                      <button
+                        key={card.route}
                         onClick={() => router.push(card.route)}
-                        className="group bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4 transition-all duration-300 hover:shadow-md hover:border-indigo-100 cursor-pointer"
+                        className={`${pastelCards[index % pastelCards.length]} group flex min-h-[190px] flex-col rounded-[22px] p-5 text-left text-[#171719] transition duration-200 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-white/60 sm:min-h-[210px] sm:p-6`}
                       >
-                        <div className={`${card.lightColor} w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center`}>
-                          <Icon className={card.iconColor} size={20} />
+                        <div className="mb-5 flex items-start justify-between gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/60"><Icon size={21} /></div>
+                          <span className="rounded-full bg-black/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-black/55">{card.category}</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-slate-800 font-bold text-[12px] uppercase tracking-tight truncate">{card.title}</h4>
-                          <p className="text-slate-400 text-[10px] font-semibold uppercase tracking-wider">{card.category}</p>
+                        <h3 className="text-base font-bold leading-snug sm:text-lg">{card.title}</h3>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-black/60">{card.description || `Open ${card.title.toLowerCase()} workspace.`}</p>
+                        <div className="mt-auto flex items-center justify-between pt-5 text-xs font-semibold">
+                          <span>Open system</span>
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 transition group-hover:translate-x-1"><ArrowRight size={15} /></span>
                         </div>
-                        <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-transform group-hover:translate-x-1" />
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
-              </div>
-
-              {/* 3. Footer Area (Fixed) */}
-              <div className="px-8 py-4 bg-slate-50/50 border-t border-slate-100 flex justify-center items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" />
-                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                  Scroll for more tools
-                </span>
-              </div>
-            </div>
-
-            {/* RIGHT ZONE: Premium Sidebar (30%) */}
-            <div className="w-full lg:w-80 flex-shrink-0 space-y-6 lg:sticky lg:top-6">
-
-              {/* Forecast Engine - The 'Insight' Card */}
-              <div
-                onClick={() => router.push("/forecast")}
-                className="group relative bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-500 cursor-pointer overflow-hidden"
-              >
-                <div className="relative z-10">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 group-hover:rotate-6 transition-transform">
-                      <TrendingUp className="text-white" size={20} />
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
-                      </span>
-                      <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wider">3 Updates</span>
-                    </div>
-                  </div>
-
-                  <h4 className="text-slate-900 font-black text-sm uppercase tracking-wider">Forecast Engine</h4>
-                  <div className="mt-3 p-3 bg-slate-50 rounded-xl border-l-2 border-indigo-500 group-hover:bg-white transition-colors">
-                    <p className="text-[10px] text-slate-500 font-medium italic line-clamp-2 leading-relaxed">
-                      &quot;Q4 projections show a 12% increase in contract volume...&quot;
-                    </p>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Live Analysis</span>
-                    <ArrowUpRight size={14} className="text-indigo-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Admin Portal - The 'Power' Card */}
-              {["Darren Wong"].includes(user?.name ?? "") && (
-                <div
-                  onClick={() => router.push("/Usermanagement")}
-                  className="group relative bg-slate-950 rounded-[24px] p-6 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-slate-900/40 cursor-pointer border border-slate-800"
-                >
-                  {/* Subtle Inner Glow */}
-                  <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="bg-white/10 backdrop-blur-md w-12 h-12 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-white group-hover:text-slate-900 transition-all duration-500">
-                        <Users size={20} />
-                      </div>
-                      <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />
-                    </div>
-
-                    <h4 className="text-white font-black text-sm uppercase tracking-wider">Admin Portal</h4>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Management Console</p>
-
-                    <div className="mt-6 h-[1px] w-full bg-slate-800" />
-                    <div className="mt-4 flex items-center gap-2 text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                      Access Granted <div className="h-1 w-1 rounded-full bg-slate-600" /> Secured
-                    </div>
-                  </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-5 py-14 text-center">
+                  <Sparkles className="mx-auto mb-3 text-[#d1d2ed]" size={26} />
+                  <h3 className="font-semibold">No systems found</h3>
+                  <p className="mt-1 text-sm text-white/45">Try another search or choose a different section.</p>
+                  <button onClick={() => { setSearchQuery(""); selectSection("all"); }} className="mt-4 rounded-full bg-[#d1d2ed] px-4 py-2 text-xs font-semibold text-[#171719]">Show all systems</button>
                 </div>
               )}
-            </div>
-          </div>          
-          {/* Empty State */}
-          {filteredCards.length === 0 && (
-            <div className="py-24 text-center">
-              <div className="bg-white inline-flex p-6 rounded-full shadow-inner mb-4">
-                <Search size={40} className="text-slate-200" />
-              </div>
-              <h3 className="text-slate-800 font-black text-xl mb-1 uppercase tracking-tight">No results found</h3>
-              <p className="text-slate-400 text-sm">We couldn&apos;t find any system matching &quot;{searchQuery}&quot;</p>
-            </div>
-          )}
+
+              <footer className="mt-8 flex flex-col gap-1 border-t border-white/10 pt-4 text-[10px] text-white/35 sm:flex-row sm:items-center sm:justify-between">
+                <span>AT Group Management System</span>
+                <span>Access is based on your department</span>
+              </footer>
+            </main>
+          </section>
         </div>
       </div>
     </ProtectedRoute>

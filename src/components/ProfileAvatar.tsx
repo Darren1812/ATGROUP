@@ -7,11 +7,17 @@ export default function ProfileAvatar({
   name,
   version = 0,
   className = 'h-9 w-9',
+  onClick,
+  fit = 'cover',
+  shape = 'circle',
 }: {
   userId?: number;
   name: string;
   version?: number;
   className?: string;
+  onClick?: () => void;
+  fit?: 'cover' | 'contain';
+  shape?: 'circle' | 'square';
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
@@ -53,9 +59,19 @@ export default function ProfileAvatar({
     };
   }, [userId, version, refreshVersion]);
 
-  return src ? (
-    <img src={src} alt={`${name} profile`} className={`${className} rounded-full object-cover border border-slate-200`} />
-  ) : (
+  if (src) {
+    const fitClass = fit === 'contain' ? 'object-contain' : 'object-cover';
+    // Preserve and display the uploaded image blob directly, without Next image optimization.
+    // eslint-disable-next-line @next/next/no-img-element
+    const image = <img src={src} alt={`${name} profile`} className={`${className} ${shape === 'circle' ? 'rounded-full' : 'rounded-xl'} ${fitClass} border border-slate-200`} />;
+    return onClick ? (
+      <button type="button" onClick={onClick} title="View profile photo" aria-label={`View ${name}'s profile photo`} className="inline-flex cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+        {image}
+      </button>
+    ) : image;
+  }
+
+  return (
     <div className={`${className} rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs`} aria-label={`${name} profile photo unavailable`}>
       {name?.trim()?.charAt(0)?.toUpperCase() || '?'}
     </div>

@@ -15,27 +15,21 @@ import {
   Users,
   Search,
   Filter,
-  MoreVertical,
   Mail,
   Phone,
   Shield,
-  Calendar,
   ChevronDown,
-  Building2,
   UserCheck,
-  UserX,
   Crown,
   Grid3x3,
   List,
   User,
   FileSignature,
   KeyRound,
-  CheckCircle2,
-  BadgeCheck,
   Briefcase,
-  AtSign,
   Camera,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface UserData {
   id: number;
@@ -101,7 +95,7 @@ const DEPARTMENT_COLORS: Record<
   },
 };
 
-const ROLE_BADGES: Record<string, { icon: any; color: string }> = {
+const ROLE_BADGES: Record<string, { icon: LucideIcon; color: string }> = {
   Admin: { icon: Crown, color: "text-purple-700 bg-purple-100 border-purple-200" },
   Manager: { icon: Shield, color: "text-blue-700 bg-blue-100 border-blue-200" },
   User: { icon: UserCheck, color: "text-slate-700 bg-slate-100 border-slate-200" },
@@ -145,6 +139,16 @@ export default function OnlineUsersTable() {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
+  const [previewUser, setPreviewUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    if (!previewUser) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewUser(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [previewUser]);
 
   const fetchUsers = useCallback(async () => {
     if (!isManagementAdmin) return;
@@ -288,11 +292,6 @@ export default function OnlineUsersTable() {
       addToast("Choose a JPG, PNG, or WebP image", "error");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      addToast("Image must be 5 MB or smaller", "error");
-      return;
-    }
-
     const formData = new FormData();
     formData.append("file", file);
     setPhotoUploading(true);
@@ -540,7 +539,7 @@ export default function OnlineUsersTable() {
                         {/* Full Name */}
                         <td className='py-3 px-4 font-bold text-slate-900'>
                           <div className='flex items-center gap-2'>
-                            <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} />
+                            <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} onClick={() => setPreviewUser(user)} />
                             <span>{user.name}</span>
                             {user.status ? (
                               <span className='w-2 h-2 rounded-full bg-emerald-500' title='Online'></span>
@@ -670,7 +669,7 @@ export default function OnlineUsersTable() {
                     {/* Header bar */}
                     <div className='flex items-start justify-between border-b border-slate-100 pb-3 mb-3'>
                       <div className='flex items-center gap-2'>
-                        <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} />
+                        <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} onClick={() => setPreviewUser(user)} />
                         <div>
                         <div className='flex items-center gap-1.5'>
                           <h3 className='font-bold text-slate-900 text-sm'>
@@ -1017,7 +1016,7 @@ export default function OnlineUsersTable() {
                   <span>Profile Photo</span>
                 </div>
                 <div className='flex items-center gap-4'>
-                  <ProfileAvatar userId={selectedUser.id} name={selectedUser.name} version={photoVersion} />
+                  <ProfileAvatar userId={selectedUser.id} name={selectedUser.name} version={photoVersion} onClick={() => setPreviewUser(selectedUser)} />
                   <div>
                     <label className='inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer'>
                       <Camera size={14} />
@@ -1034,7 +1033,7 @@ export default function OnlineUsersTable() {
                         }}
                       />
                     </label>
-                    <p className='mt-1 text-[11px] text-slate-500'>JPG, PNG, or WebP; maximum 5 MB. Only authorized administrators can change photos.</p>
+                    <p className='mt-1 text-[11px] text-slate-500'>JPG, PNG, or WebP. Only authorized administrators can change photos.</p>
                   </div>
                 </div>
               </div>
@@ -1236,6 +1235,37 @@ export default function OnlineUsersTable() {
                 <Save size={14} />
                 Save Changes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewUser && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setPreviewUser(null)}
+          role="presentation"
+        >
+          <div className="relative flex max-h-[94vh] max-w-[96vw] flex-col items-center gap-3 rounded-2xl bg-slate-950/90 p-4 shadow-2xl sm:p-6" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewUser(null)}
+              aria-label="Close profile photo preview"
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
+            >
+              <X size={18} />
+            </button>
+            <ProfileAvatar
+              userId={previewUser.id}
+              name={previewUser.name}
+              version={photoVersion}
+              className="h-auto w-auto max-h-[76vh] max-w-[88vw]"
+              fit="contain"
+              shape="square"
+            />
+            <div className="text-center">
+              <p className="text-sm font-semibold text-white">{previewUser.name}</p>
+              <p className="mt-1 text-xs text-white/55">Original photo · shown without compression or cropping</p>
             </div>
           </div>
         </div>

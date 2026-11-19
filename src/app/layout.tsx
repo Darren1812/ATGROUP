@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import { ToastProvider } from "@/components/ToastProvider";
-import Navbar from "@/components/Navbar"; 
+import AppShell from "@/components/AppShell";
 import { AuthProvider } from "@/context/AuthContext"; 
 
 const geistSans = Geist({
@@ -35,8 +35,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ToastProvider>
-            <Navbar />
-            <main>{children}</main>
+            <AppShell>{children}</AppShell>
           </ToastProvider>
         </AuthProvider>
       </body>
