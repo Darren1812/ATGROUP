@@ -424,7 +424,7 @@ export default function Dashboard() {
               </div>
 
               {/* Admin Portal - The 'Power' Card */}
-              {["Darren Wong", "Cheong Yan Kiet", "Boon Yee Kuan", "Wong Mei Jean"].includes(user?.name ?? "") && (
+              {["Darren Wong"].includes(user?.name ?? "") && (
                 <div
                   onClick={() => router.push("/Usermanagement")}
                   className="group relative bg-slate-950 rounded-[24px] p-6 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-slate-900/40 cursor-pointer border border-slate-800"

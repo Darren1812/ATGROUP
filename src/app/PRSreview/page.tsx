@@ -86,7 +86,9 @@ export default function PRSReviewPage() {
 
     const loadUsers = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/prs-review-users`, {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("Failed to fetch user data");
         const data = await res.json();
 

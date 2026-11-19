@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ToastProvider";
 import {
   RefreshCw,
@@ -32,6 +34,7 @@ import {
   BadgeCheck,
   Briefcase,
   AtSign,
+  Camera,
 } from "lucide-react";
 
 interface UserData {
@@ -123,6 +126,8 @@ const initialUserState: UserData = {
 
 export default function OnlineUsersTable() {
   const addToast = useToast();
+  const { user: currentUser } = useAuth();
+  const isManagementAdmin = currentUser?.name === "Darren Wong";
 
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,12 +143,16 @@ export default function OnlineUsersTable() {
   // User States
   const [newUser, setNewUser] = useState<UserData>(initialUserState);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoVersion, setPhotoVersion] = useState(0);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    if (!isManagementAdmin) return;
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/Account/all-users`,
+        { credentials: "include" }
       );
       if (!response.ok) throw new Error("Failed to fetch users");
 
@@ -155,11 +164,11 @@ export default function OnlineUsersTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isManagementAdmin]);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    void fetchUsers();
+  }, [fetchUsers]);
 
   const departmentStats = useMemo(() => {
     const stats: Record<string, number> = {};
@@ -272,6 +281,41 @@ export default function OnlineUsersTable() {
     }
   };
 
+  const uploadProfilePhoto = async (file?: File) => {
+    if (!file || !selectedUser) return;
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      addToast("Choose a JPG, PNG, or WebP image", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("Image must be 5 MB or smaller", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setPhotoUploading(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ProfilePhotos/${selectedUser.id}`,
+        { method: "POST", credentials: "include", body: formData }
+      );
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Photo upload failed");
+      }
+      addToast("Profile photo updated", "success");
+      setPhotoVersion((current) => current + 1);
+      window.dispatchEvent(new CustomEvent("profile-photo-updated", { detail: { userId: selectedUser.id } }));
+      setShowEditModal(false);
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : "Photo upload failed", "error");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const getDepartmentColor = (department?: string) => {
     return DEPARTMENT_COLORS[department || ""] || DEPARTMENT_COLORS.Default;
   };
@@ -280,7 +324,22 @@ export default function OnlineUsersTable() {
     return ROLE_BADGES[role || ""] || ROLE_BADGES.Default;
   };
 
+  if (!isManagementAdmin) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <Shield className="mx-auto mb-3 text-slate-400" size={28} />
+            <h1 className="font-bold text-slate-800">Access restricted</h1>
+            <p className="mt-1 text-sm text-slate-500">Only an authorized administrator can manage users.</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
+    <ProtectedRoute>
     <div className='min-h-screen bg-slate-100/70 font-sans text-slate-800 antialiased'>
       {/* Enterprise System Header */}
       <header className='bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md'>
@@ -481,6 +540,7 @@ export default function OnlineUsersTable() {
                         {/* Full Name */}
                         <td className='py-3 px-4 font-bold text-slate-900'>
                           <div className='flex items-center gap-2'>
+                            <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} />
                             <span>{user.name}</span>
                             {user.status ? (
                               <span className='w-2 h-2 rounded-full bg-emerald-500' title='Online'></span>
@@ -609,7 +669,9 @@ export default function OnlineUsersTable() {
                   <div>
                     {/* Header bar */}
                     <div className='flex items-start justify-between border-b border-slate-100 pb-3 mb-3'>
-                      <div>
+                      <div className='flex items-center gap-2'>
+                        <ProfileAvatar userId={user.id} name={user.name} version={photoVersion} />
+                        <div>
                         <div className='flex items-center gap-1.5'>
                           <h3 className='font-bold text-slate-900 text-sm'>
                             {user.name}
@@ -618,6 +680,7 @@ export default function OnlineUsersTable() {
                         <p className='text-xs text-slate-500 font-medium mt-0.5'>
                           {user.position || "No position"}
                         </p>
+                        </div>
                       </div>
 
                       <span
@@ -947,6 +1010,35 @@ export default function OnlineUsersTable() {
 
             {/* Form Body */}
             <div className='p-6 space-y-6 max-h-[75vh] overflow-y-auto bg-slate-50/50'>
+              {/* Profile Photo */}
+              <div className='bg-white p-4 rounded-lg border border-slate-200 shadow-2xs space-y-3'>
+                <div className='flex items-center gap-1.5 border-b border-slate-100 pb-2 text-xs font-bold text-indigo-700 uppercase tracking-wider'>
+                  <Camera size={14} />
+                  <span>Profile Photo</span>
+                </div>
+                <div className='flex items-center gap-4'>
+                  <ProfileAvatar userId={selectedUser.id} name={selectedUser.name} version={photoVersion} />
+                  <div>
+                    <label className='inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer'>
+                      <Camera size={14} />
+                      {photoUploading ? "Uploading..." : "Upload / Replace Photo"}
+                      <input
+                        type='file'
+                        accept='image/jpeg,image/png,image/webp'
+                        className='hidden'
+                        disabled={photoUploading}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          void uploadProfilePhoto(file);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                    <p className='mt-1 text-[11px] text-slate-500'>JPG, PNG, or WebP; maximum 5 MB. Only authorized administrators can change photos.</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Credentials & Sign */}
               <div className='bg-white p-4 rounded-lg border border-slate-200 shadow-2xs space-y-3'>
                 <div className='flex items-center gap-1.5 border-b border-slate-100 pb-2 text-xs font-bold text-indigo-700 uppercase tracking-wider'>
@@ -1149,5 +1241,6 @@ export default function OnlineUsersTable() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

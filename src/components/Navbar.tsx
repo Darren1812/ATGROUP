@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
+import ProfileAvatar from "@/components/ProfileAvatar";
 import { Home, LogOut, Menu, X, ChevronDown, Truck, Printer } from "lucide-react";
 
 export default function Navbar() {
@@ -116,9 +117,7 @@ export default function Navbar() {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-700 font-medium text-sm hover:bg-slate-100 transition-all duration-200 border border-slate-200"
               >
-                <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
+                <ProfileAvatar userId={user?.id} name={user?.name || 'User'} className="h-8 w-8" />
                 <span className="hidden xl:inline">{user?.name || 'User'}</span>
                 <ChevronDown
                   size={16}
@@ -181,9 +180,7 @@ export default function Navbar() {
             {/* Mobile User Info */}
             <div className="px-4 py-3 bg-slate-50 rounded-lg mt-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-white font-semibold">
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
+                <ProfileAvatar userId={user?.id} name={user?.name || 'User'} className="h-10 w-10" />
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
                   <p className="text-xs text-slate-500 capitalize">{user?.department || 'User'}</p>
