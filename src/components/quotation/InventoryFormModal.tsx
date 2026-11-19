@@ -7,11 +7,12 @@ const TYPE_SUGGESTIONS = ["DIS", "TRANSPORTATION", "REMARKS", "OTHER"];
 
 type Props = {
   item: QuotationInventory | null;
+  mode: "create" | "edit" | "duplicate";
   onClose: () => void;
   onSave: (dto: SaveDto) => Promise<void>;
 };
 
-export default function InventoryFormModal({ item, onClose, onSave }: Props) {
+export default function InventoryFormModal({ item, mode, onClose, onSave }: Props) {
   const [itemType, setItemType] = useState(item?.itemType ?? "");
   const [productCode, setProductCode] = useState(item?.productCode ?? "");
   const [productName, setProductName] = useState(item?.productName ?? "");
@@ -51,8 +52,8 @@ export default function InventoryFormModal({ item, onClose, onSave }: Props) {
       <form onSubmit={submit} className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
         <div className="border-b border-slate-100 px-6 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-700">Inventory</p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-900">{item ? "Edit item" : "Add item"}</h2>
-          <p className="mt-1 text-sm text-slate-500">Product name is optional. Leave it blank when it does not apply.</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">{mode === "edit" ? "Edit item" : mode === "duplicate" ? "Duplicate item" : "Add item"}</h2>
+          <p className="mt-1 text-sm text-slate-500">{mode === "duplicate" ? "Review and change the copied details, then save as a new inventory item." : "Product name is optional. Leave it blank when it does not apply."}</p>
         </div>
 
         <div className="space-y-4 px-6 py-5">
@@ -88,7 +89,7 @@ export default function InventoryFormModal({ item, onClose, onSave }: Props) {
 
         <div className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-          <button type="submit" disabled={saving} className="rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Saving…" : "Save item"}</button>
+          <button type="submit" disabled={saving} className="rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Saving…" : mode === "edit" ? "Save changes" : "Save as new item"}</button>
         </div>
       </form>
     </div>

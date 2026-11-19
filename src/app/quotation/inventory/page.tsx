@@ -16,6 +16,7 @@ import {
   listTypes,
   updateInventory,
 } from "@/lib/quotationInventoryApi";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 
 const PAGE_SIZE = 50;
 function formatPrice(value: number | null) {
@@ -33,7 +34,10 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [editing, setEditing] = useState<QuotationInventory | null | undefined>(undefined);
+  const [formState, setFormState] = useState<{
+    item: QuotationInventory | null;
+    mode: "create" | "edit" | "duplicate";
+  } | null>(null);
   const [importing, setImporting] = useState(false);
   const [importOk, setImportOk] = useState<ImportResult | null>(null);
   const [importErr, setImportErr] = useState<{ message: string; errors?: string[] } | null>(null);
@@ -80,9 +84,9 @@ export default function InventoryPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   async function handleSave(dto: SaveDto) {
-    if (editing) await updateInventory(editing.id, dto);
+    if (formState?.mode === "edit" && formState.item) await updateInventory(formState.item.id, dto);
     else await createInventory(dto);
-    setEditing(undefined);
+    setFormState(null);
     setReloadKey((key) => key + 1);
   }
 
@@ -139,7 +143,7 @@ export default function InventoryPage() {
             {importing ? "Replacing inventory…" : "Import Excel"}
           </button>
           <a href={exportUrl(type || undefined)} className={buttonClass}>Export Excel</a>
-          <button onClick={() => setEditing(null)} className="inline-flex items-center justify-center rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700">Add item</button>
+          <button onClick={() => setFormState({ item: null, mode: "create" })} className="inline-flex items-center justify-center rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700">Add item</button>
         </div>
       </div>
 
@@ -190,8 +194,11 @@ export default function InventoryPage() {
                   <td className={`px-5 py-4 text-right tabular-nums ${((item.listPrice ?? 0) < 0) ? "text-red-600" : "text-slate-700"}`}>{formatPrice(item.listPrice)}</td>
                   <td className="max-w-xs whitespace-pre-line px-5 py-4 text-slate-500">{item.additionalInfo || "—"}</td>
                   <td className="whitespace-nowrap px-5 py-4 text-right">
-                    <button onClick={() => setEditing(item)} className="font-medium text-orange-700 hover:text-orange-900">Edit</button>
-                    <button onClick={() => handleDelete(item)} className="ml-4 font-medium text-red-600 hover:text-red-800">Delete</button>
+                    <div className="inline-flex items-center gap-1">
+                      <button onClick={() => setFormState({ item, mode: "edit" })} title="Edit item" aria-label={`Edit ${item.productCode || item.productName || "item"}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"><Pencil size={16} /></button>
+                      <button onClick={() => setFormState({ item, mode: "duplicate" })} title="Duplicate item" aria-label={`Duplicate ${item.productCode || item.productName || "item"}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"><Copy size={16} /></button>
+                      <button onClick={() => handleDelete(item)} title="Delete item" aria-label={`Delete ${item.productCode || item.productName || "item"}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"><Trash2 size={16} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -209,7 +216,7 @@ export default function InventoryPage() {
         </div>
       </section>
 
-      {editing !== undefined && <InventoryFormModal item={editing} onClose={() => setEditing(undefined)} onSave={handleSave} />}
+      {formState && <InventoryFormModal item={formState.item} mode={formState.mode} onClose={() => setFormState(null)} onSave={handleSave} />}
     </main>
   );
 }

@@ -84,10 +84,9 @@ export default function Navbar({
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#cfe8d5] text-sm font-black text-[#171719]">AT</div>
             ) : (
               <>
-                <div className="rounded-xl bg-white px-3 py-2">
-                  <Image src="/images/logo-top-panel-atgroup.png" alt="AT Group Logo" width={145} height={44} className="h-auto w-full object-contain" priority />
+                <div className="rounded-xl px-3 py-2">
+                  <Image src="/images/AT GROUP LOGO_WHITE-02.png" alt="AT Group Logo" width={145} height={44} className="h-auto w-full object-contain" priority />
                 </div>
-                <p className="mt-2 pl-1 text-[10px] text-white/45">Management System</p>
               </>
             )}
           </button>
@@ -129,7 +128,7 @@ export default function Navbar({
       {/* Mobile top bar */}
       <div className="flex h-16 items-center justify-between px-4 md:hidden">
         <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2">
-          <Image src="/images/logo-top-panel-atgroup.png" alt="AT Group Logo" width={128} height={42} className="h-9 w-auto object-contain" priority />
+          <Image src="/images/logo-top-panel-atgroup.png" alt="AT Group Logo" width={145} height={42} className="h-9 w-auto object-contain" priority />
         </button>
         <div className="flex items-center gap-3">
           <ProfileAvatar userId={user?.id} name={user?.name || "User"} className="h-8 w-8" />
