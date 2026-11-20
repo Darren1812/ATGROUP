@@ -12,6 +12,11 @@ export type QuotationGenerateDto = {
   items: { inventoryId: number; qty: number; months: string }[];
 };
 
+export type QuotationExportDestination = "download" | "synology";
+export type QuotationExportResult =
+  | { destination: "download"; blob: Blob; fileName: string }
+  | { destination: "synology"; fileName: string };
+
 async function readFileResponse(response: Response, fallbackName: string, action: string) {
   if (!response.ok) {
     let message = `${action} failed (${response.status}).`;
@@ -61,12 +66,41 @@ export function previewQuotation(dto: QuotationGenerateDto) {
   return postQuotation(`${API_URL}/api/quotation/preview`, dto, `Quotation_${safeReference(dto.ref)}.pdf`, "Preview");
 }
 
-export function generateQuotation(dto: QuotationGenerateDto, format: "pdf" | "docx") {
+export async function generateQuotation(
+  dto: QuotationGenerateDto,
+  format: "pdf" | "docx",
+  destination: QuotationExportDestination = "download",
+  createdBy?: string
+): Promise<QuotationExportResult> {
   const extension = format === "docx" ? "docx" : "pdf";
-  return postQuotation(
-    `${API_URL}/api/quotation/generate?format=${format}`,
-    dto,
-    `Quotation_${safeReference(dto.ref)}.${extension}`,
-    `Quotation export (${extension.toUpperCase()})`
-  );
+  const params = new URLSearchParams({ format });
+  if (destination === "synology") {
+    params.set("saveToSynology", "true");
+    if (createdBy) params.set("createdBy", createdBy);
+  }
+
+  const url = `${API_URL}/api/quotation/generate?${params}`;
+  const fallbackName = `Quotation_${safeReference(dto.ref)}.${extension}`;
+
+  if (destination === "synology") {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    });
+    if (!response.ok) {
+      let message = `Quotation save failed (${response.status}).`;
+      try {
+        const body = await response.json();
+        message = body.message ?? body.title ?? message;
+      } catch { /* Keep the status-based error message. */ }
+      throw new Error(message);
+    }
+    const body = await response.json();
+    if (!body.fileName) throw new Error("The server did not confirm the Synology save.");
+    return { destination, fileName: body.fileName as string };
+  }
+
+  const result = await postQuotation(url, dto, fallbackName, `Quotation export (${extension.toUpperCase()})`);
+  return { destination, ...result };
 }

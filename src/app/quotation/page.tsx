@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowDownToLine, Eye, FileText, LoaderCircle, PackagePlus, Search, Trash2, X } from "lucide-react";
 import { listInventory, QuotationInventory } from "@/lib/quotationInventoryApi";
 import { generateQuotation, previewQuotation, type QuotationGenerateDto } from "@/lib/quotationApi";
+import { useAuth } from "@/context/AuthContext";
 
 type QuotationLine = { inventoryId: number; qty: number; months: string };
 
@@ -41,6 +42,7 @@ function getReferencePrefix(template: QuotationGenerateDto["template"], date: st
 }
 
 export default function QuotationPage() {
+  const { user } = useAuth();
   const [inventory, setInventory] = useState<QuotationInventory[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryError, setInventoryError] = useState<string | null>(null);
@@ -60,6 +62,8 @@ export default function QuotationPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewPayload, setPreviewPayload] = useState<QuotationGenerateDto | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportDestination, setExportDestination] = useState<"download" | "synology">("download");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -180,6 +184,7 @@ export default function QuotationPage() {
       setPreviewPayload(payload);
       setPreviewUrl(URL.createObjectURL(result.blob));
       setExportError(null);
+      setExportMessage(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to preview the quotation.");
     } finally {
@@ -190,9 +195,19 @@ export default function QuotationPage() {
   async function handleExport(format: "pdf" | "docx") {
     if (!previewPayload) return;
     setExportError(null);
+    setExportMessage(null);
     setExporting(format);
     try {
-      const result = await generateQuotation(previewPayload, format);
+      const result = await generateQuotation(
+        previewPayload,
+        format,
+        exportDestination,
+        user?.nameUse || user?.name || "Unknown user"
+      );
+      if (result.destination === "synology") {
+        setExportMessage(`${result.fileName} saved to the Synology Quotation folder.`);
+        return;
+      }
       const url = URL.createObjectURL(result.blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -212,6 +227,7 @@ export default function QuotationPage() {
     setPreviewUrl(null);
     setPreviewPayload(null);
     setExportError(null);
+    setExportMessage(null);
   }
 
   return (
@@ -426,16 +442,24 @@ export default function QuotationPage() {
             <footer className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-800">Looks good?</p>
-                <p className="text-xs text-slate-500">Choose PDF for sharing or Word if you want to edit the document.</p>
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+                  <span>Save location</span>
+                  <select value={exportDestination} onChange={(event) => setExportDestination(event.target.value as "download" | "synology")} disabled={!!exporting} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+                    <option value="download">Download to this computer</option>
+                    <option value="synology">Synology — /volume1/Marketing_Folder/Quotation</option>
+                  </select>
+                </label>
+                <p className="mt-1 text-xs text-slate-500">Choose PDF for sharing or Word if you want to edit the document.</p>
                 {exportError && <p role="alert" className="mt-1 text-xs text-red-600">{exportError}</p>}
+                {exportMessage && <p role="status" className="mt-1 text-xs text-emerald-700">{exportMessage}</p>}
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                 <button type="button" onClick={closePreview} disabled={!!exporting} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">Back to edit</button>
                 <button type="button" onClick={() => handleExport("docx")} disabled={!!exporting} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
-                  {exporting === "docx" ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />} Export Word
+                  {exporting === "docx" ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />} {exportDestination === "synology" ? "Save Word" : "Export Word"}
                 </button>
                 <button type="button" onClick={() => handleExport("pdf")} disabled={!!exporting} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50">
-                  {exporting === "pdf" ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowDownToLine size={16} />} Export PDF
+                  {exporting === "pdf" ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowDownToLine size={16} />} {exportDestination === "synology" ? "Save PDF" : "Export PDF"}
                 </button>
               </div>
             </footer>
